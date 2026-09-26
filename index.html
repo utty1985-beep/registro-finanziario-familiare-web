@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare · V13</title>
+<title>Registro Finanziario Familiare · V14</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -135,7 +135,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V13</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V14</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><button id="openBoard" type="button">📝 Appunti / Cose da comprare <span id="boardBadge" class="boardBadge" hidden>0</span></button></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Questo telefono può leggere il registro e inviare importi da confermare sul telefono principale.</div>
@@ -484,7 +484,7 @@ $('#sendManualRequest').onclick=async()=>{
  }catch(e){
   console.log('Invio richiesta manuale:',e);
   button.disabled=false;
-  status.textContent='Invio non riuscito. Controlla Internet e riprova.';
+  status.textContent='ERRORE INVIO: '+(e?.message||e?.details||e?.code||'errore sconosciuto');
  }
 };
 $('#startDate').onchange=e=>{if(e.target.value.startsWith(month)){data().daily.start=e.target.value;save();renderDaily()}};
@@ -641,7 +641,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v13-rpc-send-fix', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v14-diagnostica-invio', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
