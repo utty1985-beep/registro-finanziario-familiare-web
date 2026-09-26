@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare · V5</title>
+<title>Registro Finanziario Familiare · V6</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -135,7 +135,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V5</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V6</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><button id="openBoard" type="button">📝 Appunti / Cose da comprare <span id="boardBadge" class="boardBadge" hidden>0</span></button></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Questo telefono può leggere il registro e inviare importi da confermare sul telefono principale.</div>
@@ -170,14 +170,14 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 
 <section id="p2" class="page">
  <div class="toolbar"><button id="prevM2">‹</button><div class="month" id="monthTitle2"></div><button id="nextM2">›</button></div>
- <details id="paymentDrawer" class="paymentDrawer"><summary>Pagamenti e richieste da confermare</summary>
+ <details id="paymentDrawer" class="paymentDrawer"><summary>Pagamenti e richieste da confermare <span id="drawerBadge" class="boardBadge" hidden>0</span></summary>
+ <div class="card pending"><span class="badge" id="badge" hidden>0</span><h2>Importi da confermare</h2><div class="pendingList" id="pendingList"><div class="hint">Nessun importo da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div>
  <div class="card"><h2>Aggiungi un pagamento</h2><div class="entryForm">
  <div class="full"><b>Segno</b> <span class="signs"><label><input type="radio" name="entrySign" value="+" checked>+</label><label><input type="radio" name="entrySign" value="-">−</label></span></div>
  <label>Importo (€)<input id="entryAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></label>
  <label>Categoria<select id="entryCategory"><option>Mangiare</option><option>Diesel</option><option>Benzina</option><option>Metano</option><option>Varie</option></select></label>
  <label class="full">Giorno del pagamento<input id="entryDate" type="date"></label>
  <button id="addEntry" class="primary">+ Aggiungi pagamento</button></div><div id="entryHistory"></div></div>
- <div class="card pending"><span class="badge" id="badge" hidden>0</span><h2>Importi da confermare</h2><div class="pendingList" id="pendingList"><div class="hint">Nessun importo da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div>
  </details>
  <div class="card"><h2>Calendario e rimanenza</h2><label>Mostra i giorni dal <input id="viewDate" type="date"></label></div>
  <div class="tableWrap"><table><thead><tr><th>Giorno</th><th>Mangiare</th><th>Diesel</th><th>Benzina</th><th>Metano</th></tr></thead><tbody id="dailyBody"></tbody></table></div>
@@ -415,7 +415,7 @@ function renderEntryHistory(){
  });applyPermissions();
 }
 function escapeNotice(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function renderPending(){let p=data().daily.pending,b=$('#badge'),h=$('#pendingList'),indicator=$('#noticeIndicator');b.hidden=!p.length;b.textContent=p.length;const total=familyRole==='owner'?Object.values(db).reduce((sum,m)=>sum+(m.daily?.pending?.length||0),0):0;indicator.hidden=!total;indicator.textContent=total;indicator.setAttribute('aria-label',`${total} importi da confermare`);h.innerHTML=p.length?'':'<div class="hint">Nessun importo da confermare.</div>';
+function renderPending(){let p=data().daily.pending,b=$('#badge'),drawerBadge=$('#drawerBadge'),h=$('#pendingList'),indicator=$('#noticeIndicator');b.hidden=!p.length;b.textContent=p.length;drawerBadge.hidden=!p.length;drawerBadge.textContent=p.length;const total=familyRole==='owner'?Object.values(db).reduce((sum,m)=>sum+(m.daily?.pending?.length||0),0):0;indicator.hidden=!total;indicator.textContent=total;indicator.setAttribute('aria-label',`${total} importi da confermare`);h.innerHTML=p.length?'':'<div class="hint">Nessun importo da confermare.</div>';
  p.forEach((n,i)=>{let x=document.createElement('div');x.className='notice';const requestSign=n.desc?.startsWith('Inserimento manuale +')?'+':n.desc?.startsWith('Inserimento manuale −')?'−':null;const noticeDt=n.occurredAt?new Date(n.occurredAt):null;const noticeWhen=noticeDt&&Number.isFinite(noticeDt.getTime())?noticeDt.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';x.innerHTML=`<b>${requestSign||''} € ${euro(n.amount)}</b> ${escapeNotice(n.desc||'')}${noticeWhen?`<br><small>Inviato: ${escapeNotice(noticeWhen)}</small>`:''}<br><select><option>Mangiare</option><option>Diesel</option><option>Benzina</option><option>Metano</option><option>Varie</option></select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"> <button>Conferma</button>`;
  x.querySelector('select').value=['Mangiare','Diesel','Benzina','Metano','Varie'].includes(n.category)?n.category:'Varie';if(n.day)x.querySelector('input').value=n.day;
  x.querySelector('button').onclick=async()=>{
@@ -467,14 +467,16 @@ async function fetchInbox(){
  try{
   let rows=null,error=null;
   ({data:rows,error}=await sb.rpc('rff_pending_payments',deviceArgs()));
-  if(error||!Array.isArray(rows)||rows.length===0){
-   const direct=await sb.from('payment_inbox').select('*').eq('family_id',familyId).order('occurred_at',{ascending:true});
-   if(!direct.error&&Array.isArray(direct.data)){
-    const pending=direct.data.filter(r=>!r.confirmed_at&&!r.confirmed);
-    if(pending.length){rows=pending;error=null}
-   }
+  // V6: usa anche la stessa coda condivisa che alimenta la lavagna.
+  // In questo modo una richiesta del secondo telefono non viene persa se la RPC restituisce una lista vuota/stale.
+  let merged=Array.isArray(rows)?rows.slice():[];
+  const direct=await sb.from('payment_inbox').select('*').eq('family_id',familyId).order('occurred_at',{ascending:true});
+  if(!direct.error&&Array.isArray(direct.data)){
+   const pending=direct.data.filter(r=>!r.confirmed_at&&!r.confirmed);
+   for(const r of pending)if(!merged.some(x=>x.id===r.id))merged.push(r);
+   error=null;
   }
-  if(error)throw error;rows=Array.isArray(rows)?rows:[];let changed=false;
+  if(error)throw error;rows=merged;let changed=false;
   for(const row of rows||[]){const desc=String(row.description||'');if(desc.startsWith('__RFF_BOARD_ADD__')||desc.startsWith('__RFF_BOARD_DEL__')){let boardChanged=false;if(desc.startsWith('__RFF_BOARD_ADD__')){try{const item=JSON.parse(desc.slice('__RFF_BOARD_ADD__'.length));if(item?.id&&item?.text&&!boardItems().some(x=>x.id===item.id)){boardItems().push(item);boardChanged=true}}catch(e){}}else{const id=desc.slice('__RFF_BOARD_DEL__'.length),before=boardItems().length;db.__sharedBoard=boardItems().filter(x=>x.id!==id);boardChanged=before!==db.__sharedBoard.length}if(boardChanged)localStorage.setItem('rff_verified',JSON.stringify(db));const done=await sb.rpc('rff_confirm_payment',{...deviceArgs(),p_inbox_id:row.id,p_data:db});if(done.error)throw done.error;if(boardChanged){changed=true;renderBoard()}continue}
    const dt=new Date(row.occurred_at);if(!Number.isFinite(dt.getTime()))continue;
    const key=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
@@ -609,7 +611,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-sync-ripresa-11', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v6-notifiche-12', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
