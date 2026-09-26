@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare · V6</title>
+<title>Registro Finanziario Familiare · V7</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -139,7 +139,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><button id="openBoard" type="button">📝 Appunti / Cose da comprare <span id="boardBadge" class="boardBadge" hidden>0</span></button></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Questo telefono può leggere il registro e inviare importi da confermare sul telefono principale.</div>
-<div class="card" id="pairingCard" hidden><h2>Telefoni da autorizzare</h2><div id="pairingList"></div></div>
+
 <section id="viewerHome" class="page">
  <div class="card"><h2>Invia un importo</h2><div class="entryForm">
  <div class="full"><b>Segno</b><span class="signs"><label><input type="radio" name="requestSign" value="-" checked>−</label><label><input type="radio" name="requestSign" value="+">+</label></span></div>
@@ -230,7 +230,7 @@ function save(){
 function saveLocalOnly(){localStorage.setItem('rff_verified',JSON.stringify(db))}
 function applyPermissions(){
  const viewer=familyRole==='viewer';$('#viewerBanner').hidden=!viewer;
- $('#pairingCard').hidden=familyRole!=='owner';
+ const pairingCard=$('#pairingCard');if(pairingCard)pairingCard.hidden=true;
  $('#monthViewerBack').hidden=!viewer;$('#dailyViewerBack').hidden=!viewer;
  $('#sentinelBar').hidden=!(familyRole==='owner'&&window.RegistroAndroid);
  // Il registro resta in sola lettura sul secondo telefono, ma il pannello di invio e la lavagna restano scrivibili.
@@ -552,13 +552,13 @@ async function enter(session){
    return;
   }
   await loadCloud();gate.classList.add('hidden');say('');renderBoard();
-  if(familyRole==='owner'){await sendAndroidPayments();await fetchInbox();await showPairingRequests()}
+  if(familyRole==='owner'){await sendAndroidPayments();await fetchInbox()}
   else {const today=new Date();$('#requestDate').value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');openViewerPage('viewerHome')}
-  roleTimer=setInterval(()=>{if(document.hidden)return;if(familyRole==='owner'){sendAndroidPayments();fetchInbox();showPairingRequests()}else if(familyRole==='viewer'){loadCloud().then(renderBoard).catch(e=>console.log('Aggiornamento:',e))}},3000);
+  roleTimer=setInterval(()=>{if(document.hidden)return;if(familyRole==='owner'){sendAndroidPayments();fetchInbox()}else if(familyRole==='viewer'){loadCloud().then(renderBoard).catch(e=>console.log('Aggiornamento:',e))}},2000);
   // Recupera subito le richieste quando l'app torna in primo piano.
   if(!window.__rffSyncResumeInstalled){
    window.__rffSyncResumeInstalled=true;
-   const syncResume=()=>{if(document.hidden||!familyId)return;if(familyRole==='owner'){fetchInbox();showPairingRequests()}else if(familyRole==='viewer'){loadCloud().then(renderBoard).catch(e=>console.log('Aggiornamento:',e))}};
+   const syncResume=()=>{if(document.hidden||!familyId)return;if(familyRole==='owner'){fetchInbox()}else if(familyRole==='viewer'){loadCloud().then(renderBoard).catch(e=>console.log('Aggiornamento:',e))}};
    document.addEventListener('visibilitychange',syncResume);
    window.addEventListener('focus',syncResume);
    window.addEventListener('pageshow',syncResume);
@@ -613,7 +613,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v6-notifiche-12', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v7-work-sync-13', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
