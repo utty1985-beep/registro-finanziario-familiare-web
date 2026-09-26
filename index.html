@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare</title>
+<title>Registro Finanziario Familiare V31</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -49,7 +49,10 @@ input,select{border:1px solid var(--bd);border-radius:9px;padding:8px;background
 .dailyTop label{font-size:12px;font-weight:800;display:block}
 .dailyTop input{width:100%;margin-top:4px}
 .tableWrap{overflow-x:auto;background:#fff;border:1px solid var(--bd);border-radius:14px}
-table{border-collapse:separate;border-spacing:0;width:100%;min-width:650px}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:0;table-layout:fixed}
+#dailyHead th:first-child{width:32%}
+#dailyHead th:not(:first-child){width:auto}
+@media(max-width:600px){#dailyHead th:first-child{width:34%}.moneyCell{min-width:0}.moneyCell input{width:100%}}
 th,td{padding:6px;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;text-align:center}
 th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-child{left:0;z-index:4}
 .day{font-weight:800;white-space:nowrap;position:sticky;left:0;background:#fff;z-index:2}.today td{background:#ffe5e5}.today .day{background:#ffd6d6}
@@ -57,20 +60,20 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 .res{display:block;font-size:11px;color:#52606d;margin-top:3px}.res strong{color:#0b4f8a}
 .varieBox{font-size:12px;text-align:left;min-width:160px}.strike{text-decoration:line-through;opacity:.55}
 .pending{position:relative}.badge{position:absolute;left:9px;top:9px;background:var(--r);color:#fff;border-radius:999px;min-width:25px;height:25px;display:grid;place-items:center;font-weight:900}
-.entryForm{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}
-.entryForm label{font-weight:800}.entryForm input,.entryForm select{width:100%;margin-top:4px}
-.entryForm .full{grid-column:1/-1}.entryForm button{grid-column:1/-1;font-size:20px;font-weight:900;padding:12px}
+.entryForm{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:8px 0}
+.entryForm label{font-weight:800;font-size:14px}.entryForm input,.entryForm select{width:100%;margin-top:3px;padding:8px 10px;min-height:42px;font-size:16px}
+.entryForm .full{grid-column:1/-1}.entryForm button{grid-column:1/-1;font-size:17px;font-weight:900;padding:9px 12px;min-height:46px}.entryForm+.entryHistory{margin-top:6px}
 .signs{display:flex;gap:8px}.signs label{flex:1;display:flex;align-items:center;justify-content:center;border:2px solid #0b4f8a;border-radius:12px;font-size:28px;min-height:54px}.signs input{width:auto;margin:0 6px 0 0}
 .entryLine{padding:7px 0;border-bottom:1px solid #ddd;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .entryLine button{font-size:20px}
 .varieItem{padding:10px 0;border-bottom:1px solid #dce4ea}
-.varieBase{display:grid;grid-template-columns:minmax(0,1fr) 115px;gap:8px;align-items:center}
+.varieBase{display:grid;grid-template-columns:minmax(0,1fr) 115px auto;gap:8px;align-items:center}
 .varieBase input{min-width:0;width:100%}
 .varieAdjust{display:grid;grid-template-columns:75px minmax(0,1fr) auto;gap:8px;align-items:center;margin-top:8px}
 .varieAdjust select,.varieAdjust input{width:100%;font-size:18px;min-width:0}
 .varieResult{font-weight:900;color:#0b4f8a;margin-top:8px}
 .varieAdjustments{font-size:13px;color:#52606d;margin-top:5px}.pendingList{padding-top:24px}.notice{border:1px solid #ef9a9a;background:#fff4f4;border-radius:10px;padding:8px;margin:7px 0;color:#a31515}
-.nav{display:flex;justify-content:space-between;margin-top:12px}.nav button{font-size:22px;min-width:54px}
+.boardList{display:grid;gap:8px;margin-top:10px}.boardItem{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:10px;border:1px solid var(--bd);border-radius:10px;background:#fff}.boardItem button{background:#d9534f;color:#fff;border:0;border-radius:8px;padding:8px 10px}.boardAdd{display:grid;grid-template-columns:1fr auto;gap:8px}.boardAdd input{width:100%;padding:10px;border:1px solid var(--bd);border-radius:9px}.nav{display:flex;justify-content:space-between;margin-top:12px}.nav button{font-size:22px;min-width:54px}
 .hint{font-size:12px;color:#64748b;margin:5px 0 10px}
 .viewerBanner{background:#eaf4ff;color:#0b4f8a;padding:9px 12px;border-radius:10px;font-weight:700;margin-bottom:10px}
 .authGate{position:fixed;inset:0;background:#f4f7fb;z-index:9999;display:grid;place-items:center;padding:18px}
@@ -117,6 +120,8 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  th:first-child{width:10%}.moneyCell{min-width:0}.moneyCell input{width:100%;text-align:center;padding:0!important}
  .varieBox{min-width:0}.res{font-size:8px}tr{break-inside:avoid;page-break-inside:avoid}
 }
+
+.settingsDrop{padding:0;overflow:hidden}.settingsDrop summary{list-style:none;cursor:pointer;padding:16px;display:flex;align-items:center;justify-content:space-between;font-size:18px;color:#0b5685}.settingsDrop summary::-webkit-details-marker{display:none}.settingsDrop summary span{transition:transform .2s}.settingsDrop[open] summary span{transform:rotate(180deg)}.settingsBody{padding:0 16px 16px}.settingsDrop:not([open]) .settingsBody{display:none}
 </style>
 <link rel="manifest" href="./manifest.json?v=20260924-abbinamento-2">
 <meta name="theme-color" content="#0b4f8a">
@@ -149,14 +154,14 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
    <div class="card balanceCard"><h2>Bilancio finale</h2><div class="total">Saldo: € <span id="balance">0,00</span></div></div>
   </div>
  </div>
- <div class="nav"><span></span><button class="primary" id="toDaily">→</button></div>
+ <div class="nav"><button id="toBoard">📝 Lavagna</button><button class="primary" id="toDaily">→</button></div>
 </section>
 
 <section id="p2" class="page">
  <div class="toolbar"><button id="prevM2">‹</button><div class="month" id="monthTitle2"></div><button id="nextM2">›</button></div>
- <div class="card">
-  <h2>Impostazioni giornaliere</h2>
-  <div class="dailyTop">
+ <details class="card settingsDrop">
+  <summary><b>Impostazioni giornaliere</b><span>▼</span></summary>
+  <div class="dailyTop settingsBody">
    <label>Inizia dal giorno<input id="startDate" type="date"></label>
    <label>Budget Mangiare al giorno (€)<input id="foodBudget" type="number" step="0.01" min="0"></label>
    <label>Extra sabato (€)<input id="satExtra" type="number" step="0.01" min="0"></label>
@@ -164,30 +169,39 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
    <div id="customColumns" class="full"></div>
    <button type="button" id="addCustomColumn" class="full primary">+ Crea colonna</button>
   </div>
- </div>
+ </details>
  <div class="card"><h2>Aggiungi un pagamento</h2><div class="entryForm">
  <div class="full"><b>Segno</b> <span class="signs"><label><input type="radio" name="entrySign" value="+" checked>+</label><label><input type="radio" name="entrySign" value="-">−</label></span></div>
  <label>Importo (€)<input id="entryAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></label>
  <label>Categoria<select id="entryCategory"></select></label>
  <label class="full">Giorno del pagamento<input id="entryDate" type="date"></label>
  <button id="addEntry" class="primary">+ Aggiungi pagamento</button></div><div id="entryHistory"></div></div>
- <div class="card"><label>Mostra i giorni fino al <input id="viewDate" type="date"></label></div>
+ <div class="card pending"><span class="badge" id="badge" hidden>0</span><h2>Notifiche da confermare</h2><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div>
+ <div class="card"><label>Mostra dal giorno <input id="viewDate" type="date"></label></div>
  <div class="tableWrap"><table><thead><tr id="dailyHead"><th>Giorno</th><th>Mangiare</th></tr></thead><tbody id="dailyBody"></tbody></table></div>
  <div class="card"><h2>Varie</h2><div class="hint">Le voci selezionate dalla prima pagina e i pagamenti confermati in Varie compaiono qui.</div><div id="varieSingle"></div></div>
- <div class="card pending"><span class="badge" id="badge" hidden>0</span><h2>Notifiche da confermare</h2><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div>
  <div class="card" id="sentinelBar" hidden><h2>Pagamenti dal telefono</h2><button id="authorizeNotices">Autorizza notifiche</button> <button id="sendNotices">Importa pagamenti</button><p class="hint" id="sendStatus">I pagamenti rilevati arrivano come spese da confermare.</p></div>
- <div class="nav"><button class="primary" id="toMonth">←</button><span></span></div>
+ <div class="nav"><button class="primary" id="toMonth">←</button><button id="toBoard2">📝 Lavagna</button></div>
 </section>
 </main>
+<section id="p3" class="page">
+ <div class="card">
+  <h2>📝 Lavagna familiare / Cose da comprare</h2>
+  <div class="boardAdd"><input id="boardText" placeholder="Scrivi un appunto o una cosa da comprare"><button class="primary" id="boardAdd">+ Aggiungi</button></div>
+  <div id="boardList" class="boardList"></div>
+ </div>
+ <div class="nav"><button class="primary" id="boardBack">← Registro</button><button class="primary" id="boardDaily">Spese →</button></div>
+</section>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (()=>{
 const $=s=>document.querySelector(s), euro=n=>(Number(n)||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
 $('#printRegister').onclick=()=>window.print();
-const now=new Date(), keyNow=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+let now=new Date(); const keyNow=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
 let month=keyNow;
-const defaultMonth=()=>({income:[['Stipendio Mario',0,true],['Stipendio Simona',0,true],['Assegno Unico',0,true]],planned:[],moves:[],rates:[],daily:{start:'',food:0,sat:0,columns:[],spend:{},pending:[]}});
+const defaultMonth=()=>({income:[['Stipendio Mario',0,true],['Stipendio Simona',0,true],['Assegno Unico',0,true]],planned:[],moves:[],rates:[],daily:{start:'',viewStart:'',food:0,sat:0,columns:[],spend:{},pending:[]}});
 let db=JSON.parse(localStorage.getItem('rff_verified')||'{}');
+function boardData(){if(!Array.isArray(db._board))db._board=[];return db._board}
 const SUPABASE_URL='https://dqtqwfvszrtndwipyluh.supabase.co';
 const SUPABASE_KEY='sb_publishable_Qsbu5wHMUJ6ZJGuMNb16vA_gBx74NsB';
 const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
@@ -204,7 +218,7 @@ function save(){
 }
 function applyPermissions(){
  const viewer=familyRole==='viewer';$('#viewerBanner').hidden=!viewer;
- $('#pairingCard').hidden=familyRole!=='owner';
+ $('#pairingCard').hidden=true;
  $('#sentinelBar').hidden=!(familyRole&&window.RegistroAndroid);
  // Navigazione e cambio mese restano disponibili; tutti i campi del registro sono bloccati.
  document.querySelectorAll('#p1 input:not(#monthPick),#p2 input,#p1 button,#p2 button').forEach(el=>{
@@ -283,19 +297,19 @@ function rowSign(r,kind){return r[3]==='+'||r[3]==='-'?r[3]:(kind==='moves'?(Num
 function rowEditor(arr,host,kind){
  host.innerHTML='';
  arr.forEach((r,i)=>{let d=document.createElement('div');d.className='row'+(kind==='planned'?' plannedRow':kind==='income'?'':' signedRow')+(r[4]?' pendingCarry':'');
- let sign=kind==='income'?'':`<select aria-label="Aggiungi o sottrai"><option value="+" ${rowSign(r,kind)==='+'?'selected':''}>+</option><option value="-" ${rowSign(r,kind)==='-'?'selected':''}>−</option></select>`;
+ let sign=(kind==='income'||kind==='planned')?'':`<select aria-label="Aggiungi o sottrai"><option value="+" ${rowSign(r,kind)==='+'?'selected':''}>+</option><option value="-" ${rowSign(r,kind)==='-'?'selected':''}>−</option></select>`;
  d.innerHTML=`<input type="text" value="${String(r[0]).replace(/"/g,'&quot;')}" aria-label="Descrizione">${sign}<input type="number" min="0" step="0.01" value="${Math.abs(Number(r[1])||0)}" aria-label="Importo">${kind==='planned'?`<input class="keep" type="checkbox" title="Mostra in Varie" aria-label="Mostra in Varie" ${r[2]?'checked':''}>`:''}<button class="del" title="Elimina voce">−</button>${r[4]?'<button class="confirmCarry" type="button">✓ Conferma voce</button>':''}`;
  let ins=d.querySelectorAll('input');
  ins[0].onfocus=e=>{if(e.target.value.trim().toLowerCase()==='nuova voce')e.target.value=''};
  ins[0].onchange=e=>{r[0]=e.target.value.trim()||'Nuova voce';e.target.value=r[0];save();renderDaily()};
- ins[1].onchange=e=>{r[1]=Math.abs(Number(e.target.value)||0);r[3]=kind==='income'?r[3]:d.querySelector('select').value;save();calc()};
- if(kind!=='income')d.querySelector('select').onchange=e=>{r[1]=Math.abs(Number(r[1])||0);r[3]=e.target.value;save();calc()};
+ ins[1].onchange=e=>{r[1]=Math.abs(Number(e.target.value)||0);if(kind==='planned')r[3]='-';else if(kind!=='income')r[3]=d.querySelector('select').value;save();calc()};
+ if(kind!=='income'&&kind!=='planned')d.querySelector('select').onchange=e=>{r[1]=Math.abs(Number(r[1])||0);r[3]=e.target.value;save();calc()};
  if(kind==='planned')ins[2].onchange=e=>{r[2]=e.target.checked;save();renderDaily()};d.querySelector('.del').onclick=()=>{arr.splice(i,1);save();render()};
  if(r[4])d.querySelector('.confirmCarry').onclick=()=>{r[4]=false;save();render()};host.appendChild(d)})
 }
 function add(kind){let a=data()[kind];a.push(['Nuova voce',0,true,kind==='moves'?'+':'-']);save();render()}
 function calc(){let d=data(),inc=d.income.reduce((s,x)=>s+(x[4]?0:(+x[1]||0)),0);
- let signed=(rows,kind)=>rows.reduce((sum,r)=>sum+(r[4]?0:(rowSign(r,kind)==='+'?1:-1)*Math.abs(Number(r[1])||0)),0);
+ let signed=(rows,kind)=>rows.reduce((sum,r)=>sum+(r[4]?0:(kind==='planned'?-1:(rowSign(r,kind)==='+'?1:-1))*Math.abs(Number(r[1])||0)),0);
  let plannedTotal=-signed(d.planned,'planned'),remaining=inc-plannedTotal;
  $('#incomeTotal').textContent=euro(inc);$('#plannedTotal').textContent=euro(plannedTotal);
  $('#incomeAfterPlanned').textContent=euro(remaining);$('#incomeAfterPlannedCard').classList.toggle('negative',remaining<0);
@@ -303,7 +317,7 @@ function calc(){let d=data(),inc=d.income.reduce((s,x)=>s+(x[4]?0:(+x[1]||0)),0)
 function render(){
  $('#monthPick').value=month;$('#monthTitle').textContent=title();$('#monthTitle2').textContent=title();
  let d=data();rowEditor(d.income,$('#incomeRows'),'income');rowEditor(d.planned,$('#plannedRows'),'planned');rowEditor(d.moves,$('#moveRows'),'moves');rowEditor(d.rates,$('#rateRows'),'rates');calc();renderDaily();applyPermissions()
-}
+ renderBoard();}
 function validStart(){
  let d=data().daily,[y,m]=ymParts(),last=new Date(y,m,0).getDate(),fallback=`${month}-01`;
  if(!d.start || !d.start.startsWith(month)) d.start=fallback;
@@ -321,35 +335,40 @@ function renderCustomColumns(){
  if(!cols.length)host.innerHTML='<div class="hint">Nessuna colonna creata. Premi “+ Crea colonna”.</div>';
  cols.forEach((c,i)=>{const row=document.createElement('div');row.className='row';row.innerHTML=`<input class="grow" type="text" placeholder="Nome colonna" value="${escapeNotice(c.name||'')}"><input type="number" step="0.01" min="0" inputmode="decimal" placeholder="Importo iniziale" value="${Number(c.budget)||0}"><button type="button" title="Elimina colonna">−</button>`;
   const [name,budget,del]=row.children;
-  name.onchange=()=>{c.name=name.value.trim()||'Colonna';save();renderDaily()};
+  name.onchange=()=>{c.name=name.value.trim();save();renderDaily()};
   budget.onchange=()=>{c.budget=Number(budget.value)||0;save();renderDaily()};
   del.onclick=()=>{if(!confirm('Eliminare questa colonna?'))return;data().daily.columns.splice(i,1);save();renderDaily()};host.appendChild(row)
  });applyPermissions()
 }
 function refreshCategorySelect(){
  const sel=$('#entryCategory');if(!sel)return;const old=sel.value;sel.innerHTML='';
- [['Mangiare','food'],...customCols().map(c=>[c.name||'Colonna',colKey(c)]),['Varie','varie']].forEach(([name,key])=>{const o=document.createElement('option');o.textContent=name;o.value=key;sel.appendChild(o)});
+ [['Mangiare','food'],...customCols().filter(c=>(c.name||'').trim()).map(c=>[c.name.trim(),colKey(c)]),['Varie','varie']].forEach(([name,key])=>{const o=document.createElement('option');o.textContent=name;o.value=key;sel.appendChild(o)});
  if([...sel.options].some(o=>o.value===old))sel.value=old
 }
 function categoryName(key){if(key==='food')return'Mangiare';if(key==='varie')return'Varie';const c=customCols().find(c=>colKey(c)===key);return c?c.name:'Varie'}
 function renderDaily(){
  let d=data().daily,start=validStart(),[y,m]=ymParts(),last=new Date(y,m,0).getDate();
+ if(!d.viewStart || !d.viewStart.startsWith(month)) d.viewStart=d.start;
+ const displayStart=Math.max(start,Number(d.viewStart.slice(-2))||start);
  if(!Array.isArray(d.columns)){d.columns=[];[['diesel','Diesel'],['benzina','Benzina'],['metano','Metano']].forEach(([k,n])=>{if(Number(d[k]||0)!==0)d.columns.push({id:k,name:n,budget:Number(d[k])||0})})}
  const todayKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
  const defaultEnd=month===todayKey.slice(0,7)?todayKey:(month<todayKey.slice(0,7)?month+'-'+String(last).padStart(2,'0'):month+'-01');
- const view=$('#viewDate');view.min=month+'-01';view.max=month===todayKey.slice(0,7)?todayKey:month+'-'+String(last).padStart(2,'0');
- if(!d.viewEnd||!d.viewEnd.startsWith(month))d.viewEnd=defaultEnd;if(d.viewEnd>view.max)d.viewEnd=view.max;view.value=d.viewEnd;
+ const view=$('#viewDate');view.min=month+'-01';view.max=month+'-'+String(last).padStart(2,'0');view.value=d.viewStart;
  const entryDate=$('#entryDate');entryDate.min=month+'-01';entryDate.max=month+'-'+String(last).padStart(2,'0');if(!entryDate.value.startsWith(month))entryDate.value=defaultEnd;
- const end=month>todayKey.slice(0,7)?0:Number(d.viewEnd.slice(-2));
+ const end=month>todayKey.slice(0,7)?last:(month===todayKey.slice(0,7)?now.getDate():last);
  $('#foodBudget').value=d.food||0;$('#satExtra').value=d.sat||0;renderCustomColumns();refreshCategorySelect();
- const head=$('#dailyHead');head.innerHTML='<th>Giorno</th><th>Mangiare</th>'+customCols().map(c=>`<th>${escapeNotice(c.name||'Colonna')}</th>`).join('');
- let body=$('#dailyBody');body.innerHTML='';let foodCarry=0;const spent={};customCols().forEach(c=>spent[colKey(c)]=0);
+ const activeCols=customCols().filter(c=>(c.name||'').trim());
+ const head=$('#dailyHead');head.innerHTML='<th>Giorno</th><th>Mangiare</th>'+activeCols.map(c=>`<th>${escapeNotice(c.name.trim())}</th>`).join('');
+ const totalCols=2+activeCols.length;
+ head.closest('table').style.minWidth=totalCols<=3?'0':Math.max(520,totalCols*145)+'px';
+ head.querySelector('th:first-child').style.width=totalCols===2?'42%':(totalCols===3?'30%':'120px');
+ let body=$('#dailyBody');body.innerHTML='';let foodCarry=0;const spent={};activeCols.forEach(c=>spent[colKey(c)]=0);
  for(let day=start;day<=end;day++){
   let dt=new Date(y,m-1,day),sp=spendObj(day),isSat=dt.getDay()===6;
   foodCarry+=(+d.food||0)+(isSat?(+d.sat||0):0);foodCarry-=(+sp.food||0);foodCarry+=entriesFor(day,'food');
-  let cells=customCols().map(c=>{const k=colKey(c);spent[k]+=(+sp[k]||0)-entriesFor(day,k);return cell(day,k,entriesFor(day,k)-(+sp[k]||0),(+c.budget||0)-spent[k],'residuo')}).join('');
+  let cells=activeCols.map(c=>{const k=colKey(c);spent[k]+=(+sp[k]||0)-entriesFor(day,k);return cell(day,k,entriesFor(day,k)-(+sp[k]||0),(+c.budget||0)-spent[k],'residuo')}).join('');
   let tr=document.createElement('tr');if(y===now.getFullYear()&&m===now.getMonth()+1&&day===now.getDate())tr.className='today';
-  tr.innerHTML=`<td class="day">${dt.toLocaleDateString('it-IT',{weekday:'short'})} ${day}</td>${cell(day,'food',entriesFor(day,'food')-(+sp.food||0),foodCarry,'residuo')}${cells}`;body.appendChild(tr)
+  tr.innerHTML=`<td class="day">${dt.toLocaleDateString('it-IT',{weekday:'short'})} ${day}</td>${cell(day,'food',entriesFor(day,'food')-(+sp.food||0),foodCarry,'residuo')}${cells}`;if(day>=displayStart)body.appendChild(tr)
  }
  renderVarieSingle();renderEntryHistory();renderPending()
 }
@@ -357,7 +376,8 @@ function renderVarieSingle(){
  const host=$('#varieSingle'); if(!host) return;
  host.innerHTML='';
  const arr=data().planned;
- const selected=arr.map((r,i)=>({r,i})).filter(x=>x.r[2]&&!x.r[4]);
+ const hidden=data().daily.varieHidden||(data().daily.varieHidden={});
+ const selected=arr.map((r,i)=>({r,i})).filter(x=>x.r[2]&&!x.r[4]&&!hidden[x.i]);
  selected.forEach(({r,i})=>{
    const adjustments=data().daily.varieAdjustments||(data().daily.varieAdjustments=[]);
    const matching=adjustments.filter(x=>x.row===i);
@@ -366,7 +386,7 @@ function renderVarieSingle(){
    const base=document.createElement('div');base.className='varieBase';
    const name=document.createElement('input');name.type='text';name.value=r[0];name.readOnly=true;
    const value=document.createElement('input');value.type='number';value.step='0.01';value.value=Number(r[1])||0;value.setAttribute('aria-label','Importo iniziale '+r[0]);
-   value.onchange=()=>{const n=Number(value.value);if(!Number.isFinite(n)){value.value=r[1];return}r[1]=n;save();calc();renderVarieSingle()};base.append(name,value);
+   value.onchange=()=>{const n=Number(value.value);if(!Number.isFinite(n)){value.value=r[1];return}r[1]=n;save();calc();renderVarieSingle()};const del=document.createElement('button');del.type='button';del.textContent='🗑️';del.title='Elimina solo da Varie';del.setAttribute('aria-label','Elimina '+r[0]+' solo da Varie');del.onclick=()=>{if(familyRole!=='owner')return;hidden[i]=true;save();renderVarieSingle()};base.append(name,value,del);
    const adjust=document.createElement('div');adjust.className='varieAdjust';
    const sign=document.createElement('select');sign.innerHTML='<option value="-">−</option><option value="+">+</option>';sign.setAttribute('aria-label','Segno variazione '+r[0]);
    const amount=document.createElement('input');amount.type='number';amount.min='0.01';amount.step='0.01';amount.placeholder='Importo';amount.setAttribute('aria-label','Importo variazione '+r[0]);
@@ -383,7 +403,7 @@ function renderVarieSingle(){
  applyPermissions();
 }
 function cell(day,k,val,res,label){return `<td class="moneyCell"><strong>€ ${euro(val)}</strong><span class="res">${label}: <strong>€ ${euro(res)}</strong></span></td>`}
-$('#viewDate').onchange=e=>{if(e.target.value.startsWith(month)){data().daily.viewEnd=e.target.value;save();renderDaily()}};
+$('#viewDate').onchange=e=>{if(e.target.value.startsWith(month)){data().daily.viewStart=e.target.value;save();renderDaily()}};
 $('#addEntry').onclick=async()=>{
  const amount=Number($('#entryAmount').value),date=$('#entryDate').value;
  if(!Number.isFinite(amount)||amount<=0||!date.startsWith(month)){alert('Inserisci importo e giorno validi.');return}
@@ -424,7 +444,7 @@ function renderEntryHistory(){
 }
 function escapeNotice(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function renderPending(){let p=data().daily.pending,b=$('#badge'),h=$('#pendingList');b.hidden=!p.length;b.textContent=p.length;h.innerHTML=p.length?'':'<div class="hint">Nessuna notifica da confermare.</div>';
- p.forEach((n,i)=>{let x=document.createElement('div');x.className='notice';const opts=[['Mangiare','food'],...customCols().map(c=>[c.name||'Colonna',colKey(c)]),['Varie','varie']].map(([name,key])=>`<option value="${escapeNotice(key)}">${escapeNotice(name)}</option>`).join('');x.innerHTML=`<b>€ ${euro(n.amount)}</b> ${escapeNotice(n.desc||'')}<br><select>${opts}</select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"> <button>Conferma</button>`;
+ p.forEach((n,i)=>{let x=document.createElement('div');x.className='notice';const opts=[['Mangiare','food'],...customCols().filter(c=>(c.name||'').trim()).map(c=>[c.name.trim(),colKey(c)]),['Varie','varie']].map(([name,key])=>`<option value="${escapeNotice(key)}">${escapeNotice(name)}</option>`).join('');x.innerHTML=`<b>€ ${euro(n.amount)}</b> ${escapeNotice(n.desc||'')}<br><select>${opts}</select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"> <button>Conferma</button>`;
  const suggested=customCols().find(c=>(c.name||'').toLowerCase()===(n.category||'').toLowerCase());x.querySelector('select').value=suggested?colKey(suggested):(n.category==='Mangiare'?'food':'varie');if(n.day)x.querySelector('input').value=n.day;
  x.querySelector('button').onclick=async()=>{
   if(familyRole!=='owner')return;
@@ -449,7 +469,7 @@ function renderPending(){let p=data().daily.pending,b=$('#badge'),h=$('#pendingL
 $('#monthPick').onchange=e=>{if(!e.target.value)return;ensureMonth(e.target.value);month=e.target.value;save();render()};$('#prevM').onclick=$('#prevM2').onclick=()=>nextMonth(-1);$('#nextM').onclick=$('#nextM2').onclick=()=>nextMonth(1);
 $('#addIncome').onclick=()=>add('income');$('#addPlanned').onclick=()=>add('planned');$('#addMove').onclick=()=>add('moves');$('#addRate').onclick=()=>add('rates');
 $('#toDaily').onclick=()=>{$('#p1').classList.remove('active');$('#p2').classList.add('active');renderDaily();scrollTo(0,0)};$('#toMonth').onclick=()=>{$('#p2').classList.remove('active');$('#p1').classList.add('active');scrollTo(0,0)};
-$('#startDate').onchange=e=>{if(e.target.value.startsWith(month)){data().daily.start=e.target.value;save();renderDaily()}};
+$('#startDate').onchange=e=>{if(e.target.value.startsWith(month)){data().daily.start=e.target.value;if(!data().daily.viewStart||data().daily.viewStart<e.target.value)data().daily.viewStart=e.target.value;save();renderDaily()}};
 [['foodBudget','food'],['satExtra','sat']].forEach(([id,k])=>$('#'+id).onchange=e=>{data().daily[k]=Number(e.target.value)||0;save();renderDaily()});
 $('#addCustomColumn').onclick=()=>{const cols=customCols();cols.push({id:'c_'+Date.now()+'_'+Math.random().toString(36).slice(2),name:'',budget:0});save();renderDaily()};
 $('#testNotice').onclick=()=>{data().daily.pending.push({amount:12.50,desc:'Pagamento da confermare'});save();renderPending()};
@@ -490,11 +510,12 @@ window.sendAndroidPayments=sendAndroidPayments;
 $('#authorizeNotices').onclick=()=>window.RegistroAndroid?.openNotificationAccess();
 $('#sendNotices').onclick=sendAndroidPayments;
 async function showPairingRequests(){
- if(familyRole!=='owner')return;
+ if(familyRole!=='owner'){ $('#pairingCard').hidden=true; return; }
  const {data:requests,error}=await sb.rpc('rff_pending_devices',deviceArgs());
- if(error){console.log('Abbinamento:',error);return}
+ if(error){console.log('Abbinamento:',error);$('#pairingCard').hidden=true;return}
  const list=$('#pairingList');list.textContent='';
- if(!requests?.length){list.textContent='Nessun telefono in attesa.';return}
+ if(!requests?.length){$('#pairingCard').hidden=true;return}
+ $('#pairingCard').hidden=false;
  for(const request of requests){
   const line=document.createElement('div');line.className='notice';
   const label=document.createElement('span');label.textContent='Telefono in attesa · codice '+request.id.slice(-6)+' ';
@@ -508,6 +529,12 @@ async function showPairingRequests(){
   line.append(label,button);list.appendChild(line);
  }
 }
+function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelector(id).classList.add('active');window.scrollTo(0,0)}
+function renderBoard(){const host=$('#boardList');if(!host)return;host.innerHTML='';const items=boardData();if(!items.length){const e=document.createElement('div');e.className='hint';e.textContent='Nessun appunto. Aggiungi qui cose da comprare o promemoria.';host.appendChild(e);return}items.forEach((it,i)=>{const row=document.createElement('div');row.className='boardItem';const t=document.createElement('div');t.textContent=typeof it==='string'?it:(it.text||'');const b=document.createElement('button');b.textContent='✓ Fatto / elimina';b.onclick=()=>{boardData().splice(i,1);save();renderBoard()};row.append(t,b);host.appendChild(row)})}
+$('#boardAdd').onclick=()=>{const inp=$('#boardText'),text=inp.value.trim();if(!text)return;boardData().push({text,at:new Date().toISOString()});inp.value='';save();renderBoard()};
+$('#boardText').addEventListener('keydown',e=>{if(e.key==='Enter')$('#boardAdd').click()});
+$('#toBoard').onclick=()=>{renderBoard();showPage('#p3')};$('#toBoard2').onclick=()=>{renderBoard();showPage('#p3')};$('#boardBack').onclick=()=>showPage('#p1');$('#boardDaily').onclick=()=>showPage('#p2');
+
 render();
 const gate=$('#authGate'),msg=$('#authMsg'),email=$('#authEmail'),pass=$('#authPassword'),newPass=$('#authNewPassword');
 let recovering=false;
@@ -572,6 +599,17 @@ $('#logoutBtn').onclick=async()=>{
  clearTimeout(cloudTimer);clearInterval(roleTimer);clearInterval(pendingTimer);familyId=null;familyRole=null;gate.classList.remove('hidden');$('#userEmail').textContent='';
  const {error}=await sb.auth.signOut();if(error)return say(error.message);say('Disconnesso.',true);
 };
+// Aggiornamento automatico del giorno: mantiene anche valori negativi.
+// Mangiare accumula ogni nuovo budget giornaliero; le colonne mensili trascinano solo la rimanenza.
+let lastCalendarDay=now.toDateString();
+setInterval(()=>{
+ const fresh=new Date();
+ if(fresh.toDateString()!==lastCalendarDay){
+   now=fresh;lastCalendarDay=fresh.toDateString();
+   if($('#p2').classList.contains('active')) renderDaily();
+ } else now=fresh;
+},30000);
+
 if(sb){
  sb.auth.onAuthStateChange((event)=>{
   if(event==='PASSWORD_RECOVERY'){gate.classList.remove('hidden');passwordMode(true);say('Inserisci la nuova password.',true)}
