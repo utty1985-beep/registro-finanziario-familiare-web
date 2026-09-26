@@ -514,9 +514,11 @@ async function showPairingRequests(){
  const {data:requests,error}=await sb.rpc('rff_pending_devices',deviceArgs());
  if(error){console.log('Abbinamento:',error);$('#pairingCard').hidden=true;return}
  const list=$('#pairingList');list.textContent='';
- if(!requests?.length){$('#pairingCard').hidden=true;return}
+ const hidden=JSON.parse(localStorage.getItem('rff_hidden_pairing')||'[]');
+ const visible=(requests||[]).filter(r=>!hidden.includes(r.id));
+ if(!visible.length){$('#pairingCard').hidden=true;return}
  $('#pairingCard').hidden=false;
- for(const request of requests){
+ for(const request of visible){
   const line=document.createElement('div');line.className='notice';
   const label=document.createElement('span');label.textContent='Telefono in attesa · codice '+request.id.slice(-6)+' ';
   const button=document.createElement('button');button.textContent='Autorizza';
@@ -526,7 +528,9 @@ async function showPairingRequests(){
    if(error){alert('Autorizzazione non riuscita. Riprova.');button.disabled=false;return}
    showPairingRequests();
   };
-  line.append(label,button);list.appendChild(line);
+  const remove=document.createElement('button');remove.textContent='Elimina';remove.style.marginLeft='8px';
+  remove.onclick=()=>{const h=JSON.parse(localStorage.getItem('rff_hidden_pairing')||'[]');if(!h.includes(request.id))h.push(request.id);localStorage.setItem('rff_hidden_pairing',JSON.stringify(h));showPairingRequests()};
+  line.append(label,button,remove);list.appendChild(line);
  }
 }
 function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelector(id).classList.add('active');window.scrollTo(0,0)}
