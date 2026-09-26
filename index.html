@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare · V21</title>
+<title>Registro Finanziario Familiare · V22</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -128,14 +128,14 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 <body>
 <button id="noticeIndicator" class="noticeIndicator" type="button" hidden aria-label="Importi da confermare"></button>
 <div id="authGate" class="authGate"><div class="authCard">
- <h2>🏠 Registro Finanziario Familiare</h2><p>Accedi con email e password.</p>
+ <h2>🏠 Registro Finanziario Familiare</h2><p>Accedi oppure registrati gratis. Ogni nuovo account crea il proprio registro separato.</p>
  <input id="authEmail" type="email" autocomplete="email" placeholder="Email">
  <input id="authPassword" type="password" autocomplete="current-password" placeholder="Password (almeno 6 caratteri)">
  <input id="authNewPassword" type="password" autocomplete="new-password" placeholder="Nuova password" hidden>
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V21</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V22</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><button id="openBoard" type="button">📝 Appunti / Cose da comprare <span id="boardBadge" class="boardBadge" hidden>0</span></button></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Questo telefono può leggere il registro e inviare importi da confermare sul telefono principale.</div>
@@ -206,7 +206,8 @@ $('#printRegister').onclick=()=>window.print();
 const now=new Date(), keyNow=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
 let month=keyNow;
 const defaultMonth=()=>({income:[['Stipendio Mario',0,true],['Stipendio Simona',0,true],['Assegno Unico',0,true]],planned:[],moves:[],rates:[],daily:{start:'',food:0,sat:0,diesel:0,benzina:0,metano:0,spend:{},pending:[]}});
-let db=JSON.parse(localStorage.getItem('rff_verified')||'{}');
+let storageKey='rff_verified';
+let db=JSON.parse(localStorage.getItem(storageKey)||'{}');
 const SUPABASE_URL='https://dqtqwfvszrtndwipyluh.supabase.co';
 const SUPABASE_KEY='sb_publishable_Qsbu5wHMUJ6ZJGuMNb16vA_gBx74NsB';
 const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
@@ -224,10 +225,10 @@ function openBoard(){document.querySelectorAll('.page').forEach(x=>x.classList.r
 $('#openBoard').onclick=openBoard;$('#boardBack').onclick=()=>familyRole==='viewer'?openViewerPage('viewerHome'):openViewerPage('p1');$('#boardAdd').onclick=addBoardItem;$('#boardInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addBoardItem()}});
 function save(){
  if(familyRole==='viewer')return;
- localStorage.setItem('rff_verified',JSON.stringify(db));
+ localStorage.setItem(storageKey,JSON.stringify(db));
  if(sb && familyId && familyRole==='owner' && !cloudLoading){clearTimeout(cloudTimer);cloudTimer=setTimeout(saveCloud,500)}
 }
-function saveLocalOnly(){localStorage.setItem('rff_verified',JSON.stringify(db))}
+function saveLocalOnly(){localStorage.setItem(storageKey,JSON.stringify(db))}
 function applyPermissions(){
  const viewer=familyRole==='viewer';$('#viewerBanner').hidden=!viewer;
  const pairingCard=$('#pairingCard');if(pairingCard)pairingCard.hidden=true;
@@ -260,8 +261,8 @@ async function loadCloud(){
    if(Object.keys(db).length && JSON.stringify(db)!==JSON.stringify(row.data)){
     try{if(!localStorage.getItem('rff_local_before_first_cloud'))localStorage.setItem('rff_local_before_first_cloud',JSON.stringify(db))}catch(e){console.log('Local backup:',e)}
    }
-   db=row.data; localStorage.setItem('rff_verified',JSON.stringify(db)); render();
-  } else if(familyRole==='viewer'){db={};localStorage.setItem('rff_verified','{}');render();}
+   db=row.data; localStorage.setItem(storageKey,JSON.stringify(db)); render();
+  } else if(familyRole==='viewer'){db={};localStorage.setItem(storageKey,'{}');render();}
   else if(!error && Object.keys(db).length && familyRole==='owner'){ if(!await saveCloud())throw new Error('Salvataggio online non disponibile. Riprova.'); }
   applyPermissions();
   return true;
@@ -522,7 +523,7 @@ async function fetchInbox(){
    }
   }catch(_){}
   rows=merged;let changed=false;
-  for(const row of rows||[]){const desc=String(row.description||'');if(desc.startsWith('__RFF_BOARD_ADD__')||desc.startsWith('__RFF_BOARD_DEL__')){let boardChanged=false;if(desc.startsWith('__RFF_BOARD_ADD__')){try{const item=JSON.parse(desc.slice('__RFF_BOARD_ADD__'.length));if(item?.id&&item?.text&&!boardItems().some(x=>x.id===item.id)){boardItems().push(item);boardChanged=true}}catch(e){}}else{const id=desc.slice('__RFF_BOARD_DEL__'.length),before=boardItems().length;db.__sharedBoard=boardItems().filter(x=>x.id!==id);boardChanged=before!==db.__sharedBoard.length}if(boardChanged)localStorage.setItem('rff_verified',JSON.stringify(db));const done=await sb.rpc('rff_confirm_payment',{...deviceArgs(),p_inbox_id:row.id,p_data:db});if(done.error)throw done.error;if(boardChanged){changed=true;renderBoard()}continue}
+  for(const row of rows||[]){const desc=String(row.description||'');if(desc.startsWith('__RFF_BOARD_ADD__')||desc.startsWith('__RFF_BOARD_DEL__')){let boardChanged=false;if(desc.startsWith('__RFF_BOARD_ADD__')){try{const item=JSON.parse(desc.slice('__RFF_BOARD_ADD__'.length));if(item?.id&&item?.text&&!boardItems().some(x=>x.id===item.id)){boardItems().push(item);boardChanged=true}}catch(e){}}else{const id=desc.slice('__RFF_BOARD_DEL__'.length),before=boardItems().length;db.__sharedBoard=boardItems().filter(x=>x.id!==id);boardChanged=before!==db.__sharedBoard.length}if(boardChanged)localStorage.setItem(storageKey,JSON.stringify(db));const done=await sb.rpc('rff_confirm_payment',{...deviceArgs(),p_inbox_id:row.id,p_data:db});if(done.error)throw done.error;if(boardChanged){changed=true;renderBoard()}continue}
    const dt=new Date(row.occurred_at);if(!Number.isFinite(dt.getTime()))continue;
    const key=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
    const target=db[key]||(db[key]=defaultMonth());const daily=target.daily||(target.daily=defaultMonth().daily);
@@ -580,9 +581,11 @@ function redirectUrl(){return location.protocol==='https:'?new URL('./',location
 async function enter(session){
  if(recovering)return;
  if(!session?.user){gate.classList.remove('hidden');return}
- familyId=null;familyRole=null;clearInterval(roleTimer);clearInterval(pendingTimer);$('#userEmail').textContent=session.user.email||'';say('Collegamento al registro familiare…',true);
+ const nextStorageKey='rff_verified_'+session.user.id;
+ if(storageKey!==nextStorageKey){storageKey=nextStorageKey;db=JSON.parse(localStorage.getItem(storageKey)||'{}');render()}
+ familyId=null;familyRole=null;clearInterval(roleTimer);clearInterval(pendingTimer);$('#userEmail').textContent=session.user.email||'';say('Collegamento al tuo registro…',true);
  try{
-  if(!await resolveFamily())throw new Error('Account non collegato alla famiglia.');
+  if(!await resolveFamily())throw new Error('Impossibile creare o collegare il tuo registro.');
   const {data:device,error:pairError}=await sb.rpc('rff_register_device',{...deviceArgs(),p_label:'Telefono '+deviceId.slice(-6)});
   if(pairError)throw pairError;
   familyRole=device.role==='primary'?'owner':'viewer';
@@ -656,7 +659,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v21-reset-mese', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v22-multiutente', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
