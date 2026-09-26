@@ -164,10 +164,10 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 </section>
 
 <section id="p2" class="page">
- <div class="nav" id="dailyViewerBack" hidden><button type="button" id="backFromDaily">← Torna a inserimento</button></div>
  <div class="toolbar"><button id="prevM2">‹</button><div class="month" id="monthTitle2"></div><button id="nextM2">›</button></div>
- <div class="card"><label>Mostra i giorni fino al <input id="viewDate" type="date"></label></div>
+ <div class="card"><h2>Calendario e rimanenza</h2><label>Mostra i giorni fino al <input id="viewDate" type="date"></label></div>
  <div class="tableWrap"><table><thead><tr><th>Giorno</th><th>Mangiare</th><th>Diesel</th><th>Benzina</th><th>Metano</th></tr></thead><tbody id="dailyBody"></tbody></table></div>
+ <div class="nav" id="dailyViewerBack" hidden><button type="button" id="backFromDaily">← Torna a inserimento</button></div>
  <div class="card"><h2>Varie</h2><div class="hint">Le voci selezionate dalla prima pagina e i pagamenti confermati in Varie compaiono qui.</div><div id="varieSingle"></div></div>
  <div class="card pending"><span class="badge" id="badge" hidden>0</span><h2>Importi da confermare</h2><div class="pendingList" id="pendingList"><div class="hint">Nessun importo da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div>
  <div class="card">
@@ -578,7 +578,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-saldi-3', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-saldi-4', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
