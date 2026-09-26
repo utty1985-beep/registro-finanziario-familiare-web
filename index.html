@@ -59,6 +59,8 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 .dailyFinal{display:block;font-size:14px;font-weight:900;color:#0b4f8a;white-space:nowrap;margin-top:5px}
 .varieBox{font-size:12px;text-align:left;min-width:160px}.strike{text-decoration:line-through;opacity:.55}
 .pending{position:relative}.badge{position:absolute;left:9px;top:9px;background:var(--r);color:#fff;border-radius:999px;min-width:25px;height:25px;display:grid;place-items:center;font-weight:900}
+.paymentDrawer{margin-bottom:10px}.paymentDrawer>summary{cursor:pointer;list-style:none;padding:12px 15px;background:#fff;border:1px solid var(--bd);border-radius:13px;color:var(--b);font-weight:800}.paymentDrawer>summary::-webkit-details-marker{display:none}.paymentDrawer>summary::after{content:' ▾';float:right}.paymentDrawer[open]>summary::after{content:' ▴'}.paymentDrawer[open]>summary{margin-bottom:9px}
+.noticeIndicator{position:fixed;z-index:40;top:8px;left:8px;min-width:37px;height:37px;border:2px solid white;border-radius:50%;background:#c51627;color:white;font-weight:900;box-shadow:0 2px 10px #0005;animation:noticePulse 1.2s ease-in-out infinite}.noticeIndicator[hidden]{display:none!important}@keyframes noticePulse{50%{opacity:.48;transform:scale(1.16)}}@media(prefers-reduced-motion:reduce){.noticeIndicator{animation:none}}
 .entryForm{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}
 .entryForm label{font-weight:800}.entryForm input,.entryForm select{width:100%;margin-top:4px}
 .entryForm .full{grid-column:1/-1}.entryForm button{grid-column:1/-1;font-size:20px;font-weight:900;padding:12px}
@@ -123,6 +125,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 <meta name="theme-color" content="#0b4f8a">
 </head>
 <body>
+<button id="noticeIndicator" class="noticeIndicator" type="button" hidden aria-label="Importi da confermare"></button>
 <div id="authGate" class="authGate"><div class="authCard">
  <h2>🏠 Registro Finanziario Familiare</h2><p>Accedi con email e password.</p>
  <input id="authEmail" type="email" autocomplete="email" placeholder="Email">
@@ -165,6 +168,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 
 <section id="p2" class="page">
  <div class="toolbar"><button id="prevM2">‹</button><div class="month" id="monthTitle2"></div><button id="nextM2">›</button></div>
+ <details id="paymentDrawer" class="paymentDrawer"><summary>Pagamenti e richieste da confermare</summary>
  <div class="card"><h2>Aggiungi un pagamento</h2><div class="entryForm">
  <div class="full"><b>Segno</b> <span class="signs"><label><input type="radio" name="entrySign" value="+" checked>+</label><label><input type="radio" name="entrySign" value="-">−</label></span></div>
  <label>Importo (€)<input id="entryAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></label>
@@ -172,6 +176,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <label class="full">Giorno del pagamento<input id="entryDate" type="date"></label>
  <button id="addEntry" class="primary">+ Aggiungi pagamento</button></div><div id="entryHistory"></div></div>
  <div class="card pending"><span class="badge" id="badge" hidden>0</span><h2>Importi da confermare</h2><div class="pendingList" id="pendingList"><div class="hint">Nessun importo da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div>
+ </details>
  <div class="card"><h2>Calendario e rimanenza</h2><label>Mostra i giorni dal <input id="viewDate" type="date"></label></div>
  <div class="tableWrap"><table><thead><tr><th>Giorno</th><th>Mangiare</th><th>Diesel</th><th>Benzina</th><th>Metano</th></tr></thead><tbody id="dailyBody"></tbody></table></div>
  <div class="nav" id="dailyViewerBack" hidden><button type="button" id="backFromDaily">← Torna a inserimento</button></div>
@@ -386,7 +391,7 @@ $('#addEntry').onclick=()=>{
  const sign=document.querySelector('input[name="entrySign"]:checked').value;
  const d=data().daily;d.entries||(d.entries=[]);
  d.entries.push({id:Date.now()+'-'+Math.random().toString(36).slice(2),day,category:categoryKeys[$('#entryCategory').value],amount:(sign==='-'?-1:1)*amount,desc:'Manuale'});
- $('#entryAmount').value='';save();renderDaily();
+ $('#entryAmount').value='';save();renderDaily();$('#paymentDrawer').open=false;
 };
 function renderEntryHistory(){
  const host=$('#entryHistory');host.innerHTML='<h3>Pagamenti inseriti</h3>';
@@ -401,7 +406,7 @@ function renderEntryHistory(){
  });applyPermissions();
 }
 function escapeNotice(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function renderPending(){let p=data().daily.pending,b=$('#badge'),h=$('#pendingList');b.hidden=!p.length;b.textContent=p.length;h.innerHTML=p.length?'':'<div class="hint">Nessun importo da confermare.</div>';
+function renderPending(){let p=data().daily.pending,b=$('#badge'),h=$('#pendingList'),indicator=$('#noticeIndicator');b.hidden=!p.length;b.textContent=p.length;const total=familyRole==='owner'?Object.values(db).reduce((sum,m)=>sum+(m.daily?.pending?.length||0),0):0;indicator.hidden=!total;indicator.textContent=total;indicator.setAttribute('aria-label',`${total} importi da confermare`);h.innerHTML=p.length?'':'<div class="hint">Nessun importo da confermare.</div>';
  p.forEach((n,i)=>{let x=document.createElement('div');x.className='notice';const requestSign=n.desc?.startsWith('Inserimento manuale +')?'+':n.desc?.startsWith('Inserimento manuale −')?'−':null;x.innerHTML=`<b>${requestSign||''} € ${euro(n.amount)}</b> ${escapeNotice(n.desc||'')}<br><select><option>Mangiare</option><option>Diesel</option><option>Benzina</option><option>Metano</option><option>Varie</option></select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"> <button>Conferma</button>`;
  x.querySelector('select').value=['Mangiare','Diesel','Benzina','Metano','Varie'].includes(n.category)?n.category:'Varie';if(n.day)x.querySelector('input').value=n.day;
  x.querySelector('button').onclick=async()=>{
@@ -423,8 +428,9 @@ function renderPending(){let p=data().daily.pending,b=$('#badge'),h=$('#pendingL
     current.daily.entries=current.daily.entries.filter(x=>x!==entry);p.splice(i,0,n);current.daily.confirmedInboxIds=confirmed.filter(id=>id!==n.inboxId);save();renderDaily();alert('Salvataggio online non riuscito. Riprova.');return;
    }
   }
-  renderDaily();
+  renderDaily();$('#paymentDrawer').open=false;
  };h.appendChild(x)});applyPermissions()}
+$('#noticeIndicator').onclick=()=>{const first=Object.keys(db).sort().find(key=>db[key].daily?.pending?.length);if(first&&first!==month){month=first;render()}document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$('#p2').classList.add('active');$('#paymentDrawer').open=true;$('#pendingList').scrollIntoView({block:'start',behavior:'smooth'})};
 $('#monthPick').onchange=e=>{if(!e.target.value)return;ensureMonth(e.target.value);month=e.target.value;save();render()};$('#prevM').onclick=$('#prevM2').onclick=()=>nextMonth(-1);$('#nextM').onclick=$('#nextM2').onclick=()=>nextMonth(1);
 $('#addIncome').onclick=()=>add('income');$('#addPlanned').onclick=()=>add('planned');$('#addMove').onclick=()=>add('moves');$('#addRate').onclick=()=>add('rates');
 $('#toDaily').onclick=()=>{$('#p1').classList.remove('active');$('#p2').classList.add('active');renderDaily();scrollTo(0,0)};$('#toMonth').onclick=()=>{$('#p2').classList.remove('active');$('#p1').classList.add('active');scrollTo(0,0)};
@@ -560,13 +566,13 @@ $('#setPasswordBtn').onclick=async()=>{
  const {data}=await sb.auth.getSession();await enter(data.session);
 };
 $('#logoutBtn').onclick=async()=>{
- clearTimeout(cloudTimer);clearInterval(roleTimer);clearInterval(pendingTimer);familyId=null;familyRole=null;gate.classList.remove('hidden');$('#userEmail').textContent='';
+ clearTimeout(cloudTimer);clearInterval(roleTimer);clearInterval(pendingTimer);familyId=null;familyRole=null;$('#noticeIndicator').hidden=true;gate.classList.remove('hidden');$('#userEmail').textContent='';
  const {error}=await sb.auth.signOut();if(error)return say(error.message);say('Disconnesso.',true);
 };
 if(sb){
  sb.auth.onAuthStateChange((event)=>{
   if(event==='PASSWORD_RECOVERY'){gate.classList.remove('hidden');passwordMode(true);say('Inserisci la nuova password.',true)}
-  else if(event==='SIGNED_OUT'){clearTimeout(cloudTimer);clearInterval(roleTimer);clearInterval(pendingTimer);familyId=null;familyRole=null;gate.classList.remove('hidden')}
+  else if(event==='SIGNED_OUT'){clearTimeout(cloudTimer);clearInterval(roleTimer);clearInterval(pendingTimer);familyId=null;familyRole=null;$('#noticeIndicator').hidden=true;gate.classList.remove('hidden')}
  });
  (async()=>{try{const {data,error}=await sb.auth.getSession();if(error)throw error;await enter(data.session)}catch(e){say('Accesso non disponibile: '+(e?.message||'errore'))}})();
 }else say('Connessione non disponibile. Riprova con Internet attivo.');
@@ -578,7 +584,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-saldi-5', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-saldi-6', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
