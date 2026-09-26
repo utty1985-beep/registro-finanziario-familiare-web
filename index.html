@@ -416,7 +416,7 @@ function renderEntryHistory(){
 }
 function escapeNotice(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function renderPending(){let p=data().daily.pending,b=$('#badge'),h=$('#pendingList'),indicator=$('#noticeIndicator');b.hidden=!p.length;b.textContent=p.length;const total=familyRole==='owner'?Object.values(db).reduce((sum,m)=>sum+(m.daily?.pending?.length||0),0):0;indicator.hidden=!total;indicator.textContent=total;indicator.setAttribute('aria-label',`${total} importi da confermare`);h.innerHTML=p.length?'':'<div class="hint">Nessun importo da confermare.</div>';
- p.forEach((n,i)=>{let x=document.createElement('div');x.className='notice';const requestSign=n.desc?.startsWith('Inserimento manuale +')?'+':n.desc?.startsWith('Inserimento manuale −')?'−':null;x.innerHTML=`<b>${requestSign||''} € ${euro(n.amount)}</b> ${escapeNotice(n.desc||'')}<br><select><option>Mangiare</option><option>Diesel</option><option>Benzina</option><option>Metano</option><option>Varie</option></select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"> <button>Conferma</button>`;
+ p.forEach((n,i)=>{let x=document.createElement('div');x.className='notice';const requestSign=n.desc?.startsWith('Inserimento manuale +')?'+':n.desc?.startsWith('Inserimento manuale −')?'−':null;const noticeDt=n.occurredAt?new Date(n.occurredAt):null;const noticeWhen=noticeDt&&Number.isFinite(noticeDt.getTime())?noticeDt.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';x.innerHTML=`<b>${requestSign||''} € ${euro(n.amount)}</b> ${escapeNotice(n.desc||'')}${noticeWhen?`<br><small>Inviato: ${escapeNotice(noticeWhen)}</small>`:''}<br><select><option>Mangiare</option><option>Diesel</option><option>Benzina</option><option>Metano</option><option>Varie</option></select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"> <button>Conferma</button>`;
  x.querySelector('select').value=['Mangiare','Diesel','Benzina','Metano','Varie'].includes(n.category)?n.category:'Varie';if(n.day)x.querySelector('input').value=n.day;
  x.querySelector('button').onclick=async()=>{
   if(familyRole!=='owner')return;
@@ -448,7 +448,7 @@ $('#viewMonth').onclick=()=>openViewerPage('p1');$('#viewDaily').onclick=()=>ope
 $('#backFromMonth').onclick=$('#backFromDaily').onclick=()=>openViewerPage('viewerHome');
 $('#sendManualRequest').onclick=async()=>{
  if(familyRole!=='viewer'||!familyId)return;
- const amount=Number($('#requestAmount').value),date=$('#requestDate').value,dt=new Date(date+'T12:00:00');
+ const amount=Number($('#requestAmount').value),date=$('#requestDate').value,sendNow=new Date(),dt=new Date(date+'T'+String(sendNow.getHours()).padStart(2,'0')+':'+String(sendNow.getMinutes()).padStart(2,'0')+':'+String(sendNow.getSeconds()).padStart(2,'0'));
  const status=$('#manualRequestStatus');
  if(!Number.isFinite(amount)||amount<=0||amount>1000000||!date||!Number.isFinite(dt.getTime())||dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0')!==date){status.textContent='Inserisci importo e giorno validi.';return}
  const sign=document.querySelector('input[name="requestSign"]:checked').value;
@@ -460,7 +460,7 @@ $('#sendManualRequest').onclick=async()=>{
 };
 $('#startDate').onchange=e=>{if(e.target.value.startsWith(month)){data().daily.start=e.target.value;save();renderDaily()}};
 [['foodBudget','food'],['satExtra','sat'],['dieselBudget','diesel'],['benzinaBudget','benzina'],['metanoBudget','metano']].forEach(([id,k])=>$('#'+id).onchange=e=>{data().daily[k]=Number(e.target.value)||0;save();renderDaily()});
-$('#testNotice').onclick=()=>{data().daily.pending.push({amount:12.50,desc:'Pagamento da confermare'});save();renderPending()};
+$('#testNotice').onclick=()=>{data().daily.pending.push({amount:12.50,desc:'Pagamento da confermare',occurredAt:new Date().toISOString()});save();renderPending()};
 function guessCategory(s){s=String(s||'').toLowerCase();if(/diesel|gasolio/.test(s))return'Diesel';if(/metano|cng/.test(s))return'Metano';if(/benzina|carburante|eni|q8|tamoil|esso/.test(s))return'Benzina';if(/supermerc|aliment|conad|coop|lidl|eurospin|esselunga|ristor|bar |pizzeria/.test(s))return'Mangiare';return'Varie'}
 async function fetchInbox(){
  if(inboxBusy||familyRole!=='owner'||!familyId)return;inboxBusy=true;
@@ -481,7 +481,7 @@ async function fetchInbox(){
    const target=db[key]||(db[key]=defaultMonth());const daily=target.daily||(target.daily=defaultMonth().daily);
    if((daily.confirmedInboxIds||[]).includes(row.id))continue;
    if(!daily.pending.some(n=>n.inboxId===row.id)){
-    daily.pending.push({inboxId:row.id,id:'i_'+row.id,amount:Number(row.amount),desc:row.description,category:row.suggested_category,day:dt.getDate()});changed=true;
+    daily.pending.push({inboxId:row.id,id:'i_'+row.id,amount:Number(row.amount),desc:row.description,category:row.suggested_category,day:dt.getDate(),occurredAt:row.occurred_at});changed=true;
    }
   }
   if(changed){saveLocalOnly();renderPending();renderBoard()}
