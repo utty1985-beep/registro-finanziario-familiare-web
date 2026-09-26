@@ -551,6 +551,14 @@ async function enter(session){
   if(familyRole==='owner'){await sendAndroidPayments();await fetchInbox();await showPairingRequests()}
   else {const today=new Date();$('#requestDate').value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');openViewerPage('viewerHome')}
   roleTimer=setInterval(()=>{if(document.hidden)return;if(familyRole==='owner'){sendAndroidPayments();fetchInbox();showPairingRequests()}else if(familyRole==='viewer'){loadCloud().then(renderBoard).catch(e=>console.log('Aggiornamento:',e))}},5000);
+  // Recupera subito le richieste quando l'app torna in primo piano.
+  if(!window.__rffSyncResumeInstalled){
+   window.__rffSyncResumeInstalled=true;
+   const syncResume=()=>{if(document.hidden||!familyId)return;if(familyRole==='owner'){fetchInbox();showPairingRequests()}else if(familyRole==='viewer'){loadCloud().then(renderBoard).catch(e=>console.log('Aggiornamento:',e))}};
+   document.addEventListener('visibilitychange',syncResume);
+   window.addEventListener('focus',syncResume);
+   window.addEventListener('pageshow',syncResume);
+  }
  }
  catch(e){gate.classList.remove('hidden');say('Accesso al registro: '+(e?.message||'errore di connessione'))}
 }
@@ -601,7 +609,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-notifiche-ora-10', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-sync-ripresa-11', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
