@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare · V19</title>
+<title>Registro Finanziario Familiare · V20</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -135,7 +135,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V19</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V20</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><button id="openBoard" type="button">📝 Appunti / Cose da comprare <span id="boardBadge" class="boardBadge" hidden>0</span></button></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Questo telefono può leggere il registro e inviare importi da confermare sul telefono principale.</div>
@@ -437,7 +437,7 @@ function importSharedRequests(){
  return changed;
 }
 function renderPending(){let p=data().daily.pending,b=$('#badge'),drawerBadge=$('#drawerBadge'),h=$('#pendingList'),indicator=$('#noticeIndicator');b.hidden=!p.length;b.textContent=p.length;drawerBadge.hidden=!p.length;drawerBadge.textContent=p.length;const total=familyRole==='owner'?Object.values(db).reduce((sum,m)=>sum+(m.daily?.pending?.length||0),0):0;indicator.hidden=!total;indicator.textContent=total;indicator.setAttribute('aria-label',`${total} importi da confermare`);h.innerHTML=p.length?'':'<div class="hint">Nessun importo da confermare.</div>';
- p.forEach((n,i)=>{let x=document.createElement('div');x.className='notice';const requestSign=n.desc?.startsWith('Inserimento manuale +')?'+':n.desc?.startsWith('Inserimento manuale −')?'−':null;const noticeDt=n.occurredAt?new Date(n.occurredAt):null;const noticeWhen=noticeDt&&Number.isFinite(noticeDt.getTime())?noticeDt.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';x.innerHTML=`<b>${requestSign||''} € ${euro(n.amount)}</b> ${escapeNotice(n.desc||'')}${noticeWhen?`<br><small>Inviato: ${escapeNotice(noticeWhen)}</small>`:''}<br><select><option>Mangiare</option><option>Diesel</option><option>Benzina</option><option>Metano</option><option>Varie</option></select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"> <button class="confirmNotice">Conferma</button> <button class="deleteNotice" type="button">Elimina</button>`;
+ p.forEach((n,i)=>{let x=document.createElement('div');x.className='notice';const requestSign=n.desc?.startsWith('Inserimento manuale +')?'+':n.desc?.startsWith('Inserimento manuale −')?'−':null;const noticeDt=n.occurredAt?new Date(n.occurredAt):null;const noticeWhen=noticeDt&&Number.isFinite(noticeDt.getTime())?noticeDt.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';x.innerHTML=`<b>${requestSign||''} € ${euro(n.amount)}</b> ${escapeNotice(n.desc||'')}${noticeWhen?`<br><small>Inviato: ${escapeNotice(noticeWhen)}</small>`:''}<br><select><option>Mangiare</option><option>Diesel</option><option>Benzina</option><option>Metano</option><option>Varie</option></select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"> <div style="display:flex;gap:7px;margin-top:8px"><button class="confirmNotice" style="flex:1">Conferma</button><button class="deleteNotice" type="button" style="flex:1;background:#fff;color:#a31515;border-color:#ef9a9a">Non confermare</button></div>`;
  x.querySelector('select').value=['Mangiare','Diesel','Benzina','Metano','Varie'].includes(n.category)?n.category:'Varie';if(n.day)x.querySelector('input').value=n.day;
  x.querySelector('.deleteNotice').onclick=async()=>{
   if(familyRole!=='owner'||!confirm('Eliminare questa richiesta senza registrarla?'))return;
@@ -654,7 +654,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v19-storico-tendalino', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v20-non-confermare', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
