@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare · V20</title>
+<title>Registro Finanziario Familiare · V21</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -135,7 +135,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V20</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V21</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><button id="openBoard" type="button">📝 Appunti / Cose da comprare <span id="boardBadge" class="boardBadge" hidden>0</span></button></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Questo telefono può leggere il registro e inviare importi da confermare sul telefono principale.</div>
@@ -165,7 +165,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
    <div class="card balanceCard"><h2>Bilancio finale</h2><div class="total">Saldo: € <span id="balance">0,00</span></div></div>
   </div>
  </div>
- <div class="nav"><span></span><button class="primary" id="toDaily">→</button></div>
+ <div class="toolbar"><button id="clearPage1Month" type="button">🗑️ Svuota prima pagina del mese</button></div><div class="nav"><span></span><button class="primary" id="toDaily">→</button></div>
 </section>
 
 <section id="p2" class="page">
@@ -195,7 +195,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
   </div>
  </div>
  <div class="card" id="sentinelBar" hidden><h2>Pagamenti dal telefono</h2><button id="authorizeNotices">Autorizza notifiche</button> <button id="sendNotices">Importa pagamenti</button><p class="hint" id="sendStatus">I pagamenti rilevati arrivano come spese da confermare.</p></div>
- <div class="nav"><button class="primary" id="toMonth">←</button><span></span></div>
+ <div class="toolbar"><button id="clearPage2Month" type="button">🗑️ Svuota seconda pagina del mese</button></div><div class="nav"><button class="primary" id="toMonth">←</button><span></span></div>
 </section>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -471,6 +471,8 @@ function renderPending(){let p=data().daily.pending,b=$('#badge'),drawerBadge=$(
  };h.appendChild(x)});applyPermissions()}
 $('#noticeIndicator').onclick=()=>{const first=Object.keys(db).sort().find(key=>db[key].daily?.pending?.length);if(first&&first!==month){month=first;render()}document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$('#p2').classList.add('active');$('#paymentDrawer').open=true;$('#pendingList').scrollIntoView({block:'start',behavior:'smooth'})};
 $('#monthPick').onchange=e=>{if(!e.target.value)return;ensureMonth(e.target.value);month=e.target.value;save();render()};$('#prevM').onclick=$('#prevM2').onclick=()=>nextMonth(-1);$('#nextM').onclick=$('#nextM2').onclick=()=>nextMonth(1);
+$('#clearPage1Month').onclick=()=>{if(familyRole!=='owner')return;if(!confirm('Svuotare SOLO la prima pagina di '+title()+'? Gli altri mesi non verranno modificati.'))return;const d=data();d.income=[];d.planned=[];d.moves=[];d.rates=[];save();render()};
+$('#clearPage2Month').onclick=()=>{if(familyRole!=='owner')return;if(!confirm('Svuotare SOLO la seconda pagina di '+title()+'? Pagamenti, budget e dati giornalieri di questo mese verranno cancellati. Gli altri mesi non verranno modificati.'))return;const d=data();d.daily={start:'',food:0,sat:0,diesel:0,benzina:0,metano:0,spend:{},pending:[]};save();renderDaily()};
 $('#addIncome').onclick=()=>add('income');$('#addPlanned').onclick=()=>add('planned');$('#addMove').onclick=()=>add('moves');$('#addRate').onclick=()=>add('rates');
 $('#toDaily').onclick=()=>{$('#p1').classList.remove('active');$('#p2').classList.add('active');renderDaily();scrollTo(0,0)};$('#toMonth').onclick=()=>{$('#p2').classList.remove('active');$('#p1').classList.add('active');scrollTo(0,0)};
 function openViewerPage(id){document.querySelectorAll('.page').forEach(page=>page.classList.remove('active'));$('#'+id).classList.add('active');if(id==='p2')renderDaily();scrollTo(0,0)}
@@ -654,7 +656,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v20-non-confermare', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v21-reset-mese', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
