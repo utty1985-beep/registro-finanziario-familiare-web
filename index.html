@@ -601,7 +601,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-ricezione-9', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-notifiche-ora-10', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
