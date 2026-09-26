@@ -465,8 +465,16 @@ function guessCategory(s){s=String(s||'').toLowerCase();if(/diesel|gasolio/.test
 async function fetchInbox(){
  if(inboxBusy||familyRole!=='owner'||!familyId)return;inboxBusy=true;
  try{
-  const {data:rows,error}=await sb.rpc('rff_pending_payments',deviceArgs());
-  if(error)throw error;let changed=false;
+  let rows=null,error=null;
+  ({data:rows,error}=await sb.rpc('rff_pending_payments',deviceArgs()));
+  if(error||!Array.isArray(rows)||rows.length===0){
+   const direct=await sb.from('payment_inbox').select('*').eq('family_id',familyId).order('occurred_at',{ascending:true});
+   if(!direct.error&&Array.isArray(direct.data)){
+    const pending=direct.data.filter(r=>!r.confirmed_at&&!r.confirmed);
+    if(pending.length){rows=pending;error=null}
+   }
+  }
+  if(error)throw error;rows=Array.isArray(rows)?rows:[];let changed=false;
   for(const row of rows||[]){const desc=String(row.description||'');if(desc.startsWith('__RFF_BOARD_ADD__')||desc.startsWith('__RFF_BOARD_DEL__')){let boardChanged=false;if(desc.startsWith('__RFF_BOARD_ADD__')){try{const item=JSON.parse(desc.slice('__RFF_BOARD_ADD__'.length));if(item?.id&&item?.text&&!boardItems().some(x=>x.id===item.id)){boardItems().push(item);boardChanged=true}}catch(e){}}else{const id=desc.slice('__RFF_BOARD_DEL__'.length),before=boardItems().length;db.__sharedBoard=boardItems().filter(x=>x.id!==id);boardChanged=before!==db.__sharedBoard.length}if(boardChanged)localStorage.setItem('rff_verified',JSON.stringify(db));const done=await sb.rpc('rff_confirm_payment',{...deviceArgs(),p_inbox_id:row.id,p_data:db});if(done.error)throw done.error;if(boardChanged){changed=true;renderBoard()}continue}
    const dt=new Date(row.occurred_at);if(!Number.isFinite(dt.getTime()))continue;
    const key=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
@@ -593,7 +601,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-conferma-8', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-ricezione-9', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
