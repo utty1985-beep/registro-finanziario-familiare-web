@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare · V11</title>
+<title>Registro Finanziario Familiare · V12</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -135,7 +135,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V11</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V12</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><button id="openBoard" type="button">📝 Appunti / Cose da comprare <span id="boardBadge" class="boardBadge" hidden>0</span></button></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Questo telefono può leggere il registro e inviare importi da confermare sul telefono principale.</div>
@@ -417,6 +417,25 @@ function renderEntryHistory(){
  });applyPermissions();
 }
 function escapeNotice(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function importSharedRequests(){
+ if(familyRole!=='owner')return false;
+ const q=Array.isArray(db.__sharedRequests)?db.__sharedRequests:[];
+ if(!q.length)return false;
+ let changed=false;
+ for(const r of q){
+  if(!r||!r.id||r.consumed)continue;
+  const dt=new Date(r.occurredAt);if(!Number.isFinite(dt.getTime()))continue;
+  const key=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
+  const target=db[key]||(db[key]=defaultMonth()),daily=target.daily||(target.daily=defaultMonth().daily);
+  if(!daily.pending.some(n=>n.sharedRequestId===r.id)){
+   daily.pending.push({sharedRequestId:r.id,id:'sr_'+r.id,amount:Number(r.amount),desc:r.desc||'Inserimento manuale',category:r.category||'Varie',day:dt.getDate(),occurredAt:r.occurredAt});
+   changed=true;
+  }
+  r.consumed=true;
+ }
+ if(changed)save();
+ return changed;
+}
 function renderPending(){let p=data().daily.pending,b=$('#badge'),drawerBadge=$('#drawerBadge'),h=$('#pendingList'),indicator=$('#noticeIndicator');b.hidden=!p.length;b.textContent=p.length;drawerBadge.hidden=!p.length;drawerBadge.textContent=p.length;const total=familyRole==='owner'?Object.values(db).reduce((sum,m)=>sum+(m.daily?.pending?.length||0),0):0;indicator.hidden=!total;indicator.textContent=total;indicator.setAttribute('aria-label',`${total} importi da confermare`);h.innerHTML=p.length?'':'<div class="hint">Nessun importo da confermare.</div>';
  p.forEach((n,i)=>{let x=document.createElement('div');x.className='notice';const requestSign=n.desc?.startsWith('Inserimento manuale +')?'+':n.desc?.startsWith('Inserimento manuale −')?'−':null;const noticeDt=n.occurredAt?new Date(n.occurredAt):null;const noticeWhen=noticeDt&&Number.isFinite(noticeDt.getTime())?noticeDt.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';x.innerHTML=`<b>${requestSign||''} € ${euro(n.amount)}</b> ${escapeNotice(n.desc||'')}${noticeWhen?`<br><small>Inviato: ${escapeNotice(noticeWhen)}</small>`:''}<br><select><option>Mangiare</option><option>Diesel</option><option>Benzina</option><option>Metano</option><option>Varie</option></select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"> <button>Conferma</button>`;
  x.querySelector('select').value=['Mangiare','Diesel','Benzina','Metano','Varie'].includes(n.category)?n.category:'Varie';if(n.day)x.querySelector('input').value=n.day;
@@ -455,10 +474,16 @@ $('#sendManualRequest').onclick=async()=>{
  if(!Number.isFinite(amount)||amount<=0||amount>1000000||!date||!Number.isFinite(dt.getTime())||dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0')!==date){status.textContent='Inserisci importo e giorno validi.';return}
  const sign=document.querySelector('input[name="requestSign"]:checked').value;
  const button=$('#sendManualRequest');button.disabled=true;status.textContent='Invio in corso…';
- const {error}=await sb.rpc('rff_send_payment',{...deviceArgs(),p_notification_id:'manual-'+(crypto.randomUUID?crypto.randomUUID():(Date.now()+'-'+Math.random().toString(36).slice(2))),p_amount:amount,p_description:'Inserimento manuale '+(sign==='-'?'−':'+'),p_occurred_at:dt.toISOString(),p_category:$('#requestCategory').value});
+ const reqId='manual-'+(crypto.randomUUID?crypto.randomUUID():(Date.now()+'-'+Math.random().toString(36).slice(2)));
+ db.__sharedRequests=Array.isArray(db.__sharedRequests)?db.__sharedRequests:[];
+ db.__sharedRequests.push({id:reqId,amount,desc:'Inserimento manuale '+(sign==='-'?'−':'+'),category:$('#requestCategory').value,occurredAt:dt.toISOString(),consumed:false});
+ localStorage.setItem('rff_verified',JSON.stringify(db));
+ const cloud=await sb.from('family_register').update({data:db,updated_at:new Date().toISOString()}).eq('family_id',familyId);
+ if(cloud.error){button.disabled=false;status.textContent='Invio non riuscito. Riprova con Internet attivo.';return}
+ // Mantiene anche la vecchia coda RPC come canale aggiuntivo, senza dipendere da essa.
+ try{await sb.rpc('rff_send_payment',{...deviceArgs(),p_notification_id:reqId,p_amount:amount,p_description:'Inserimento manuale '+(sign==='-'?'−':'+'),p_occurred_at:dt.toISOString(),p_category:$('#requestCategory').value})}catch(_){}
  button.disabled=false;
- if(error){status.textContent='Invio non riuscito. Riprova con Internet attivo.';return}
- $('#requestAmount').value='';status.textContent='Importo inviato. Comparirà sul telefono principale per la conferma.';
+ $('#requestAmount').value='';status.textContent='Importo inviato al telefono principale.';
 };
 $('#startDate').onchange=e=>{if(e.target.value.startsWith(month)){data().daily.start=e.target.value;save();renderDaily()}};
 [['foodBudget','food'],['satExtra','sat'],['dieselBudget','diesel'],['benzinaBudget','benzina'],['metanoBudget','metano']].forEach(([id,k])=>$('#'+id).onchange=e=>{data().daily[k]=Number(e.target.value)||0;save();renderDaily()});
@@ -553,9 +578,9 @@ async function enter(session){
    return;
   }
   await loadCloud();gate.classList.add('hidden');say('');renderBoard();
-  if(familyRole==='owner'){await sendAndroidPayments();await fetchInbox()}
+  if(familyRole==='owner'){await sendAndroidPayments();importSharedRequests();await fetchInbox()}
   else {const today=new Date();$('#requestDate').value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');openViewerPage('viewerHome')}
-  roleTimer=setInterval(()=>{if(document.hidden)return;if(familyRole==='owner'){sendAndroidPayments();fetchInbox()}else if(familyRole==='viewer'){loadCloud().then(renderBoard).catch(e=>console.log('Aggiornamento:',e))}},1500);
+  roleTimer=setInterval(()=>{if(document.hidden)return;if(familyRole==='owner'){loadCloud().then(()=>{importSharedRequests();fetchInbox()}).catch(()=>fetchInbox());sendAndroidPayments()}else if(familyRole==='viewer'){loadCloud().then(renderBoard).catch(e=>console.log('Aggiornamento:',e))}},1500);
   // Recupera subito le richieste quando l'app torna in primo piano.
   if(!window.__rffSyncResumeInstalled){
    window.__rffSyncResumeInstalled=true;
@@ -614,7 +639,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v11-sync-1', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v12-sharedqueue-1', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
