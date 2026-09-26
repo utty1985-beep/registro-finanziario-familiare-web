@@ -227,6 +227,7 @@ function save(){
  localStorage.setItem('rff_verified',JSON.stringify(db));
  if(sb && familyId && familyRole==='owner' && !cloudLoading){clearTimeout(cloudTimer);cloudTimer=setTimeout(saveCloud,500)}
 }
+function saveLocalOnly(){localStorage.setItem('rff_verified',JSON.stringify(db))}
 function applyPermissions(){
  const viewer=familyRole==='viewer';$('#viewerBanner').hidden=!viewer;
  $('#pairingCard').hidden=familyRole!=='owner';
@@ -475,7 +476,7 @@ async function fetchInbox(){
     daily.pending.push({inboxId:row.id,id:'i_'+row.id,amount:Number(row.amount),desc:row.description,category:row.suggested_category,day:dt.getDate()});changed=true;
    }
   }
-  if(changed){save();renderPending();renderBoard()}
+  if(changed){saveLocalOnly();renderPending();renderBoard()}
  }catch(e){console.log('Pagamenti in attesa:',e)}finally{inboxBusy=false}
 }
 async function sendAndroidPayments(){
@@ -592,7 +593,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-completa-7', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-conferma-8', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
