@@ -135,7 +135,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V6</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V7</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><button id="openBoard" type="button">📝 Appunti / Cose da comprare <span id="boardBadge" class="boardBadge" hidden>0</span></button></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Questo telefono può leggere il registro e inviare importi da confermare sul telefono principale.</div>
@@ -233,11 +233,13 @@ function applyPermissions(){
  $('#pairingCard').hidden=familyRole!=='owner';
  $('#monthViewerBack').hidden=!viewer;$('#dailyViewerBack').hidden=!viewer;
  $('#sentinelBar').hidden=!(familyRole==='owner'&&window.RegistroAndroid);
- // Navigazione e cambio mese restano disponibili; tutti i campi del registro sono bloccati.
+ // Il registro resta in sola lettura sul secondo telefono, ma il pannello di invio e la lavagna restano scrivibili.
  document.querySelectorAll('#p1 input:not(#monthPick),#p2 input,#p1 button,#p2 button').forEach(el=>{
  if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','backFromMonth','backFromDaily','authorizeNotices','sendNotices'].includes(el.id))return;
   el.disabled=viewer;
  });
+ // Eccezione esplicita: il secondo telefono deve poter compilare e inviare richieste.
+ document.querySelectorAll('#viewerHome input,#viewerHome select,#viewerHome button,#boardPage input,#boardPage button').forEach(el=>el.disabled=false);
 }
 async function resolveFamily(){
  if(!sb) return false;
