@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare · V18</title>
+<title>Registro Finanziario Familiare · V19</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -135,7 +135,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V18</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V19</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><button id="openBoard" type="button">📝 Appunti / Cose da comprare <span id="boardBadge" class="boardBadge" hidden>0</span></button></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Questo telefono può leggere il registro e inviare importi da confermare sul telefono principale.</div>
@@ -177,7 +177,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <label>Importo (€)<input id="entryAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></label>
  <label>Categoria<select id="entryCategory"><option>Mangiare</option><option>Diesel</option><option>Benzina</option><option>Metano</option><option>Varie</option></select></label>
  <label class="full">Giorno del pagamento<input id="entryDate" type="date"></label>
- <button id="addEntry" class="primary">+ Aggiungi pagamento</button></div><div id="entryHistory"></div></div>
+ <button id="addEntry" class="primary">+ Aggiungi pagamento</button></div><details id="entryHistoryDrawer"><summary><b>Pagamenti inseriti</b></summary><div id="entryHistory"></div></details></div>
  </details>
  <div class="card"><h2>Calendario e rimanenza</h2><label>Mostra i giorni dal <input id="viewDate" type="date"></label></div>
  <div class="tableWrap"><table><thead><tr><th>Giorno</th><th>Mangiare</th><th>Diesel</th><th>Benzina</th><th>Metano</th></tr></thead><tbody id="dailyBody"></tbody></table></div>
@@ -405,7 +405,7 @@ $('#addEntry').onclick=()=>{
  $('#entryAmount').value='';save();renderDaily();$('#paymentDrawer').open=false;
 };
 function renderEntryHistory(){
- const host=$('#entryHistory');host.innerHTML='<h3>Pagamenti inseriti</h3>';
+ const host=$('#entryHistory');host.innerHTML='';
  const names={food:'Mangiare',diesel:'Diesel',benzina:'Benzina',metano:'Metano',varie:'Varie'};
  const entries=data().daily.entries||[];
  if(!entries.length){host.innerHTML+='<p class="hint">Nessun pagamento inserito.</p>';return}
@@ -654,7 +654,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v18-elimina-richiesta', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v19-storico-tendalino', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
