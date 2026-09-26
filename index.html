@@ -55,6 +55,8 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 .day{font-weight:800;white-space:nowrap;position:sticky;left:0;background:#fff;z-index:2}.today td{background:#ffe5e5}.today .day{background:#ffd6d6}
 .moneyCell{min-width:120px}.moneyCell input{width:78px;text-align:right;padding:6px}
 .res{display:block;font-size:11px;color:#52606d;margin-top:3px}.res strong{color:#0b4f8a}
+.dailyStarting{display:block;font-size:12px;color:#52606d;white-space:nowrap}
+.dailyFinal{display:block;font-size:14px;font-weight:900;color:#0b4f8a;white-space:nowrap;margin-top:5px}
 .varieBox{font-size:12px;text-align:left;min-width:160px}.strike{text-decoration:line-through;opacity:.55}
 .pending{position:relative}.badge{position:absolute;left:9px;top:9px;background:var(--r);color:#fff;border-radius:999px;min-width:25px;height:25px;display:grid;place-items:center;font-weight:900}
 .entryForm{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}
@@ -313,14 +315,17 @@ function renderDaily(){
  let body=$('#dailyBody');body.innerHTML='';let foodCarry=0,dieselSpent=0,benzSpent=0,metSpent=0;
  for(let day=start;day<=end;day++){
   let dt=new Date(y,m-1,day),sp=spendObj(day),isSat=dt.getDay()===6;
-  foodCarry+=(+d.food||0)+(isSat?(+d.sat||0):0);foodCarry-=(+sp.food||0);foodCarry+=entriesFor(day,'food');
-  dieselSpent+=(+sp.diesel||0)-entriesFor(day,'diesel');benzSpent+=(+sp.benzina||0)-entriesFor(day,'benzina');metSpent+=(+sp.metano||0)-entriesFor(day,'metano');
+  const foodInitial=foodCarry+(+d.food||0)+(isSat?(+d.sat||0):0);
+  foodCarry=foodInitial-(+sp.food||0)+entriesFor(day,'food');
+  const dieselInitial=(+d.diesel||0)-dieselSpent,benzInitial=(+d.benzina||0)-benzSpent,metInitial=(+d.metano||0)-metSpent;
+  const dieselMoves=entriesFor(day,'diesel')-(+sp.diesel||0),benzMoves=entriesFor(day,'benzina')-(+sp.benzina||0),metMoves=entriesFor(day,'metano')-(+sp.metano||0);
+  dieselSpent-=dieselMoves;benzSpent-=benzMoves;metSpent-=metMoves;
   let tr=document.createElement('tr');if(y===now.getFullYear()&&m===now.getMonth()+1&&day===now.getDate())tr.className='today';
   tr.innerHTML=`<td class="day">${dt.toLocaleDateString('it-IT',{weekday:'short'})} ${day}</td>
-  ${cell(day,'food',entriesFor(day,'food')-(+sp.food||0),foodCarry,'residuo')}
-  ${cell(day,'diesel',entriesFor(day,'diesel')-(+sp.diesel||0),(+d.diesel||0)-dieselSpent,'residuo')}
-  ${cell(day,'benzina',entriesFor(day,'benzina')-(+sp.benzina||0),(+d.benzina||0)-benzSpent,'residuo')}
-  ${cell(day,'metano',entriesFor(day,'metano')-(+sp.metano||0),(+d.metano||0)-metSpent,'residuo')}`;body.appendChild(tr)
+  ${cell(foodInitial,entriesFor(day,'food')-(+sp.food||0),foodCarry)}
+  ${cell(dieselInitial,dieselMoves,dieselInitial+dieselMoves)}
+  ${cell(benzInitial,benzMoves,benzInitial+benzMoves)}
+  ${cell(metInitial,metMoves,metInitial+metMoves)}`;body.appendChild(tr)
  }
  renderVarieSingle();
  renderEntryHistory();
@@ -355,7 +360,8 @@ function renderVarieSingle(){
  if(!selected.length&&!extra.length&&!(data().daily.entries||[]).some(x=>x.category==='varie'))host.innerHTML='<div class="hint">Nessuna voce in Varie.</div>';
  applyPermissions();
 }
-function cell(day,k,val,res,label){return `<td class="moneyCell"><strong>€ ${euro(val)}</strong><span class="res">${label}: <strong>€ ${euro(res)}</strong></span></td>`}
+function signedEuro(value){return `${value>0?'+':value<0?'−':''} € ${euro(Math.abs(value))}`}
+function cell(initial,movements,final){return `<td class="moneyCell"><span class="dailyStarting">Budget iniziale: ${signedEuro(initial)}</span><span class="res">Movimenti: ${signedEuro(movements)}</span><span class="dailyFinal">Risultato finale: ${signedEuro(final)}</span></td>`}
 const categoryKeys={Mangiare:'food',Diesel:'diesel',Benzina:'benzina',Metano:'metano',Varie:'varie'};
 $('#viewDate').onchange=e=>{if(e.target.value.startsWith(month)){data().daily.viewEnd=e.target.value;save();renderDaily()}};
 $('#addEntry').onclick=()=>{
@@ -542,7 +548,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-saldi-2', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-saldi-3', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
