@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare · V12</title>
+<title>Registro Finanziario Familiare · V13</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -135,7 +135,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V12</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V13</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><button id="openBoard" type="button">📝 Appunti / Cose da comprare <span id="boardBadge" class="boardBadge" hidden>0</span></button></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Questo telefono può leggere il registro e inviare importi da confermare sul telefono principale.</div>
@@ -475,15 +475,17 @@ $('#sendManualRequest').onclick=async()=>{
  const sign=document.querySelector('input[name="requestSign"]:checked').value;
  const button=$('#sendManualRequest');button.disabled=true;status.textContent='Invio in corso…';
  const reqId='manual-'+(crypto.randomUUID?crypto.randomUUID():(Date.now()+'-'+Math.random().toString(36).slice(2)));
- db.__sharedRequests=Array.isArray(db.__sharedRequests)?db.__sharedRequests:[];
- db.__sharedRequests.push({id:reqId,amount,desc:'Inserimento manuale '+(sign==='-'?'−':'+'),category:$('#requestCategory').value,occurredAt:dt.toISOString(),consumed:false});
- localStorage.setItem('rff_verified',JSON.stringify(db));
- const cloud=await sb.from('family_register').update({data:db,updated_at:new Date().toISOString()}).eq('family_id',familyId);
- if(cloud.error){button.disabled=false;status.textContent='Invio non riuscito. Riprova con Internet attivo.';return}
- // Mantiene anche la vecchia coda RPC come canale aggiuntivo, senza dipendere da essa.
- try{await sb.rpc('rff_send_payment',{...deviceArgs(),p_notification_id:reqId,p_amount:amount,p_description:'Inserimento manuale '+(sign==='-'?'−':'+'),p_occurred_at:dt.toISOString(),p_category:$('#requestCategory').value})}catch(_){}
- button.disabled=false;
- $('#requestAmount').value='';status.textContent='Importo inviato al telefono principale.';
+ const payload={...deviceArgs(),p_notification_id:reqId,p_amount:amount,p_description:'Inserimento manuale '+(sign==='-'?'−':'+'),p_occurred_at:dt.toISOString(),p_category:$('#requestCategory').value};
+ try{
+  const {error}=await sb.rpc('rff_send_payment',payload);
+  if(error)throw error;
+  button.disabled=false;
+  $('#requestAmount').value='';status.textContent='Importo inviato al telefono principale.';
+ }catch(e){
+  console.log('Invio richiesta manuale:',e);
+  button.disabled=false;
+  status.textContent='Invio non riuscito. Controlla Internet e riprova.';
+ }
 };
 $('#startDate').onchange=e=>{if(e.target.value.startsWith(month)){data().daily.start=e.target.value;save();renderDaily()}};
 [['foodBudget','food'],['satExtra','sat'],['dieselBudget','diesel'],['benzinaBudget','benzina'],['metanoBudget','metano']].forEach(([id,k])=>$('#'+id).onchange=e=>{data().daily[k]=Number(e.target.value)||0;save();renderDaily()});
@@ -639,7 +641,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v12-sharedqueue-1', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v13-rpc-send-fix', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
