@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare · V10</title>
+<title>Registro Finanziario Familiare · V11</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -135,7 +135,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V10</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare <span class="versionTag">V11</span></h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><button id="openBoard" type="button">📝 Appunti / Cose da comprare <span id="boardBadge" class="boardBadge" hidden>0</span></button></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Questo telefono può leggere il registro e inviare importi da confermare sul telefono principale.</div>
@@ -455,7 +455,7 @@ $('#sendManualRequest').onclick=async()=>{
  if(!Number.isFinite(amount)||amount<=0||amount>1000000||!date||!Number.isFinite(dt.getTime())||dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0')!==date){status.textContent='Inserisci importo e giorno validi.';return}
  const sign=document.querySelector('input[name="requestSign"]:checked').value;
  const button=$('#sendManualRequest');button.disabled=true;status.textContent='Invio in corso…';
- const {error}=await sb.rpc('rff_send_payment',{...deviceArgs(),p_notification_id:'manual-'+crypto.randomUUID(),p_amount:amount,p_description:'Inserimento manuale '+(sign==='-'?'−':'+'),p_occurred_at:dt.toISOString(),p_category:$('#requestCategory').value});
+ const {error}=await sb.rpc('rff_send_payment',{...deviceArgs(),p_notification_id:'manual-'+(crypto.randomUUID?crypto.randomUUID():(Date.now()+'-'+Math.random().toString(36).slice(2))),p_amount:amount,p_description:'Inserimento manuale '+(sign==='-'?'−':'+'),p_occurred_at:dt.toISOString(),p_category:$('#requestCategory').value});
  button.disabled=false;
  if(error){status.textContent='Invio non riuscito. Riprova con Internet attivo.';return}
  $('#requestAmount').value='';status.textContent='Importo inviato. Comparirà sul telefono principale per la conferma.';
@@ -469,16 +469,17 @@ async function fetchInbox(){
  try{
   let rows=null,error=null;
   ({data:rows,error}=await sb.rpc('rff_pending_payments',deviceArgs()));
-  // V6: usa anche la stessa coda condivisa che alimenta la lavagna.
-  // In questo modo una richiesta del secondo telefono non viene persa se la RPC restituisce una lista vuota/stale.
+  if(error)throw error;
   let merged=Array.isArray(rows)?rows.slice():[];
-  const direct=await sb.from('payment_inbox').select('*').eq('family_id',familyId).order('occurred_at',{ascending:true});
-  if(!direct.error&&Array.isArray(direct.data)){
-   const pending=direct.data.filter(r=>!r.confirmed_at&&!r.confirmed);
-   for(const r of pending)if(!merged.some(x=>x.id===r.id))merged.push(r);
-   error=null;
-  }
-  if(error)throw error;rows=merged;let changed=false;
+  // Lettura diretta solo come recupero aggiuntivo: un errore RLS qui non annulla mai la coda RPC.
+  try{
+   const direct=await sb.from('payment_inbox').select('*').eq('family_id',familyId).order('occurred_at',{ascending:true});
+   if(!direct.error&&Array.isArray(direct.data)){
+    const pending=direct.data.filter(r=>!r.confirmed_at&&!r.confirmed);
+    for(const r of pending)if(!merged.some(x=>x.id===r.id))merged.push(r);
+   }
+  }catch(_){}
+  rows=merged;let changed=false;
   for(const row of rows||[]){const desc=String(row.description||'');if(desc.startsWith('__RFF_BOARD_ADD__')||desc.startsWith('__RFF_BOARD_DEL__')){let boardChanged=false;if(desc.startsWith('__RFF_BOARD_ADD__')){try{const item=JSON.parse(desc.slice('__RFF_BOARD_ADD__'.length));if(item?.id&&item?.text&&!boardItems().some(x=>x.id===item.id)){boardItems().push(item);boardChanged=true}}catch(e){}}else{const id=desc.slice('__RFF_BOARD_DEL__'.length),before=boardItems().length;db.__sharedBoard=boardItems().filter(x=>x.id!==id);boardChanged=before!==db.__sharedBoard.length}if(boardChanged)localStorage.setItem('rff_verified',JSON.stringify(db));const done=await sb.rpc('rff_confirm_payment',{...deviceArgs(),p_inbox_id:row.id,p_data:db});if(done.error)throw done.error;if(boardChanged){changed=true;renderBoard()}continue}
    const dt=new Date(row.occurred_at);if(!Number.isFinite(dt.getTime()))continue;
    const key=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
@@ -554,7 +555,7 @@ async function enter(session){
   await loadCloud();gate.classList.add('hidden');say('');renderBoard();
   if(familyRole==='owner'){await sendAndroidPayments();await fetchInbox()}
   else {const today=new Date();$('#requestDate').value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');openViewerPage('viewerHome')}
-  roleTimer=setInterval(()=>{if(document.hidden)return;if(familyRole==='owner'){sendAndroidPayments();fetchInbox()}else if(familyRole==='viewer'){loadCloud().then(renderBoard).catch(e=>console.log('Aggiornamento:',e))}},2000);
+  roleTimer=setInterval(()=>{if(document.hidden)return;if(familyRole==='owner'){sendAndroidPayments();fetchInbox()}else if(familyRole==='viewer'){loadCloud().then(renderBoard).catch(e=>console.log('Aggiornamento:',e))}},1500);
   // Recupera subito le richieste quando l'app torna in primo piano.
   if(!window.__rffSyncResumeInstalled){
    window.__rffSyncResumeInstalled=true;
@@ -613,7 +614,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v10-unica-1', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-v11-sync-1', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
