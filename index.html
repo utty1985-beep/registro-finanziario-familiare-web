@@ -165,11 +165,17 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 
 <section id="p2" class="page">
  <div class="toolbar"><button id="prevM2">‹</button><div class="month" id="monthTitle2"></div><button id="nextM2">›</button></div>
- <div class="card"><h2>Calendario e rimanenza</h2><label>Mostra i giorni fino al <input id="viewDate" type="date"></label></div>
+ <div class="card"><h2>Aggiungi un pagamento</h2><div class="entryForm">
+ <div class="full"><b>Segno</b> <span class="signs"><label><input type="radio" name="entrySign" value="+" checked>+</label><label><input type="radio" name="entrySign" value="-">−</label></span></div>
+ <label>Importo (€)<input id="entryAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></label>
+ <label>Categoria<select id="entryCategory"><option>Mangiare</option><option>Diesel</option><option>Benzina</option><option>Metano</option><option>Varie</option></select></label>
+ <label class="full">Giorno del pagamento<input id="entryDate" type="date"></label>
+ <button id="addEntry" class="primary">+ Aggiungi pagamento</button></div><div id="entryHistory"></div></div>
+ <div class="card pending"><span class="badge" id="badge" hidden>0</span><h2>Importi da confermare</h2><div class="pendingList" id="pendingList"><div class="hint">Nessun importo da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div>
+ <div class="card"><h2>Calendario e rimanenza</h2><label>Mostra i giorni dal <input id="viewDate" type="date"></label></div>
  <div class="tableWrap"><table><thead><tr><th>Giorno</th><th>Mangiare</th><th>Diesel</th><th>Benzina</th><th>Metano</th></tr></thead><tbody id="dailyBody"></tbody></table></div>
  <div class="nav" id="dailyViewerBack" hidden><button type="button" id="backFromDaily">← Torna a inserimento</button></div>
  <div class="card"><h2>Varie</h2><div class="hint">Le voci selezionate dalla prima pagina e i pagamenti confermati in Varie compaiono qui.</div><div id="varieSingle"></div></div>
- <div class="card pending"><span class="badge" id="badge" hidden>0</span><h2>Importi da confermare</h2><div class="pendingList" id="pendingList"><div class="hint">Nessun importo da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div>
  <div class="card">
   <h2>Impostazioni giornaliere</h2>
   <div class="dailyTop">
@@ -181,12 +187,6 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
    <label>Metano mensile (€)<input id="metanoBudget" type="number" step="0.01" min="0"></label>
   </div>
  </div>
- <div class="card"><h2>Aggiungi un pagamento</h2><div class="entryForm">
- <div class="full"><b>Segno</b> <span class="signs"><label><input type="radio" name="entrySign" value="+" checked>+</label><label><input type="radio" name="entrySign" value="-">−</label></span></div>
- <label>Importo (€)<input id="entryAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></label>
- <label>Categoria<select id="entryCategory"><option>Mangiare</option><option>Diesel</option><option>Benzina</option><option>Metano</option><option>Varie</option></select></label>
- <label class="full">Giorno del pagamento<input id="entryDate" type="date"></label>
- <button id="addEntry" class="primary">+ Aggiungi pagamento</button></div><div id="entryHistory"></div></div>
  <div class="card" id="sentinelBar" hidden><h2>Pagamenti dal telefono</h2><button id="authorizeNotices">Autorizza notifiche</button> <button id="sendNotices">Importa pagamenti</button><p class="hint" id="sendStatus">I pagamenti rilevati arrivano come spese da confermare.</p></div>
  <div class="nav"><button class="primary" id="toMonth">←</button><span></span></div>
 </section>
@@ -321,10 +321,10 @@ function renderDaily(){
  const todayKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
  const defaultEnd=month===todayKey.slice(0,7)?todayKey:(month<todayKey.slice(0,7)?month+'-'+String(last).padStart(2,'0'):month+'-01');
  const view=$('#viewDate');view.min=month+'-01';view.max=month===todayKey.slice(0,7)?todayKey:month+'-'+String(last).padStart(2,'0');
- if(!d.viewEnd||!d.viewEnd.startsWith(month))d.viewEnd=defaultEnd;
- if(d.viewEnd>view.max)d.viewEnd=view.max;view.value=d.viewEnd;
+ if(!d.viewStart||!d.viewStart.startsWith(month))d.viewStart=defaultEnd;
+ if(d.viewStart>view.max)d.viewStart=view.max;view.value=d.viewStart;
  const entryDate=$('#entryDate');entryDate.min=month+'-01';entryDate.max=month+'-'+String(last).padStart(2,'0');if(!entryDate.value.startsWith(month))entryDate.value=defaultEnd;
- const end=month>todayKey.slice(0,7)?0:Number(d.viewEnd.slice(-2));
+ const end=month>todayKey.slice(0,7)?0:Number(view.max.slice(-2));
  $('#foodBudget').value=d.food||0;$('#satExtra').value=d.sat||0;$('#dieselBudget').value=d.diesel||0;$('#benzinaBudget').value=d.benzina||0;$('#metanoBudget').value=d.metano||0;
  let body=$('#dailyBody');body.innerHTML='';let foodCarry=0,dieselSpent=0,benzSpent=0,metSpent=0;
  for(let day=start;day<=end;day++){
@@ -339,7 +339,7 @@ function renderDaily(){
   ${cell(foodInitial,entriesFor(day,'food')-(+sp.food||0),foodCarry)}
   ${cell(dieselInitial,dieselMoves,dieselInitial+dieselMoves)}
   ${cell(benzInitial,benzMoves,benzInitial+benzMoves)}
-  ${cell(metInitial,metMoves,metInitial+metMoves)}`;body.appendChild(tr)
+  ${cell(metInitial,metMoves,metInitial+metMoves)}`;if(day>=Number(d.viewStart.slice(-2)))body.appendChild(tr)
  }
  renderVarieSingle();
  renderEntryHistory();
@@ -377,7 +377,7 @@ function renderVarieSingle(){
 function signedEuro(value){return `${value>0?'+':value<0?'−':''} € ${euro(Math.abs(value))}`}
 function cell(initial,movements,final){return `<td class="moneyCell"><span class="dailyStarting">Budget iniziale: ${signedEuro(initial)}</span><span class="res">Movimenti: ${signedEuro(movements)}</span><span class="dailyFinal">Risultato finale: ${signedEuro(final)}</span></td>`}
 const categoryKeys={Mangiare:'food',Diesel:'diesel',Benzina:'benzina',Metano:'metano',Varie:'varie'};
-$('#viewDate').onchange=e=>{if(e.target.value.startsWith(month)){data().daily.viewEnd=e.target.value;save();renderDaily()}};
+$('#viewDate').onchange=e=>{if(e.target.value.startsWith(month)){data().daily.viewStart=e.target.value;save();renderDaily()}};
 $('#addEntry').onclick=()=>{
  if(familyRole!=='owner')return;
  const amount=Number($('#entryAmount').value),date=$('#entryDate').value;
@@ -578,7 +578,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260926-saldi-4', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260926-saldi-5', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
