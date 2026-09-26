@@ -65,6 +65,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 .signs{display:flex;gap:8px}.signs label{flex:1;display:flex;align-items:center;justify-content:center;border:2px solid #0b4f8a;border-radius:12px;font-size:28px;min-height:54px}.signs input{width:auto;margin:0 6px 0 0}
 .entryLine{padding:7px 0;border-bottom:1px solid #ddd;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .entryLine button{font-size:20px}
+.manualRequestStatus{min-height:20px;color:#0b4f8a;font-weight:700}
 .varieItem{padding:10px 0;border-bottom:1px solid #dce4ea}
 .varieBase{display:grid;grid-template-columns:minmax(0,1fr) 115px;gap:8px;align-items:center}
 .varieBase input{min-width:0;width:100%}
@@ -73,6 +74,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 .varieResult{font-weight:900;color:#0b4f8a;margin-top:8px}
 .varieAdjustments{font-size:13px;color:#52606d;margin-top:5px}.pendingList{padding-top:24px}.notice{border:1px solid #ef9a9a;background:#fff4f4;border-radius:10px;padding:8px;margin:7px 0;color:#a31515}
 .nav{display:flex;justify-content:space-between;margin-top:12px}.nav button{font-size:22px;min-width:54px}
+#monthViewerBack[hidden],#dailyViewerBack[hidden]{display:none}
 .hint{font-size:12px;color:#64748b;margin:5px 0 10px}
 .viewerBanner{background:#eaf4ff;color:#0b4f8a;padding:9px 12px;border-radius:10px;font-weight:700;margin-bottom:10px}
 .authGate{position:fixed;inset:0;background:#f4f7fb;z-index:9999;display:grid;place-items:center;padding:18px}
@@ -132,9 +134,19 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 <header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button></div>
-<div id="viewerBanner" class="viewerBanner" hidden>Solo lettura: questo telefono può vedere il registro e inviare pagamenti da confermare.</div>
+<div id="viewerBanner" class="viewerBanner" hidden>Questo telefono può leggere il registro e inviare importi da confermare sul telefono principale.</div>
 <div class="card" id="pairingCard" hidden><h2>Telefoni da autorizzare</h2><div id="pairingList"></div></div>
+<section id="viewerHome" class="page">
+ <div class="card"><h2>Invia un importo</h2><div class="entryForm">
+ <div class="full"><b>Segno</b><span class="signs"><label><input type="radio" name="requestSign" value="-" checked>−</label><label><input type="radio" name="requestSign" value="+">+</label></span></div>
+ <label>Importo (€)<input id="requestAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></label>
+ <label>Categoria<select id="requestCategory"><option>Mangiare</option><option>Diesel</option><option>Benzina</option><option>Metano</option><option>Varie</option></select></label>
+ <label class="full">Giorno<input id="requestDate" type="date"></label>
+ <button id="sendManualRequest" class="primary">Invia al telefono principale</button></div><p id="manualRequestStatus" class="manualRequestStatus" role="status"></p></div>
+ <div class="card"><h2>Consulta il registro</h2><button id="viewMonth" type="button">Prima pagina</button> <button id="viewDaily" type="button">Seconda pagina</button></div>
+</section>
 <section id="p1" class="page active">
+ <div class="nav" id="monthViewerBack" hidden><button type="button" id="backFromMonth">← Torna a inserimento</button></div>
  <div class="toolbar"><button id="prevM">‹</button><input id="monthPick" type="month"><div class="month" id="monthTitle"></div><button id="nextM">›</button></div>
  <div class="grid2">
   <div>
@@ -152,11 +164,12 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 </section>
 
 <section id="p2" class="page">
+ <div class="nav" id="dailyViewerBack" hidden><button type="button" id="backFromDaily">← Torna a inserimento</button></div>
  <div class="toolbar"><button id="prevM2">‹</button><div class="month" id="monthTitle2"></div><button id="nextM2">›</button></div>
  <div class="card"><label>Mostra i giorni fino al <input id="viewDate" type="date"></label></div>
  <div class="tableWrap"><table><thead><tr><th>Giorno</th><th>Mangiare</th><th>Diesel</th><th>Benzina</th><th>Metano</th></tr></thead><tbody id="dailyBody"></tbody></table></div>
  <div class="card"><h2>Varie</h2><div class="hint">Le voci selezionate dalla prima pagina e i pagamenti confermati in Varie compaiono qui.</div><div id="varieSingle"></div></div>
- <div class="card pending"><span class="badge" id="badge" hidden>0</span><h2>Notifiche da confermare</h2><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div>
+ <div class="card pending"><span class="badge" id="badge" hidden>0</span><h2>Importi da confermare</h2><div class="pendingList" id="pendingList"><div class="hint">Nessun importo da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div>
  <div class="card">
   <h2>Impostazioni giornaliere</h2>
   <div class="dailyTop">
@@ -204,10 +217,11 @@ function save(){
 function applyPermissions(){
  const viewer=familyRole==='viewer';$('#viewerBanner').hidden=!viewer;
  $('#pairingCard').hidden=familyRole!=='owner';
- $('#sentinelBar').hidden=!(familyRole&&window.RegistroAndroid);
+ $('#monthViewerBack').hidden=!viewer;$('#dailyViewerBack').hidden=!viewer;
+ $('#sentinelBar').hidden=!(familyRole==='owner'&&window.RegistroAndroid);
  // Navigazione e cambio mese restano disponibili; tutti i campi del registro sono bloccati.
  document.querySelectorAll('#p1 input:not(#monthPick),#p2 input,#p1 button,#p2 button').forEach(el=>{
-  if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','authorizeNotices','sendNotices'].includes(el.id))return;
+ if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','backFromMonth','backFromDaily','authorizeNotices','sendNotices'].includes(el.id))return;
   el.disabled=viewer;
  });
 }
@@ -387,8 +401,8 @@ function renderEntryHistory(){
  });applyPermissions();
 }
 function escapeNotice(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function renderPending(){let p=data().daily.pending,b=$('#badge'),h=$('#pendingList');b.hidden=!p.length;b.textContent=p.length;h.innerHTML=p.length?'':'<div class="hint">Nessuna notifica da confermare.</div>';
- p.forEach((n,i)=>{let x=document.createElement('div');x.className='notice';x.innerHTML=`<b>€ ${euro(n.amount)}</b> ${escapeNotice(n.desc||'')}<br><select><option>Mangiare</option><option>Diesel</option><option>Benzina</option><option>Metano</option><option>Varie</option></select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"> <button>Conferma</button>`;
+function renderPending(){let p=data().daily.pending,b=$('#badge'),h=$('#pendingList');b.hidden=!p.length;b.textContent=p.length;h.innerHTML=p.length?'':'<div class="hint">Nessun importo da confermare.</div>';
+ p.forEach((n,i)=>{let x=document.createElement('div');x.className='notice';const requestSign=n.desc?.startsWith('Inserimento manuale +')?'+':n.desc?.startsWith('Inserimento manuale −')?'−':null;x.innerHTML=`<b>${requestSign||''} € ${euro(n.amount)}</b> ${escapeNotice(n.desc||'')}<br><select><option>Mangiare</option><option>Diesel</option><option>Benzina</option><option>Metano</option><option>Varie</option></select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"> <button>Conferma</button>`;
  x.querySelector('select').value=['Mangiare','Diesel','Benzina','Metano','Varie'].includes(n.category)?n.category:'Varie';if(n.day)x.querySelector('input').value=n.day;
  x.querySelector('button').onclick=async()=>{
   if(familyRole!=='owner')return;
@@ -398,7 +412,7 @@ function renderPending(){let p=data().daily.pending,b=$('#badge'),h=$('#pendingL
   const day=+x.querySelector('input').value;if(!Number.isInteger(day)||day<1||day>last)return;
   const amount=Number(n.amount);if(!Number.isFinite(amount)||amount<=0)return;
   x.querySelector('button').disabled=true;
-  const current=data();current.daily.entries||(current.daily.entries=[]);const entry={id:'n_'+(n.id||Date.now()+'_'+i),day,category:cat,amount,desc:n.desc||'Notifica'};
+  const current=data();current.daily.entries||(current.daily.entries=[]);const entry={id:'n_'+(n.id||Date.now()+'_'+i),day,category:cat,amount:requestSign==='−'?-amount:amount,desc:n.desc||'Notifica'};
   const confirmed=current.daily.confirmedInboxIds||(current.daily.confirmedInboxIds=[]);
   current.daily.entries.push(entry);p.splice(i,1);if(n.inboxId&&!confirmed.includes(n.inboxId))confirmed.push(n.inboxId);
   save();
@@ -414,6 +428,21 @@ function renderPending(){let p=data().daily.pending,b=$('#badge'),h=$('#pendingL
 $('#monthPick').onchange=e=>{if(!e.target.value)return;ensureMonth(e.target.value);month=e.target.value;save();render()};$('#prevM').onclick=$('#prevM2').onclick=()=>nextMonth(-1);$('#nextM').onclick=$('#nextM2').onclick=()=>nextMonth(1);
 $('#addIncome').onclick=()=>add('income');$('#addPlanned').onclick=()=>add('planned');$('#addMove').onclick=()=>add('moves');$('#addRate').onclick=()=>add('rates');
 $('#toDaily').onclick=()=>{$('#p1').classList.remove('active');$('#p2').classList.add('active');renderDaily();scrollTo(0,0)};$('#toMonth').onclick=()=>{$('#p2').classList.remove('active');$('#p1').classList.add('active');scrollTo(0,0)};
+function openViewerPage(id){document.querySelectorAll('.page').forEach(page=>page.classList.remove('active'));$('#'+id).classList.add('active');if(id==='p2')renderDaily();scrollTo(0,0)}
+$('#viewMonth').onclick=()=>openViewerPage('p1');$('#viewDaily').onclick=()=>openViewerPage('p2');
+$('#backFromMonth').onclick=$('#backFromDaily').onclick=()=>openViewerPage('viewerHome');
+$('#sendManualRequest').onclick=async()=>{
+ if(familyRole!=='viewer'||!familyId)return;
+ const amount=Number($('#requestAmount').value),date=$('#requestDate').value,dt=new Date(date+'T12:00:00');
+ const status=$('#manualRequestStatus');
+ if(!Number.isFinite(amount)||amount<=0||amount>1000000||!date||!Number.isFinite(dt.getTime())||dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0')!==date){status.textContent='Inserisci importo e giorno validi.';return}
+ const sign=document.querySelector('input[name="requestSign"]:checked').value;
+ const button=$('#sendManualRequest');button.disabled=true;status.textContent='Invio in corso…';
+ const {error}=await sb.rpc('rff_send_payment',{...deviceArgs(),p_notification_id:'manual-'+crypto.randomUUID(),p_amount:amount,p_description:'Inserimento manuale '+(sign==='-'?'−':'+'),p_occurred_at:dt.toISOString(),p_category:$('#requestCategory').value});
+ button.disabled=false;
+ if(error){status.textContent='Invio non riuscito. Riprova con Internet attivo.';return}
+ $('#requestAmount').value='';status.textContent='Importo inviato. Comparirà sul telefono principale per la conferma.';
+};
 $('#startDate').onchange=e=>{if(e.target.value.startsWith(month)){data().daily.start=e.target.value;save();renderDaily()}};
 [['foodBudget','food'],['satExtra','sat'],['dieselBudget','diesel'],['benzinaBudget','benzina'],['metanoBudget','metano']].forEach(([id,k])=>$('#'+id).onchange=e=>{data().daily[k]=Number(e.target.value)||0;save();renderDaily()});
 $('#testNotice').onclick=()=>{data().daily.pending.push({amount:12.50,desc:'Pagamento da confermare'});save();renderPending()};
@@ -496,8 +525,9 @@ async function enter(session){
    return;
   }
   await loadCloud();gate.classList.add('hidden');say('');
-  if(familyRole==='owner'){await sendAndroidPayments();await fetchInbox();await showPairingRequests()}else await sendAndroidPayments();
-  roleTimer=setInterval(()=>{if(document.hidden)return;if(familyRole==='owner'){sendAndroidPayments();fetchInbox();showPairingRequests()}else if(familyRole==='viewer'){loadCloud().catch(e=>console.log('Aggiornamento:',e));sendAndroidPayments()}},15000);
+  if(familyRole==='owner'){await sendAndroidPayments();await fetchInbox();await showPairingRequests()}
+  else {const today=new Date();$('#requestDate').value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');openViewerPage('viewerHome')}
+  roleTimer=setInterval(()=>{if(document.hidden)return;if(familyRole==='owner'){sendAndroidPayments();fetchInbox();showPairingRequests()}else if(familyRole==='viewer'){loadCloud().catch(e=>console.log('Aggiornamento:',e))}},15000);
  }
  catch(e){gate.classList.remove('hidden');say('Accesso al registro: '+(e?.message||'errore di connessione'))}
 }
