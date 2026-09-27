@@ -349,9 +349,12 @@ function categoryName(key){if(key==='food')return'Mangiare';if(key==='varie')ret
 function renderDaily(){
  let d=data().daily,start=validStart(),[y,m]=ymParts(),last=new Date(y,m,0).getDate();
  if(!d.viewStart || !d.viewStart.startsWith(month)) d.viewStart=d.start;
- const displayStart=Math.max(start,Number(d.viewStart.slice(-2))||start);
  if(!Array.isArray(d.columns)){d.columns=[];[['diesel','Diesel'],['benzina','Benzina'],['metano','Metano']].forEach(([k,n])=>{if(Number(d[k]||0)!==0)d.columns.push({id:k,name:n,budget:Number(d[k])||0})})}
  const todayKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+ // Nel mese corrente mostra automaticamente solo il giorno corrente evidenziato.
+ // I giorni precedenti vengono comunque calcolati per mantenere corretti residui e riporti.
+ if(month===todayKey.slice(0,7) && now.getDate()>=start) d.viewStart=todayKey;
+ const displayStart=Math.max(start,Number(d.viewStart.slice(-2))||start);
  const defaultEnd=month===todayKey.slice(0,7)?todayKey:(month<todayKey.slice(0,7)?month+'-'+String(last).padStart(2,'0'):month+'-01');
  const view=$('#viewDate');view.min=month+'-01';view.max=month+'-'+String(last).padStart(2,'0');view.value=d.viewStart;
  const entryDate=$('#entryDate');entryDate.min=month+'-01';entryDate.max=month+'-'+String(last).padStart(2,'0');if(!entryDate.value.startsWith(month))entryDate.value=defaultEnd;
@@ -514,11 +517,9 @@ async function showPairingRequests(){
  const {data:requests,error}=await sb.rpc('rff_pending_devices',deviceArgs());
  if(error){console.log('Abbinamento:',error);$('#pairingCard').hidden=true;return}
  const list=$('#pairingList');list.textContent='';
- const hidden=JSON.parse(localStorage.getItem('rff_hidden_pairing')||'[]');
- const visible=(requests||[]).filter(r=>!hidden.includes(r.id));
- if(!visible.length){$('#pairingCard').hidden=true;return}
+ if(!requests?.length){$('#pairingCard').hidden=true;return}
  $('#pairingCard').hidden=false;
- for(const request of visible){
+ for(const request of requests){
   const line=document.createElement('div');line.className='notice';
   const label=document.createElement('span');label.textContent='Telefono in attesa · codice '+request.id.slice(-6)+' ';
   const button=document.createElement('button');button.textContent='Autorizza';
@@ -528,9 +529,7 @@ async function showPairingRequests(){
    if(error){alert('Autorizzazione non riuscita. Riprova.');button.disabled=false;return}
    showPairingRequests();
   };
-  const remove=document.createElement('button');remove.textContent='Elimina';remove.style.marginLeft='8px';
-  remove.onclick=()=>{const h=JSON.parse(localStorage.getItem('rff_hidden_pairing')||'[]');if(!h.includes(request.id))h.push(request.id);localStorage.setItem('rff_hidden_pairing',JSON.stringify(h));showPairingRequests()};
-  line.append(label,button,remove);list.appendChild(line);
+  line.append(label,button);list.appendChild(line);
  }
 }
 function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelector(id).classList.add('active');window.scrollTo(0,0)}
