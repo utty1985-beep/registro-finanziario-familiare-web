@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V31</title>
+<title>Registro Finanziario Familiare V36</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -349,15 +349,11 @@ function categoryName(key){if(key==='food')return'Mangiare';if(key==='varie')ret
 function renderDaily(){
  let d=data().daily,start=validStart(),[y,m]=ymParts(),last=new Date(y,m,0).getDate();
  if(!d.viewStart || !d.viewStart.startsWith(month)) d.viewStart=d.start;
+ const liveToday=new Date(),liveMonth=liveToday.getFullYear()+'-'+String(liveToday.getMonth()+1).padStart(2,'0');
+ if(month===liveMonth){const todayDay=liveToday.getDate(),currentView=Number(d.viewStart.slice(-2))||start;if(currentView<todayDay)d.viewStart=month+'-'+String(todayDay).padStart(2,'0')}
+ const displayStart=Math.max(start,Number(d.viewStart.slice(-2))||start);
  if(!Array.isArray(d.columns)){d.columns=[];[['diesel','Diesel'],['benzina','Benzina'],['metano','Metano']].forEach(([k,n])=>{if(Number(d[k]||0)!==0)d.columns.push({id:k,name:n,budget:Number(d[k])||0})})}
  const todayKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
- // Nel mese corrente mostra automaticamente solo il giorno corrente evidenziato.
- // I giorni precedenti vengono comunque calcolati per mantenere corretti residui e riporti.
- if(month===todayKey.slice(0,7) && now.getDate()>=start) d.viewStart=todayKey;
- // Nel mese corrente forza la visualizzazione a partire da oggi, indipendentemente da un vecchio viewStart salvato.
- const displayStart=(month===todayKey.slice(0,7) && now.getDate()>=start)
-   ? now.getDate()
-   : Math.max(start,Number(d.viewStart.slice(-2))||start);
  const defaultEnd=month===todayKey.slice(0,7)?todayKey:(month<todayKey.slice(0,7)?month+'-'+String(last).padStart(2,'0'):month+'-01');
  const view=$('#viewDate');view.min=month+'-01';view.max=month+'-'+String(last).padStart(2,'0');view.value=d.viewStart;
  const entryDate=$('#entryDate');entryDate.min=month+'-01';entryDate.max=month+'-'+String(last).padStart(2,'0');if(!entryDate.value.startsWith(month))entryDate.value=defaultEnd;
@@ -612,6 +608,8 @@ setInterval(()=>{
  const fresh=new Date();
  if(fresh.toDateString()!==lastCalendarDay){
    now=fresh;lastCalendarDay=fresh.toDateString();
+   const todayMonth=fresh.getFullYear()+'-'+String(fresh.getMonth()+1).padStart(2,'0');
+   if(month===todayMonth){data().daily.viewStart=todayMonth+'-'+String(fresh.getDate()).padStart(2,'0');save()}
    if($('#p2').classList.contains('active')) renderDaily();
  } else now=fresh;
 },30000);
