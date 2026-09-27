@@ -354,7 +354,10 @@ function renderDaily(){
  // Nel mese corrente mostra automaticamente solo il giorno corrente evidenziato.
  // I giorni precedenti vengono comunque calcolati per mantenere corretti residui e riporti.
  if(month===todayKey.slice(0,7) && now.getDate()>=start) d.viewStart=todayKey;
- const displayStart=Math.max(start,Number(d.viewStart.slice(-2))||start);
+ // Nel mese corrente forza la visualizzazione a partire da oggi, indipendentemente da un vecchio viewStart salvato.
+ const displayStart=(month===todayKey.slice(0,7) && now.getDate()>=start)
+   ? now.getDate()
+   : Math.max(start,Number(d.viewStart.slice(-2))||start);
  const defaultEnd=month===todayKey.slice(0,7)?todayKey:(month<todayKey.slice(0,7)?month+'-'+String(last).padStart(2,'0'):month+'-01');
  const view=$('#viewDate');view.min=month+'-01';view.max=month+'-'+String(last).padStart(2,'0');view.value=d.viewStart;
  const entryDate=$('#entryDate');entryDate.min=month+'-01';entryDate.max=month+'-'+String(last).padStart(2,'0');if(!entryDate.value.startsWith(month))entryDate.value=defaultEnd;
