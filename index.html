@@ -1,12 +1,19 @@
 <!doctype html>
-<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Registro Finanziario Familiare V40</title><style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;background:#f4f7fb;color:#172033;display:grid;place-items:center;min-height:100vh}.loading{padding:24px;text-align:center}.loading strong{color:#0b4f8a}</style></head>
-<body><div class="loading"><strong>Registro Finanziario Familiare V40</strong><br>Aggiornamento in corso…</div>
-<script src="./apply-v40.js?v=20260927-v40" defer></script>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Registro Finanziario Familiare V41</title><style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;background:#f4f7fb;color:#172033;display:grid;place-items:center;min-height:100vh}.loading{padding:24px;text-align:center}.loading strong{color:#0b4f8a}</style></head>
+<body><div class="loading"><strong>Registro Finanziario Familiare V41</strong><br>Aggiornamento in corso…</div>
+<script src="./apply-v40.js?v=20260927-v41" defer></script>
 <script>
 window.addEventListener('DOMContentLoaded',async()=>{try{
- const text=await fetch('./app-v36.html?v=20260927-v40',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text()});
+ const text=await fetch('./app-v36.html?v=20260927-v41',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text()});
  if(typeof applyV40!=='function')throw new Error('Patch V40 non caricata');
- const updated=applyV40(text);
+ let updated=applyV40(text);
+ const oldPerm="if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','authorizeNotices','sendNotices'].includes(el.id))return;";
+ const newPerm="if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','toBoard','toBoard2','authorizeNotices','sendNotices'].includes(el.id))return;";
+ if(!updated.includes(oldPerm))throw new Error('Patch V41 permessi Lavagna non applicata');
+ updated=updated.replace(oldPerm,newPerm);
+ updated=updated.replace('<title>Registro Finanziario Familiare V40</title>','<title>Registro Finanziario Familiare V41</title>');
+ updated=updated.replace('service-worker.js?v=20260927-v40','service-worker.js?v=20260927-v41');
+ updated=updated.replace('Registro Finanziario Familiare V40 - versione consolidata','Registro Finanziario Familiare V41 - Lavagna abilitata sul telefono secondario');
  document.open();document.write(updated);document.close();
 }catch(e){document.body.innerHTML='<div class="loading"><strong>Aggiornamento non riuscito.</strong><br>Ricarica la pagina.</div>';console.error(e)}});
 </script></body></html>
