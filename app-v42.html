@@ -143,14 +143,14 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  #printSheets{display:block!important}
  .printSheet{box-sizing:border-box;width:100%;height:188mm;max-height:188mm;overflow:hidden;break-after:page!important;page-break-after:always!important}
  .printSheet:last-child{break-after:auto!important;page-break-after:auto!important}
- .printTitle{font-size:14px;font-weight:800;border-bottom:1px solid #333;padding-bottom:2mm;margin-bottom:2mm}
- .printColumns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3mm;align-items:start}
- .printBlock{border:1px solid #999;margin:0 0 2mm;padding:1.4mm;break-inside:avoid;box-sizing:border-box}
- .printBlock h2{font-size:10px;margin:0 0 1mm;border-bottom:1px solid #aaa;padding-bottom:.7mm}
+ .printTitle{font-size:16px;font-weight:800;border-bottom:1px solid #333;padding-bottom:2mm;margin-bottom:2.5mm}
+ .printColumns{display:grid;grid-template-columns:1fr 1fr;gap:4mm;align-items:start}
+ .printBlock{border:1px solid #999;margin:0 0 2mm;padding:1.6mm;break-inside:avoid;box-sizing:border-box}
+ .printBlock h2{font-size:11px;margin:0 0 1mm;border-bottom:1px solid #aaa;padding-bottom:.8mm}
  .printBlock.income{background:#edf8f0;border-color:#2d8755}.printBlock.planned{background:#fff2e7;border-color:#bd6530}
  .printBlock.projection{background:#e8f8f4;border-color:#17886d}.printBlock.moves{background:#edf3ff;border-color:#386abd}
  .printBlock.rates{background:#f7edfa;border-color:#9447a7}.printBlock.balance{background:#e4f5fa;border-color:#2286a4}
- .printLine{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1mm;line-height:1.12;border-bottom:1px solid #c8c8c8;padding:.2mm 0;font-size:8px}
+ .printLine{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2mm;line-height:1.25;border-bottom:1px solid #c8c8c8;padding:.38mm 0;font-size:10px}
  .printLine span:first-child{overflow-wrap:anywhere}.printLine b{white-space:nowrap}
  .printPending{color:#ae2020;font-weight:700}.printTotal{font-weight:800;border-top:1px solid #777;margin-top:1mm;padding-top:1mm}
  .printDaily{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8px}
@@ -351,7 +351,7 @@ function buildPrintSheets(){
   cols.forEach(c=>{let k=colKey(c);spent[k]+=(Number(sp[k])||0)-byCategory(k);cells.push(`€ ${euro(byCategory(k)-(Number(sp[k])||0))} · residuo € ${euro((Number(c.budget)||0)-spent[k])}`)});
   rows.push('<tr>'+cells.map(v=>`<td>${escapeNotice(v)}</td>`).join('')+'</tr>');
  }
- host.innerHTML=`<div class="printSheet"><div class="printTitle">Registro Finanziario Familiare · ${escapeNotice(label)} — riepilogo</div><div class="printColumns"><div>${block('Ingressi del mese',entries('income'),'Totale ingressi: € '+$('#incomeTotal').textContent,'income')}${block('Spese preventivate mese',entries('planned'),'Totale: € '+$('#plannedTotal').textContent,'planned')}</div><div>${block('Situazione economica / movimenti',entries('moves'),'','moves')}${block('Ingressi − spese preventivate','', 'Differenza: € '+$('#incomeAfterPlanned').textContent,'projection')}</div><div>${block('Rate / scadenze',entries('rates'),'','rates')}${block('Bilancio finale','', 'Saldo: € '+$('#balance').textContent,'balance')}</div></div></div><div class="printSheet"><div class="printTitle">Registro Finanziario Familiare · ${escapeNotice(label)} — spese giornaliere</div><table class="printDaily"><thead><tr>${dailyHeads.map(h=>`<th>${escapeNotice(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+ host.innerHTML=`<div class="printSheet"><div class="printTitle">Registro Finanziario Familiare · ${escapeNotice(label)} — riepilogo</div><div class="printColumns"><div>${block('Ingressi del mese',entries('income'),'Totale ingressi: € '+$('#incomeTotal').textContent,'income')}${block('Spese preventivate mese',entries('planned'),'Totale: € '+$('#plannedTotal').textContent,'planned')}${block('Ingressi − spese preventivate','', 'Differenza: € '+$('#incomeAfterPlanned').textContent,'projection')}</div><div>${block('Situazione economica / movimenti',entries('moves'),'','moves')}${block('Rate / scadenze',entries('rates'),'','rates')}${block('Bilancio finale','', 'Saldo: € '+$('#balance').textContent,'balance')}</div></div></div><div class="printSheet"><div class="printTitle">Registro Finanziario Familiare · ${escapeNotice(label)} — spese giornaliere</div><table class="printDaily"><thead><tr>${dailyHeads.map(h=>`<th>${escapeNotice(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
 }
 function nextMonth(delta){let [y,m]=ymParts(),d=new Date(y,m-1+delta,1),nm=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
  ensureMonth(nm);month=nm;save();render()}
