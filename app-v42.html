@@ -130,21 +130,27 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 .pendingDrop .badge{position:static;display:inline-grid;margin-left:auto}
 .pendingActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.pendingActions button{flex:1;min-width:120px}
 .pendingActions .rejectPay{background:#c62828;color:#fff;border-color:#c62828}
-.historyDrop{margin-top:8px;border-top:1px solid #e2e8f0;padding-top:8px}.historyDrop #entryHistory{margin-top:8px}\n@media print{
+.historyDrop{margin-top:8px;border-top:1px solid #e2e8f0;padding-top:8px}.historyDrop #entryHistory{margin-top:8px}
+@media print{
  @page{size:A4 landscape;margin:8mm}
- body{font-size:10px}body>header,body>main,body>#p3,body>.authGate{display:none!important}
+ html,body{margin:0!important;padding:0!important;width:100%!important;background:white!important}
+ body{font-size:9px}body>header,body>main,body>#p3,body>.authGate{display:none!important}
  #printSheets{display:block!important}
- .printSheet{height:194mm;max-height:194mm;overflow:hidden;break-after:page;page-break-after:always}
- .printSheet:last-child{break-after:auto;page-break-after:auto}
- .printTitle{font-size:15px;font-weight:800;border-bottom:1px solid #333;padding-bottom:3mm;margin-bottom:3mm}
- .printColumns{display:grid;grid-template-columns:1fr 1fr;gap:5mm;align-items:start}
- .printBlock{border:1px solid #999;margin:0 0 3mm;padding:2mm;break-inside:avoid}
- .printBlock h2{font-size:11px;margin:0 0 1mm}
- .printLine{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2mm;line-height:1.3;border-bottom:1px solid #eee;padding:.35mm 0;font-size:9px}
+ .printSheet{box-sizing:border-box;width:100%;height:188mm;max-height:188mm;overflow:hidden;break-after:page!important;page-break-after:always!important}
+ .printSheet:last-child{break-after:auto!important;page-break-after:auto!important}
+ .printTitle{font-size:14px;font-weight:800;border-bottom:1px solid #333;padding-bottom:2mm;margin-bottom:2mm}
+ .printColumns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3mm;align-items:start}
+ .printBlock{border:1px solid #999;margin:0 0 2mm;padding:1.4mm;break-inside:avoid;box-sizing:border-box}
+ .printBlock h2{font-size:10px;margin:0 0 1mm;border-bottom:1px solid #aaa;padding-bottom:.7mm}
+ .printBlock.income{background:#edf8f0;border-color:#2d8755}.printBlock.planned{background:#fff2e7;border-color:#bd6530}
+ .printBlock.projection{background:#e8f8f4;border-color:#17886d}.printBlock.moves{background:#edf3ff;border-color:#386abd}
+ .printBlock.rates{background:#f7edfa;border-color:#9447a7}.printBlock.balance{background:#e4f5fa;border-color:#2286a4}
+ .printLine{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1mm;line-height:1.12;border-bottom:1px solid #c8c8c8;padding:.2mm 0;font-size:8px}
  .printLine span:first-child{overflow-wrap:anywhere}.printLine b{white-space:nowrap}
  .printPending{color:#ae2020;font-weight:700}.printTotal{font-weight:800;border-top:1px solid #777;margin-top:1mm;padding-top:1mm}
- .printDaily{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9px}
- .printDaily th,.printDaily td{position:static!important;padding:1mm 1.5mm!important;border:1px solid #999;text-align:left;vertical-align:top;line-height:1.15}
+ .printDaily{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8px}
+ .printDaily th,.printDaily td{position:static!important;padding:.65mm 1mm!important;border:1px solid #999;text-align:left;vertical-align:top;line-height:1.1}
+ .printDaily th{background:#e6f3f8!important}.printDaily tbody tr:nth-child(even){background:#f2f7fb!important}
  .printDaily th:first-child,.printDaily td:first-child{width:26mm}
  .printDaily tr{break-inside:avoid}
 }
@@ -295,15 +301,16 @@ function title(){let [y,m]=ymParts();return new Date(y,m-1,1).toLocaleDateString
 function ensureMonth(nm){
  let [y,m]=nm.split('-').map(Number),prev=new Date(y,m-2,1),prevKey=prev.getFullYear()+'-'+String(prev.getMonth()+1).padStart(2,'0');
  let old=db[prevKey],neu=db[nm]||defaultMonth(),alreadyExists=!!db[nm];
- if(old&&neu._carryInitializedFrom!==prevKey){
+ if(old){
   for(const kind of ['income','planned','moves','rates']){
    const target=neu[kind]||(neu[kind]=[]);
+   const seen=new Map();
    for(const r of old[kind]||[]){
-    const same=alreadyExists&&String(r[0]).trim().toLowerCase()!=='nuova voce'
-      ?target.find(x=>String(x[0]).trim().toLowerCase()===String(r[0]).trim().toLowerCase()):null;
-    if(same){
-     // Existing entries and their amounts are preserved exactly as saved.
-    }else target.push([r[0],r[1],r[2],r[3],true]);
+    const name=String(r[0]||'').trim().toLowerCase();
+    if(!name||name==='nuova voce')continue;
+    const occurrence=seen.get(name)||0;seen.set(name,occurrence+1);
+    const existing=target.filter(x=>String(x[0]||'').trim().toLowerCase()===name);
+    if(existing.length<=occurrence)target.push([r[0],r[1],r[2],r[3],true]);
    }
   }
   if(old.daily){
@@ -323,7 +330,7 @@ function ensureMonth(nm){
 function buildPrintSheets(){
  const host=$('#printSheets'),d=data(),label=title();
  const line=(name,value,pending=false)=>`<div class="printLine${pending?' printPending':''}"><span>${escapeNotice(name||'Nuova voce')}${pending?' · da confermare':''}</span><b>${escapeNotice(value)}</b></div>`;
- const block=(heading,rows,footer='')=>`<div class="printBlock"><h2>${heading}</h2>${rows||'<div class="printLine">Nessuna voce</div>'}${footer?`<div class="printTotal">${footer}</div>`:''}</div>`;
+ const block=(heading,rows,footer='',color='')=>`<div class="printBlock ${color}"><h2>${heading}</h2>${rows||'<div class="printLine">Nessuna voce</div>'}${footer?`<div class="printTotal">${footer}</div>`:''}</div>`;
  const entries=(kind)=>d[kind].map(r=>line(r[0],(kind==='income'?'':rowSign(r,kind)+' ')+'€ '+euro(Math.abs(Number(r[1])||0)),!!r[4])).join('');
  const daily=d.daily||{},[year,mon]=ymParts(),last=new Date(year,mon,0).getDate();
  const cols=(daily.columns||[]).filter(c=>(c.name||'').trim());
@@ -339,7 +346,7 @@ function buildPrintSheets(){
   cols.forEach(c=>{let k=colKey(c);spent[k]+=(Number(sp[k])||0)-byCategory(k);cells.push(`€ ${euro(byCategory(k)-(Number(sp[k])||0))} · residuo € ${euro((Number(c.budget)||0)-spent[k])}`)});
   rows.push('<tr>'+cells.map(v=>`<td>${escapeNotice(v)}</td>`).join('')+'</tr>');
  }
- host.innerHTML=`<div class="printSheet"><div class="printTitle">Registro Finanziario Familiare · ${escapeNotice(label)} — riepilogo</div><div class="printColumns"><div>${block('Ingressi del mese',entries('income'),'Totale ingressi: € '+$('#incomeTotal').textContent)}${block('Spese preventivate mese',entries('planned'),'Totale: € '+$('#plannedTotal').textContent)}${block('Ingressi − spese preventivate','', 'Differenza: € '+$('#incomeAfterPlanned').textContent)}</div><div>${block('Situazione economica / movimenti',entries('moves'))}${block('Rate / scadenze',entries('rates'))}${block('Bilancio finale','', 'Saldo: € '+$('#balance').textContent)}</div></div></div><div class="printSheet"><div class="printTitle">Registro Finanziario Familiare · ${escapeNotice(label)} — spese giornaliere</div><table class="printDaily"><thead><tr>${dailyHeads.map(h=>`<th>${escapeNotice(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+ host.innerHTML=`<div class="printSheet"><div class="printTitle">Registro Finanziario Familiare · ${escapeNotice(label)} — riepilogo</div><div class="printColumns"><div>${block('Ingressi del mese',entries('income'),'Totale ingressi: € '+$('#incomeTotal').textContent,'income')}${block('Spese preventivate mese',entries('planned'),'Totale: € '+$('#plannedTotal').textContent,'planned')}</div><div>${block('Situazione economica / movimenti',entries('moves'),'','moves')}${block('Ingressi − spese preventivate','', 'Differenza: € '+$('#incomeAfterPlanned').textContent,'projection')}</div><div>${block('Rate / scadenze',entries('rates'),'','rates')}${block('Bilancio finale','', 'Saldo: € '+$('#balance').textContent,'balance')}</div></div></div><div class="printSheet"><div class="printTitle">Registro Finanziario Familiare · ${escapeNotice(label)} — spese giornaliere</div><table class="printDaily"><thead><tr>${dailyHeads.map(h=>`<th>${escapeNotice(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
 }
 function nextMonth(delta){let [y,m]=ymParts(),d=new Date(y,m-1+delta,1),nm=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
  ensureMonth(nm);month=nm;save();render()}
@@ -702,3 +709,4 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 <!-- Registro Finanziario Familiare V42 - versione consolidata --></body></html>
+
