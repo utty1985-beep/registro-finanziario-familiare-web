@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Registro Finanziario Familiare V42</title><style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;background:#f4f7fb;color:#172033;display:grid;place-items:center;min-height:100vh}.loading{padding:24px;text-align:center}.loading strong{color:#0b4f8a}</style></head>
-<body><div class="loading"><strong>Registro Finanziario Familiare V42</strong><br>Aggiornamento in corso…</div>
-
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Registro Finanziario Familiare V43</title><style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;background:#f4f7fb;color:#172033;display:grid;place-items:center;min-height:100vh}.loading{padding:24px;text-align:center}.loading strong{color:#0b4f8a}</style><script src="./apply-v43.js?v=20260928-v43"></script></head>
+<body><div class="loading"><strong>Registro Finanziario Familiare V43</strong><br>Aggiornamento in corso…</div>
 <script>
 window.addEventListener('DOMContentLoaded',async()=>{try{
- const text=await fetch('./app-v42.html?v=20260928-v42',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text()});
- const updated=text;
+ const text=await fetch('./app-v42.html?v=20260928-v43',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text()});
+ let updated=text;
+ try{if(typeof window.applyV43==='function')updated=window.applyV43(text);else throw new Error('Patch V43 non disponibile')}catch(patchError){console.error('V43 fallback a V42:',patchError);updated=text}
  document.open();document.write(updated);document.close();
 }catch(e){document.body.innerHTML='<div class="loading"><strong>Aggiornamento non riuscito.</strong><br>Ricarica la pagina.</div>';console.error(e)}});
 </script></body></html>
