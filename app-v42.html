@@ -227,7 +227,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="card"><label>Mostra dal giorno <input id="viewDate" type="date"></label></div>
  <div class="tableWrap"><table><thead><tr id="dailyHead"><th>Giorno</th><th>Mangiare</th></tr></thead><tbody id="dailyBody"></tbody></table></div>
  <div class="card"><h2>Varie</h2><div class="hint">Le voci selezionate dalla prima pagina e i pagamenti confermati in Varie compaiono qui.</div><div id="varieSingle"></div></div>
- <div class="card" id="sentinelBar" hidden><h2>Pagamenti dal telefono</h2><button id="authorizeNotices">Autorizza notifiche</button> <button id="sendNotices">Importa pagamenti</button><p class="hint" id="sendStatus">I pagamenti rilevati arrivano come spese da confermare.</p></div>
+ <div class="card" id="sentinelBar" hidden><h2>Pagamenti dal telefono</h2><button id="authorizeNotices">Autorizza notifiche</button> <button id="sourcesButton">Scegli app di pagamento</button> <button id="sendNotices">Importa pagamenti</button><div id="paymentSources" class="hint" role="group" aria-label="App di pagamento" hidden></div><p class="hint" id="sendStatus">Scegli le app da cui importare le spese. Arriveranno in rosso, da confermare.</p></div>
  <div class="nav"><button class="primary" id="toMonth">←</button><button id="toBoard2">📝 Lavagna</button></div>
 </section>
 </main>
@@ -270,7 +270,7 @@ function applyPermissions(){
  const viewer=familyRole==='viewer';$('#viewerBanner').hidden=!viewer;
  $('#pairingCard').hidden=true;$('#sentinelBar').hidden=!(familyRole&&window.RegistroAndroid);
  document.querySelectorAll('#p1 input:not(#monthPick),#p2 input,#p1 button,#p2 button,#p2 select').forEach(el=>{
-  if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','toBoard','toBoard2','authorizeNotices','sendNotices'].includes(el.id))return;
+  if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','toBoard','toBoard2','authorizeNotices','sourcesButton','sendNotices'].includes(el.id))return;
   if(el.closest&&el.closest('.entryForm'))return;
   el.disabled=viewer;
  });
@@ -615,6 +615,21 @@ async function sendAndroidPayments(){
 }
 window.sendAndroidPayments=sendAndroidPayments;
 $('#authorizeNotices').onclick=()=>window.RegistroAndroid?.openNotificationAccess();
+function renderPaymentSources(){
+ const host=$('#paymentSources'),bridge=window.RegistroAndroid;
+ host.hidden=false;host.textContent='';
+ if(!bridge?.availablePaymentSources){host.textContent='Questa versione Android non supporta la scelta delle app. Installa la versione Notifiche aggiornata.';return}
+ let sources=[];try{sources=JSON.parse(bridge.availablePaymentSources()||'[]')}catch(e){}
+ if(!sources.length){host.textContent='Nessuna app di pagamento rilevata. Dopo una notifica di pagamento torna qui e premi di nuovo “Scegli app di pagamento”.';return}
+ const intro=document.createElement('div');intro.textContent='Attiva solo le app da cui vuoi importare pagamenti:';host.appendChild(intro);
+ sources.forEach(source=>{const label=document.createElement('label');label.style.cssText='display:flex;align-items:center;gap:8px;padding:7px 0';const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=!!source.enabled;checkbox.dataset.package=source.package;const name=document.createElement('span');name.textContent=source.label||source.package;label.append(checkbox,name);host.appendChild(label)});
+ host.querySelectorAll('input').forEach(input=>input.onchange=()=>{
+  const selected=[...host.querySelectorAll('input:checked')].map(el=>el.dataset.package);
+  bridge.setAllowedPaymentSources(JSON.stringify(selected));$('#sendStatus').textContent=selected.length?'App selezionate. I pagamenti arriveranno in rosso per essere confermati.':'Nessuna app selezionata: nessun pagamento sarà inviato.';
+  if(selected.length)sendAndroidPayments();
+ });
+}
+$('#sourcesButton').onclick=renderPaymentSources;
 $('#sendNotices').onclick=sendAndroidPayments;
 async function showPairingRequests(){
  if(familyRole!=='owner'){ $('#pairingCard').hidden=true; return; }
