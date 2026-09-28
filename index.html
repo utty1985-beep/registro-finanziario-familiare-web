@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Registro Finanziario Familiare V44</title><style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;background:#f4f7fb;color:#172033;display:grid;place-items:center;min-height:100vh}.loading{padding:24px;text-align:center}.loading strong{color:#0b4f8a}</style><script src="./apply-v43.js?v=20260928-v44"></script><script src="./apply-v44.js?v=20260928-v44"></script></head>
-<body><div class="loading"><strong>Registro Finanziario Familiare V44</strong><br>Aggiornamento in corso…</div>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Registro Finanziario Familiare V45</title><style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;background:#f4f7fb;color:#172033;display:grid;place-items:center;min-height:100vh}.loading{padding:24px;text-align:center}.loading strong{color:#0b4f8a}</style><script src="./apply-v43.js?v=20260928-v45"></script><script src="./apply-v45.js?v=20260928-v45"></script></head>
+<body><div class="loading"><strong>Registro Finanziario Familiare V45</strong><br>Aggiornamento in corso…</div>
 <script>
 window.addEventListener('DOMContentLoaded',async()=>{try{
- const text=await fetch('./app-v42.html?v=20260928-v44',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text()});
+ const text=await fetch('./app-v42.html?v=20260928-v45',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text()});
  let updated=text;
- try{if(typeof window.applyV44==='function')updated=window.applyV44(text);else throw new Error('Patch V44 non disponibile')}catch(patchError){console.error('V44 fallback a V43:',patchError);try{updated=typeof window.applyV43==='function'?window.applyV43(text):text}catch(_){updated=text}}
+ try{if(typeof window.applyV45==='function')updated=window.applyV45(text);else throw new Error('Patch V45 non disponibile')}catch(patchError){console.error('V45 fallback a V43:',patchError);try{updated=typeof window.applyV43==='function'?window.applyV43(text):text}catch(_){updated=text}}
  document.open();document.write(updated);document.close();
 }catch(e){document.body.innerHTML='<div class="loading"><strong>Aggiornamento non riuscito.</strong><br>Ricarica la pagina.</div>';console.error(e)}});
 </script></body></html>
