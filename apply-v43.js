@@ -25,6 +25,12 @@ function applyV43(text){
 }`;
  must(text.includes(oldPerm),'permessi V42 non trovati');
  text=text.replace(oldPerm,newPerm);
+
+ const activeStart="  await loadCloud();await syncBoard(false);gate.classList.add('hidden');say('');";
+ const backgroundStart="  if(window.RegistroAndroid?.configureBackgroundSync)RegistroAndroid.configureBackgroundSync(String(familyId),String(deviceId),String(deviceSecret));\n  await loadCloud();await syncBoard(false);gate.classList.add('hidden');say('');";
+ must(text.includes(activeStart),'avvio dispositivo attivo non trovato');
+ text=text.replace(activeStart,backgroundStart);
+
  text=text.replace("service-worker.js?v=20260928-v42","service-worker.js?v=20260928-v43");
  text=text.replace('<!-- Registro Finanziario Familiare V42 - versione consolidata -->','<!-- Registro Finanziario Familiare V43 - secondari solo raccolta notifiche -->');
  return text;
