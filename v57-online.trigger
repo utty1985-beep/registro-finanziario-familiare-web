@@ -1,1 +1,1 @@
-apply vertical scroll month navigation guard 2026-09-29
+publish permission status checkmarks 2026-09-29
