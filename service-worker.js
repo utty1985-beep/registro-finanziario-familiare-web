@@ -1,14 +1,17 @@
-const CACHE='rff-20260929-v63-month-stability';
-const SW_VERSION='20260929-v63-month-stability';
+const CACHE='rff-20260929-v64-sentinel-role';
+const SW_VERSION='20260929-v64-sentinel-role';
 const ASSETS=[
   './','./index.html','./manifest.json','./icon-192.png','./icon-512.png',
-  './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js'
+  './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js'
 ];
 
 function patchHtml(html){
   let out=html.replace(/service-worker\.js\?v=[^'" ]+/g,'service-worker.js?v='+SW_VERSION);
   if(!out.includes('v63-month-stability.js')){
     out=out.replace('</body>','<script src="./v63-month-stability.js?v='+SW_VERSION+'"></script>\n</body>');
+  }
+  if(!out.includes('v64-sentinel-role.js')){
+    out=out.replace('</body>','<script src="./v64-sentinel-role.js?v='+SW_VERSION+'"></script>\n</body>');
   }
   return out;
 }
