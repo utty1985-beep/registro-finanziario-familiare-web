@@ -1,0 +1,37 @@
+name: Applica V57 online
+on:
+  push:
+    paths:
+      - 'v57-online.trigger'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aggiorna index con V57
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          html=Path('index.html').read_text()
+          ui=Path('v56-ui.js').read_text()
+          main=Path('v56-main.js').read_text()
+          polish=Path('v57-polish.js').read_text()
+          anchor='<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'
+          start=html.index('<script>', html.index(anchor)+len(anchor))
+          marker="<script>\nif ('serviceWorker' in navigator)"
+          end=html.index(marker,start)
+          html=html[:start]+'<script>\n'+ui+'\n</script>\n<script>\n'+main+'\n</script>\n<script>\n'+polish+'\n</script>\n'+html[end:]
+          html=html.replace("service-worker.js?v=20260929-v52-calculator","service-worker.js?v=20260929-v57-calendar-board")
+          for required in ['calendarGrid','boardReminderDate','rffQuickNav','openCalculator','rff_board_add_v2','rff_calendar_add']:
+              if required not in html: raise SystemExit('marker missing: '+required)
+          Path('index.html').write_text(html)
+          PY
+      - name: Commit V57 online
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "Apply V57 calendar board and navigation online"
+          git push
