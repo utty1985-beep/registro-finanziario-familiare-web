@@ -165,6 +165,17 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 .monthActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 12px}.monthActions button{min-height:44px}.monthPreview{max-width:210mm;background:white;border:1px solid var(--bd);padding:8mm;margin:0 auto;box-shadow:0 3px 12px #0f172a0d}.monthPreview .printTitle{font-size:15px;font-weight:800;border-bottom:1px solid #333;padding-bottom:1mm;margin-bottom:1.5mm}.monthPreview .printColumns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3mm;align-items:start}.monthPreview .printBlock{border:1px solid #999;margin:0 0 1mm;padding:1mm;break-inside:avoid}.monthPreview .printBlock h2{font-size:11px;margin:0 0 1mm;border-bottom:1px solid #aaa;padding-bottom:.8mm}.monthPreview .printLine{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1mm;line-height:1.2;border-bottom:1px solid #c8c8c8;padding:.3mm 0;font-size:9px}.monthPreview .printLine span:first-child{overflow-wrap:anywhere}.monthPreview .printLine b{white-space:nowrap}.monthPreview .printTotal{font-weight:800;border-top:1px solid #777;margin-top:1mm;padding-top:1mm}.monthPreview .printPending{color:#ae2020;font-weight:700}.monthPreview .income{background:#edf8f0;border-color:#2d8755}.monthPreview .planned{background:#fff2e7;border-color:#bd6530}.monthPreview .projection{background:#e8f8f4;border-color:#17886d}.monthPreview .moves{background:#edf3ff;border-color:#386abd}.monthPreview .rates{background:#f7edfa;border-color:#9447a7}.monthPreview .balance{background:#e4f5fa;border-color:#2286a4}.syncStatus{font-size:12px;font-weight:700;color:#075985}.syncStatus.error{color:#be123c}.monthHistory{font-size:12px;color:#475569;margin:6px 0}.monthHistory summary{cursor:pointer}
 @media(max-width:650px){.monthPreview{padding:4mm}.monthPreview .printColumns{gap:2mm}}
 @media print{.monthActions,.monthPreview,.monthHistory{display:none!important}}
+.monthNavigation{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px;align-items:center}
+.monthNavigation #monthTitle{display:none}
+.monthNavigation #monthPick{width:100%;min-width:0;height:44px;font-size:16px}
+.monthNavigation button{width:44px;height:44px;padding:0;font-size:24px}
+#sentinelBar{min-width:0;overflow-wrap:anywhere}
+#sentinelBar>button{display:block;width:100%;margin:6px 0;white-space:normal}
+#sentinelBar input[type=search]{max-width:100%;min-width:0;font-size:14px}
+#sentinelBar label{min-width:0}
+#sentinelBar label span{overflow-wrap:anywhere;min-width:0}
+.monthPreview #sentinelBar{margin-top:10px;padding:8px;font-size:14px}
+.monthPreview #sentinelBar h2{font-size:14px}
 </style>
 <link rel="manifest" href="./manifest.json?v=20260924-abbinamento-2">
 <meta name="theme-color" content="#0b4f8a">
@@ -185,7 +196,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 <div class="card" id="pairingCard" hidden><h2>Telefoni da autorizzare</h2><div id="pairingList"></div></div>
 <div class="card" id="sentinelBar" hidden><h2>Notifiche e sincronizzazione</h2><div class="syncInfo">Stato registro: <strong id="syncMirror">Connessione…</strong></div><button id="authorizeNotices">Autorizza notifiche</button> <button id="sourcesButton">Scegli app di pagamento</button> <button id="sendNotices">Importa pagamenti</button><div id="notificationState" class="hint" role="status"></div><div id="paymentSources" class="hint" role="group" aria-label="App di pagamento" hidden></div><p class="hint" id="sendStatus">Scegli le app da cui importare le spese. Arriveranno in rosso, da confermare.</p></div>
 <section id="p1" class="page active">
- <div class="toolbar"><button id="prevM">‹</button><input id="monthPick" type="month"><div class="month" id="monthTitle"></div><button id="nextM">›</button></div>
+ <div class="toolbar monthNavigation"><button id="prevM" aria-label="Mese precedente">‹</button><input id="monthPick" type="month"><div class="month" id="monthTitle"></div><button id="nextM" aria-label="Mese successivo">›</button></div>
  <div class="monthActions"><button class="primary" id="confirmMonth" type="button">✓ Conferma mese</button><button id="editMonth" type="button" hidden>✏️ Modifica</button><span id="monthModeLabel" class="hint"></span></div>
  <details class="monthHistory" id="monthHistory" hidden><summary>Versioni precedenti del mese</summary><div id="monthHistoryList"></div></details>
  <div id="monthPreview" class="monthPreview" hidden></div>
@@ -384,11 +395,13 @@ function rememberMonth(d,action){
  d._monthHistory.length=Math.min(d._monthHistory.length,12);
 }
 function renderMonthMode(){
+ const notificationPanel=$('#sentinelBar');
+ if(notificationPanel)$('#monthEditor>div:last-child').appendChild(notificationPanel);
  const d=data(),confirmed=!!d._monthConfirmed,viewer=familyRole==='viewer';
  $('#monthEditor').hidden=confirmed;$('#monthPreview').hidden=!confirmed;
  $('#confirmMonth').hidden=confirmed||viewer;$('#editMonth').hidden=!confirmed||viewer;
  $('#monthModeLabel').textContent=confirmed?'Mese confermato · riepilogo pronto per la stampa':'Mese in modifica';
- if(confirmed){buildPrintSheets();$('#monthPreview').innerHTML=$('#printSheets .printSheet').outerHTML}
+ if(confirmed){buildPrintSheets();$('#monthPreview').innerHTML=$('#printSheets .printSheet').outerHTML;if(notificationPanel)$('#monthPreview .printColumns>div:last-child').appendChild(notificationPanel)}
  const history=d._monthHistory||[],details=$('#monthHistory');details.hidden=!history.length;
  $('#monthHistoryList').innerHTML=history.map((h,i)=>`<div>${escapeNotice(new Date(h.at).toLocaleString('it-IT'))} · ${escapeNotice(h.action)} ${viewer?'':`<button type="button" data-version="${i}">Ripristina</button>`}</div>`).join('');
  $('#monthHistoryList').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(familyRole!=='owner'||!confirm('Ripristinare questa versione delle voci del mese?'))return;const rows=history[Number(b.dataset.version)].rows;rememberMonth(d,'Prima del ripristino');for(const k of ['income','planned','moves','rates'])d[k]=JSON.parse(JSON.stringify(rows[k]||[]));d._monthConfirmed=false;save();render()});
@@ -783,7 +796,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v49-filtro-app', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v50-layout', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
