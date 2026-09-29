@@ -1,13 +1,8 @@
-const CACHE='rff-20260929-v56-calendar-rates';
-const ASSETS=['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png','./v56-ui.js','./v56-main.js'];
+const CACHE='rff-20260929-v60-direct-red';
+const ASSETS=['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png','./v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js'];
 
 function patchHtml(html){
-  if(!html.includes('v56-main.js')){
-    const re=/(<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js@2"><\/script>\s*)<script>\s*\(\(\)=>\{[\s\S]*?\}\)\(\);\s*<\/script>/;
-    html=html.replace(re,'$1<script src="./v56-ui.js?v=56"></script>\n<script src="./v56-main.js?v=56"></script>');
-  }
-  html=html.replace(/service-worker\.js\?v=[^'" ]+/g,'service-worker.js?v=20260929-v56-calendar-rates');
-  return html;
+  return html.replace(/service-worker\.js\?v=[^'" ]+/g,'service-worker.js?v=20260929-v60-direct-red');
 }
 async function patchedResponse(response){
   const type=response.headers.get('content-type')||'';
@@ -21,7 +16,7 @@ self.addEventListener('activate',e=>e.waitUntil((async()=>{
   const keys=await caches.keys();await Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)));
   await self.clients.claim();
   const windows=await self.clients.matchAll({type:'window'});
-  await Promise.all(windows.map(client=>{try{const u=new URL(client.url);if(!u.searchParams.has('rffv56')){u.searchParams.set('rffv56','1');return client.navigate(u.href)}}catch(err){}return Promise.resolve()}));
+  await Promise.all(windows.map(client=>{try{const u=new URL(client.url);if(!u.searchParams.has('rffv60')){u.searchParams.set('rffv60','1');return client.navigate(u.href)}}catch(err){}return Promise.resolve()}));
 })()));
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
