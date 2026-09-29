@@ -11,6 +11,7 @@
 #p3 .boardReminder{display:block!important}
 #p3 .boardReminder>summary{font-size:14px;padding:4px 0}
 #p3 .calendarCard{display:block!important}
+.permissionActive{border-color:#86efac!important;background:#f0fdf4!important;color:#166534!important}
 @media(max-width:650px){.rffQuickNav{padding:6px 7px;gap:5px}.rffQuickNav button{font-size:11px;padding:8px 3px}}
 @media print{.rffQuickNav,.rffQuickNavSpacer{display:none!important}}
 `;
@@ -50,4 +51,33 @@
   if(boardReminder)boardReminder.open=true;
   const boardInput=document.getElementById('boardText');
   if(boardInput)boardInput.placeholder='Scrivi un appunto, una cosa da comprare o un promemoria';
+
+  const bool=v=>v===true||v==='true';
+  const syncPermissionLabels=()=>{
+    const calBtn=document.getElementById('calendarPermissions');
+    const fam=window.FamilyAndroid;
+    if(calBtn&&fam){
+      let notify=false,cal=false;
+      try{notify=bool(fam.reminderPermissionGranted?.())}catch(_){}
+      try{cal=bool(fam.calendarPermissionGranted?.())}catch(_){}
+      const active=notify&&cal;
+      calBtn.textContent=active?'✅ Permessi attivi':'🔔 Attiva permessi';
+      calBtn.classList.toggle('permissionActive',active);
+      calBtn.title=active?'Notifiche e calendario sono già autorizzati':'Autorizza notifiche e calendario';
+    }
+    const noticeBtn=document.getElementById('authorizeNotices');
+    const bridge=window.RegistroAndroid;
+    if(noticeBtn){
+      let active=false;
+      try{active=!!bridge&&bool(bridge.notificationAccessEnabled?.())}catch(_){}
+      noticeBtn.textContent=active?'✅ Notifiche da app attive':'🔔 Attiva notifiche da app';
+      noticeBtn.classList.toggle('permissionActive',active);
+      noticeBtn.title=active?'Accesso notifiche attivo e pronto alla sincronizzazione':'Attiva l’accesso alle notifiche delle app di pagamento';
+    }
+  };
+  syncPermissionLabels();
+  setTimeout(syncPermissionLabels,500);
+  setInterval(syncPermissionLabels,2500);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(syncPermissionLabels,150)});
+  window.addEventListener('focus',()=>setTimeout(syncPermissionLabels,150));
 })();
