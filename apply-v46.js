@@ -34,6 +34,21 @@ function applyV46(text) {
   replace("if(sent){$('#sendStatus').textContent=sent+' pagamento/i inviato/i. Compariranno tra le notifiche da confermare sul telefono principale.';if(familyRole==='owner')await fetchInbox(true)}",
     "if(sent){$('#sendStatus').textContent=sent+' pagamento/i inviato/i. Compariranno tra i pagamenti da confermare sui telefoni autorizzati.';if(familyRole==='owner')await fetchInbox(true)}updateNotificationState()",
     'importazione notifiche');
+  replace("function guessCategory(s){s=String(s||'').toLowerCase();const c=customCols()",
+    "function guessCategory(s){s=String(s||'').toLowerCase();if(/\\b(q8|eni|esso|tamoil|keropetrol|totalerg|ip|api)\\b|carburant|benzina|gasolio|diesel|distributore|stazione di servizio|fuel/.test(s))return'Diesel';const c=customCols()",
+    'categoria carburante');
+  replace("const sgn=noticeSign(n);\n  x.innerHTML=",
+    "const sgn=noticeSign(n);\n  x.innerHTML=",
+    'notifica');
+  replace("const cat=x.querySelector('select').value||'varie';const [yy,mm]=ymParts()",
+    "let cat=x.querySelector('select').value||'varie';if(cat==='diesel-proposed'){let col=customCols().find(c=>(c.name||'').toLowerCase()==='diesel');if(!col){col={id:'diesel',name:'Diesel',budget:0};customCols().push(col)}cat=colKey(col)}const [yy,mm]=ymParts()",
+    'conferma Diesel');
+  replace("const opts=[['Mangiare','food'],...customCols()",
+    "const opts=[['Mangiare','food'],...((n.category||'').toLowerCase()==='diesel'&&!customCols().some(c=>(c.name||'').toLowerCase()==='diesel')?[['Diesel','diesel-proposed']]:[]),...customCols()",
+    'opzione Diesel');
+  replace("x.querySelector('select').value=suggested?colKey(suggested):(n.category==='Mangiare'?'food':'varie')",
+    "x.querySelector('select').value=suggested?colKey(suggested):(n.category==='Mangiare'?'food':(n.category==='Diesel'?'diesel-proposed':'varie'))",
+    'proposta Diesel');
   replace("await loadCloud();await syncBoard(false);gate.classList.add('hidden');say('');",
     "await loadCloud();await syncBoard(false);gate.classList.add('hidden');say('');updateNotificationState();",
     'avvio notifiche');
