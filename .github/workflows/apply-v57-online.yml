@@ -14,59 +14,41 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-
-          main_path=Path('v56-main.js')
-          main=main_path.read_text()
-          if 'rateDueMonth' not in main:
-              main=main.replace(
-                  "meta={id:'rate_'+crypto.randomUUID(),dueDay:'',reminderDays:3,target:'both',googleSync:true,createdBy:deviceId};",
-                  "meta={id:'rate_'+crypto.randomUUID(),dueDay:'',dueMonth:'',dueYear:'',reminderDays:3,target:'both',googleSync:true,createdBy:deviceId};"
-              )
-              old="""  const [yy,mm]=monthKey.split('-').map(Number),last=new Date(yy,mm,0).getDate();
-  mdata.rates.forEach((row,index)=>{
-   const meta=rateMeta(row,false),requested=Number(meta?.dueDay);if(!Number.isInteger(requested)||requested<1||requested>31)return;
-   const day=Math.min(requested,last),start=new Date(yy,mm-1,day,9,0,0),end=new Date(start.getTime()+30*60000),days=Math.max(0,Math.min(30,Number(meta.reminderDays)||0));"""
-              new="""  const [baseY,baseM]=monthKey.split('-').map(Number);
-  mdata.rates.forEach((row,index)=>{
-   const meta=rateMeta(row,false),requested=Number(meta?.dueDay);if(!Number.isInteger(requested)||requested<1||requested>31)return;
-   const yy=Number(meta?.dueYear)||baseY,mm=Number(meta?.dueMonth)||baseM;if(!Number.isInteger(yy)||yy<2000||yy>2100||!Number.isInteger(mm)||mm<1||mm>12)return;
-   const last=new Date(yy,mm,0).getDate(),day=Math.min(requested,last),start=new Date(yy,mm-1,day,9,0,0),end=new Date(start.getTime()+30*60000),days=Math.max(0,Math.min(30,Number(meta.reminderDays)||0));"""
-              if old not in main: raise SystemExit('rateCalendarEvents pattern missing')
-              main=main.replace(old,new)
-
-              old="""<label>Scadenza<input class=\"rateDueDay\" type=\"number\" min=\"1\" max=\"31\" inputmode=\"numeric\" placeholder=\"gg\" value=\"${meta.dueDay||''}\"></label><label>Avvisami"""
-              new="""<div class=\"rateDateRow\"><label>Giorno<input class=\"rateDueDay\" type=\"number\" min=\"1\" max=\"31\" inputmode=\"numeric\" placeholder=\"gg\" value=\"${meta.dueDay||''}\"></label><label>Mese<select class=\"rateDueMonth\"><option value=\"1\">Gen</option><option value=\"2\">Feb</option><option value=\"3\">Mar</option><option value=\"4\">Apr</option><option value=\"5\">Mag</option><option value=\"6\">Giu</option><option value=\"7\">Lug</option><option value=\"8\">Ago</option><option value=\"9\">Set</option><option value=\"10\">Ott</option><option value=\"11\">Nov</option><option value=\"12\">Dic</option></select></label><label>Anno<input class=\"rateDueYear\" type=\"number\" min=\"2000\" max=\"2100\" inputmode=\"numeric\"></label></div><label>Avvisami"""
-              if old not in main: raise SystemExit('rateDueDay html pattern missing')
-              main=main.replace(old,new)
-
-              old="""rem.querySelector('.rateReminderDays').value=String(meta.reminderDays??3);rem.querySelector('.rateReminderTarget').value=meta.target||'both';"""
-              new="""const [ratePageYear,ratePageMonth]=month.split('-').map(Number);rem.querySelector('.rateDueMonth').value=String(Number(meta.dueMonth)||ratePageMonth);rem.querySelector('.rateDueYear').value=String(Number(meta.dueYear)||ratePageYear);rem.querySelector('.rateReminderDays').value=String(meta.reminderDays??3);rem.querySelector('.rateReminderTarget').value=meta.target||'both';"""
-              if old not in main: raise SystemExit('rate setup pattern missing')
-              main=main.replace(old,new)
-
-              old="""rem.querySelector('.rateDueDay').onchange=e=>{const n=Number(e.target.value);meta.dueDay=(Number.isInteger(n)&&n>=1&&n<=31)?n:'';if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};"""
-              new="""rem.querySelector('.rateDueDay').onchange=e=>{const n=Number(e.target.value);meta.dueDay=(Number.isInteger(n)&&n>=1&&n<=31)?n:'';if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};
-  rem.querySelector('.rateDueMonth').onchange=e=>{const n=Number(e.target.value);meta.dueMonth=(Number.isInteger(n)&&n>=1&&n<=12)?n:'';if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};
-  rem.querySelector('.rateDueYear').onchange=e=>{const n=Number(e.target.value);meta.dueYear=(Number.isInteger(n)&&n>=2000&&n<=2100)?n:'';if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};"""
-              if old not in main: raise SystemExit('rate change handler pattern missing')
-              main=main.replace(old,new)
-              main_path.write_text(main)
-
-          ui_path=Path('v56-ui.js')
-          ui=ui_path.read_text()
-          if 'rateDateRow' not in ui:
-              old=".rateReminder{grid-column:1/-1;border-top:1px dashed #cbd5e1;margin-top:3px;padding-top:6px;display:grid;grid-template-columns:78px minmax(120px,1fr) minmax(120px,1fr);gap:5px;align-items:end}.rateReminder label{font-size:10px;font-weight:800;color:#64748b}.rateReminder input,.rateReminder select{width:100%;margin-top:2px;padding:5px;font-size:11px}.rateReminder .rateCalendarHint{grid-column:1/-1;font-size:10px;color:#0b5685}"
-              new=".rateReminder{grid-column:1/-1;border-top:1px dashed #cbd5e1;margin-top:3px;padding-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:5px;align-items:end}.rateDateRow{grid-column:1/-1;display:grid;grid-template-columns:62px minmax(82px,1fr) 82px;gap:5px}.rateReminder label{font-size:10px;font-weight:800;color:#64748b}.rateReminder input,.rateReminder select{width:100%;margin-top:2px;padding:5px;font-size:11px}.rateReminder .rateReminderTarget{grid-column:1/-1}.rateReminder .rateCalendarHint{grid-column:1/-1;font-size:10px;color:#0b5685}"
-              if old not in ui: raise SystemExit('rateReminder css pattern missing')
-              ui=ui.replace(old,new)
-              ui=ui.replace(".rateReminder{grid-template-columns:62px minmax(0,1fr)}.rateReminder label:nth-child(3){grid-column:1/-1}.rateReminder .rateCalendarHint{grid-column:1/-1}",".rateReminder{grid-template-columns:1fr 1fr}.rateDateRow{grid-template-columns:54px minmax(74px,1fr) 72px}.rateReminder .rateCalendarHint{grid-column:1/-1}")
-              ui=ui.replace("Per ogni rata puoi impostare il giorno di scadenza: verrà mostrata automaticamente nel Calendario familiare e riceverai l’avviso in anticipo.","Per ogni rata puoi impostare giorno, mese e anno di scadenza: verrà mostrata automaticamente nel Calendario familiare e riceverai l’avviso in anticipo.")
-              ui_path.write_text(ui)
-
+          p=Path('v56-main.js')
+          s=p.read_text()
+          if 'rateDueMonth' not in s:
+              s=s.replace("meta={id:'rate_'+crypto.randomUUID(),dueDay:'',reminderDays:3,target:'both',googleSync:true,createdBy:deviceId};","meta={id:'rate_'+crypto.randomUUID(),dueDay:'',dueMonth:'',dueYear:'',reminderDays:3,target:'both',googleSync:true,createdBy:deviceId};")
+              old="  const [yy,mm]=monthKey.split('-').map(Number),last=new Date(yy,mm,0).getDate();\n  mdata.rates.forEach((row,index)=>{\n   const meta=rateMeta(row,false),requested=Number(meta?.dueDay);if(!Number.isInteger(requested)||requested<1||requested>31)return;\n   const day=Math.min(requested,last),start=new Date(yy,mm-1,day,9,0,0),end=new Date(start.getTime()+30*60000),days=Math.max(0,Math.min(30,Number(meta.reminderDays)||0));"
+              new="  const [baseY,baseM]=monthKey.split('-').map(Number);\n  mdata.rates.forEach((row,index)=>{\n   const meta=rateMeta(row,false),requested=Number(meta?.dueDay);if(!Number.isInteger(requested)||requested<1||requested>31)return;\n   const yy=Number(meta?.dueYear)||baseY,mm=Number(meta?.dueMonth)||baseM;if(!Number.isInteger(yy)||yy<2000||yy>2100||!Number.isInteger(mm)||mm<1||mm>12)return;\n   const last=new Date(yy,mm,0).getDate(),day=Math.min(requested,last),start=new Date(yy,mm-1,day,9,0,0),end=new Date(start.getTime()+30*60000),days=Math.max(0,Math.min(30,Number(meta.reminderDays)||0));"
+              if old not in s: raise SystemExit('rateCalendarEvents pattern missing')
+              s=s.replace(old,new)
+              old='<label>Scadenza<input class="rateDueDay" type="number" min="1" max="31" inputmode="numeric" placeholder="gg" value="${meta.dueDay||\'\'}"></label><label>Avvisami'
+              new='<div class="rateDateRow"><label>Giorno<input class="rateDueDay" type="number" min="1" max="31" inputmode="numeric" placeholder="gg" value="${meta.dueDay||\'\'}"></label><label>Mese<select class="rateDueMonth"><option value="1">Gen</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option><option value="5">Mag</option><option value="6">Giu</option><option value="7">Lug</option><option value="8">Ago</option><option value="9">Set</option><option value="10">Ott</option><option value="11">Nov</option><option value="12">Dic</option></select></label><label>Anno<input class="rateDueYear" type="number" min="2000" max="2100" inputmode="numeric"></label></div><label>Avvisami'
+              if old not in s: raise SystemExit('rate due html pattern missing')
+              s=s.replace(old,new)
+              old="rem.querySelector('.rateReminderDays').value=String(meta.reminderDays??3);rem.querySelector('.rateReminderTarget').value=meta.target||'both';"
+              new="const [ratePageYear,ratePageMonth]=month.split('-').map(Number);rem.querySelector('.rateDueMonth').value=String(Number(meta.dueMonth)||ratePageMonth);rem.querySelector('.rateDueYear').value=String(Number(meta.dueYear)||ratePageYear);rem.querySelector('.rateReminderDays').value=String(meta.reminderDays??3);rem.querySelector('.rateReminderTarget').value=meta.target||'both';"
+              if old not in s: raise SystemExit('rate setup pattern missing')
+              s=s.replace(old,new)
+              old="rem.querySelector('.rateDueDay').onchange=e=>{const n=Number(e.target.value);meta.dueDay=(Number.isInteger(n)&&n>=1&&n<=31)?n:'';if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};"
+              new=old+"\n  rem.querySelector('.rateDueMonth').onchange=e=>{const n=Number(e.target.value);meta.dueMonth=(Number.isInteger(n)&&n>=1&&n<=12)?n:'';if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};\n  rem.querySelector('.rateDueYear').onchange=e=>{const n=Number(e.target.value);meta.dueYear=(Number.isInteger(n)&&n>=2000&&n<=2100)?n:'';if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};"
+              if old not in s: raise SystemExit('rate due handler pattern missing')
+              s=s.replace(old,new)
+              p.write_text(s)
+          p=Path('v56-ui.js')
+          s=p.read_text()
+          if 'rateDateRow' not in s:
+              old='.rateReminder{grid-column:1/-1;border-top:1px dashed #cbd5e1;margin-top:3px;padding-top:6px;display:grid;grid-template-columns:78px minmax(120px,1fr) minmax(120px,1fr);gap:5px;align-items:end}.rateReminder label{font-size:10px;font-weight:800;color:#64748b}.rateReminder input,.rateReminder select{width:100%;margin-top:2px;padding:5px;font-size:11px}.rateReminder .rateCalendarHint{grid-column:1/-1;font-size:10px;color:#0b5685}'
+              new='.rateReminder{grid-column:1/-1;border-top:1px dashed #cbd5e1;margin-top:3px;padding-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:5px;align-items:end}.rateDateRow{grid-column:1/-1;display:grid;grid-template-columns:62px minmax(82px,1fr) 82px;gap:5px}.rateReminder label{font-size:10px;font-weight:800;color:#64748b}.rateReminder input,.rateReminder select{width:100%;margin-top:2px;padding:5px;font-size:11px}.rateReminder .rateCalendarHint{grid-column:1/-1;font-size:10px;color:#0b5685}'
+              if old not in s: raise SystemExit('rate css pattern missing')
+              s=s.replace(old,new)
+              s=s.replace('.rateReminder{grid-template-columns:62px minmax(0,1fr)}.rateReminder label:nth-child(3){grid-column:1/-1}.rateReminder .rateCalendarHint{grid-column:1/-1}', '.rateReminder{grid-template-columns:1fr 1fr}.rateDateRow{grid-template-columns:54px minmax(74px,1fr) 72px}.rateReminder .rateCalendarHint{grid-column:1/-1}')
+              s=s.replace('Per ogni rata puoi impostare il giorno di scadenza: verrà mostrata automaticamente nel Calendario familiare e riceverai l’avviso in anticipo.','Per ogni rata puoi impostare giorno, mese e anno di scadenza: verrà mostrata automaticamente nel Calendario familiare e riceverai l’avviso in anticipo.')
+              p.write_text(s)
           html=Path('index.html').read_text()
           ui=Path('v56-ui.js').read_text();main=Path('v56-main.js').read_text();polish=Path('v57-polish.js').read_text();red=Path('v58-red-button.js').read_text()
           anchor='<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'
-          start=html.index('<script>', html.index(anchor)+len(anchor));marker="<script>\nif ('serviceWorker' in navigator)";end=html.index(marker,start)
+          start=html.index('<script>',html.index(anchor)+len(anchor));marker="<script>\nif ('serviceWorker' in navigator)";end=html.index(marker,start)
           html=html[:start]+'<script>\n'+ui+'\n</script>\n<script>\n'+main+'\n</script>\n<script>\n'+polish+'\n</script>\n<script>\n'+red+'\n</script>\n'+html[end:]
           for oldv in ['service-worker.js?v=20260929-v58-red-button','service-worker.js?v=20260929-v57-calendar-board','service-worker.js?v=20260929-v52-calculator']:
               html=html.replace(oldv,'service-worker.js?v=20260929-v59-rate-full-date')
