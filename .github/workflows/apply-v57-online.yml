@@ -1,4 +1,4 @@
-name: Applica V59 online
+name: Applica V60 online
 on:
   push:
     paths:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Aggiungi mese e anno alle rate
+      - name: Mantieni data completa rate e integra pallino rosso
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -34,7 +34,12 @@ jobs:
               new=old+"\n  rem.querySelector('.rateDueMonth').onchange=e=>{const n=Number(e.target.value);meta.dueMonth=(Number.isInteger(n)&&n>=1&&n<=12)?n:'';if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};\n  rem.querySelector('.rateDueYear').onchange=e=>{const n=Number(e.target.value);meta.dueYear=(Number.isInteger(n)&&n>=2000&&n<=2100)?n:'';if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};"
               if old not in s: raise SystemExit('rate due handler pattern missing')
               s=s.replace(old,new)
-              p.write_text(s)
+          if 'V60_DIRECT_RED_BUTTON' not in s:
+              old=" if(r[4])d.querySelector('.confirmCarry').onclick=()=>{r[4]=false;save();render()};bindProvisionalHold(d,r);host.appendChild(d)})"
+              new=" if(r[4])d.querySelector('.confirmCarry').onclick=()=>{r[4]=false;save();render()};\n if(!r[4]&&familyRole!=='viewer'){const mark=document.createElement('button');mark.type='button';mark.className='markProvisional';mark.textContent='🔴';mark.title='Segna come provvisoria';mark.setAttribute('aria-label','Segna questa voce come provvisoria rossa');mark.style.cssText='position:absolute;right:4px;top:4px;z-index:6;width:30px;height:30px;min-width:30px;min-height:30px;padding:0;border:1px solid #fca5a5;border-radius:999px;background:#fff;display:grid;place-items:center;font-size:16px;line-height:1;box-shadow:0 1px 4px #0002';d.style.position='relative';const desc=d.querySelector(':scope > input[type=\\\"text\\\"]');if(desc)desc.style.paddingRight='40px';mark.onclick=e=>{e.preventDefault();e.stopPropagation();r[4]=true;save();render()};d.appendChild(mark)}\n /* V60_DIRECT_RED_BUTTON */ host.appendChild(d)})"
+              if old not in s: raise SystemExit('row provisional pattern missing')
+              s=s.replace(old,new)
+          p.write_text(s)
           p=Path('v56-ui.js')
           s=p.read_text()
           if 'rateDateRow' not in s:
@@ -50,9 +55,9 @@ jobs:
           anchor='<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'
           start=html.index('<script>',html.index(anchor)+len(anchor));marker="<script>\nif ('serviceWorker' in navigator)";end=html.index(marker,start)
           html=html[:start]+'<script>\n'+ui+'\n</script>\n<script>\n'+main+'\n</script>\n<script>\n'+polish+'\n</script>\n<script>\n'+red+'\n</script>\n'+html[end:]
-          for oldv in ['service-worker.js?v=20260929-v58-red-button','service-worker.js?v=20260929-v57-calendar-board','service-worker.js?v=20260929-v52-calculator']:
-              html=html.replace(oldv,'service-worker.js?v=20260929-v59-rate-full-date')
-          for required in ['rateDueDay','rateDueMonth','rateDueYear','calendarGrid','rffQuickNav','markProvisional']:
+          for oldv in ['service-worker.js?v=20260929-v59-rate-full-date','service-worker.js?v=20260929-v58-red-button','service-worker.js?v=20260929-v57-calendar-board','service-worker.js?v=20260929-v52-calculator']:
+              html=html.replace(oldv,'service-worker.js?v=20260929-v60-direct-red')
+          for required in ['rateDueDay','rateDueMonth','rateDueYear','calendarGrid','rffQuickNav','V60_DIRECT_RED_BUTTON']:
               if required not in html: raise SystemExit('marker missing: '+required)
           Path('index.html').write_text(html)
           PY
@@ -62,10 +67,10 @@ jobs:
           node --check v56-main.js
           node --check v57-polish.js
           node --check v58-red-button.js
-      - name: Commit V59 online
+      - name: Commit V60 online
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html v56-main.js v56-ui.js
-          git diff --cached --quiet || git commit -m "Add full rate due date with month and year"
+          git diff --cached --quiet || git commit -m "Integrate explicit red provisional button in each row"
           git push
