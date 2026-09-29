@@ -1,1 +1,1 @@
-apply v61 android touch long press fix 2026-09-29 13:46
+apply simple black red tap dots 2026-09-29
