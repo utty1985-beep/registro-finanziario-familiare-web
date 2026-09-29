@@ -13,10 +13,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Decode main script
+      - name: Decode and patch main script
         run: |
           cat v56-main.b64.part-* > /tmp/v56-main.b64
           base64 -d /tmp/v56-main.b64 | gunzip > v56-main.js
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('v56-main.js')
+          s=p.read_text()
+          old="if(existing.length<=occurrence)target.push([r[0],r[1],r[2],r[3],true]);"
+          new="""if(existing.length<=occurrence){
+               const nextRow=[r[0],r[1],r[2],r[3],true];
+               if(kind==='rates'&&r[5]&&typeof r[5]==='object'&&!Array.isArray(r[5])){nextRow[5]={...r[5],id:'rate_'+crypto.randomUUID(),createdBy:r[5].createdBy||deviceId}}
+               target.push(nextRow);
+              }"""
+          if old not in s:
+              raise SystemExit('rate carryover patch target not found')
+          p.write_text(s.replace(old,new,1))
+          PY
           node --check v56-main.js
       - name: Commit generated script
         run: |
