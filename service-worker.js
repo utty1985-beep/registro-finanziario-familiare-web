@@ -1,12 +1,16 @@
-const CACHE='rff-20260929-v62-stable';
-const SW_VERSION='20260929-v62-stable';
+const CACHE='rff-20260929-v63-month-stability';
+const SW_VERSION='20260929-v63-month-stability';
 const ASSETS=[
   './','./index.html','./manifest.json','./icon-192.png','./icon-512.png',
-  './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js'
+  './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js'
 ];
 
 function patchHtml(html){
-  return html.replace(/service-worker\.js\?v=[^'" ]+/g,'service-worker.js?v='+SW_VERSION);
+  let out=html.replace(/service-worker\.js\?v=[^'" ]+/g,'service-worker.js?v='+SW_VERSION);
+  if(!out.includes('v63-month-stability.js')){
+    out=out.replace('</body>','<script src="./v63-month-stability.js?v='+SW_VERSION+'"></script>\n</body>');
+  }
+  return out;
 }
 
 async function patchedResponse(response){
