@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'v56-main.js.gz.b64'
+      - 'v56-main.b64.part-*'
       - 'v56-build.trigger'
   workflow_dispatch:
 jobs:
@@ -15,7 +15,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Decode main script
         run: |
-          base64 -d v56-main.js.gz.b64 | gunzip > v56-main.js
+          cat v56-main.b64.part-* > /tmp/v56-main.b64
+          base64 -d /tmp/v56-main.b64 | gunzip > v56-main.js
           node --check v56-main.js
       - name: Commit generated script
         run: |
