@@ -626,16 +626,29 @@ function renderPaymentSources(){
  if(!bridge?.availablePaymentSources){host.textContent='Questa versione Android non supporta la scelta delle app. Installa la versione Notifiche aggiornata.';return}
  let sources=[];try{sources=JSON.parse(bridge.availablePaymentSources()||'[]')}catch(e){}
  const intro=document.createElement('div');intro.textContent='App di pagamento disponibili sul telefono:';host.appendChild(intro);
- const chosen=()=>[...host.querySelectorAll('input[type=checkbox][data-package]:checked')].map(el=>el.dataset.package);
+ const selectedPackages=new Set(sources.filter(s=>s.enabled).map(s=>s.package));const chosen=()=>[...selectedPackages];
  const saveChosen=()=>{const selected=chosen();bridge.setAllowedPaymentSources(JSON.stringify(selected));$('#sendStatus').textContent=selected.length?'App selezionate. I pagamenti arriveranno in rosso per essere confermati.':'Nessuna app selezionata: nessun pagamento sarà inviato.';if(selected.length)sendAndroidPayments()};
- const addSource=(parent,source)=>{const label=document.createElement('label');label.style.cssText='display:flex;align-items:center;gap:8px;padding:7px 0';const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=!!source.enabled;checkbox.dataset.package=source.package;const name=document.createElement('span');name.textContent=source.label||source.package;label.append(checkbox,name);parent.appendChild(label);checkbox.onchange=saveChosen};
+ const addSource=(parent,source)=>{const label=document.createElement('label');label.style.cssText='display:flex;align-items:center;gap:8px;padding:7px 0';const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=selectedPackages.has(source.package);checkbox.dataset.package=source.package;const name=document.createElement('span');name.textContent=source.label||source.package;label.append(checkbox,name);parent.appendChild(label);checkbox.onchange=()=>{if(checkbox.checked)selectedPackages.add(source.package);else selectedPackages.delete(source.package);saveChosen()}};
  if(sources.length)sources.forEach(source=>addSource(host,source));
  else{const none=document.createElement('div');none.className='hint';none.textContent='Nessuna delle app principali è installata o ancora rilevata.';host.appendChild(none)}
  if(!bridge?.discoverInstalledApps){const hint=document.createElement('div');hint.className='hint';hint.textContent='Se non trovi la tua app, effettua un pagamento e riapri questa lista: dopo la prima notifica potrà essere rilevata automaticamente.';host.appendChild(hint);return}
- const findBtn=document.createElement('button');findBtn.type='button';findBtn.textContent='🔎 Trova altre app installate';findBtn.style.marginTop='8px';host.appendChild(findBtn);
- const search=document.createElement('input');search.type='search';search.placeholder='Cerca nome app';search.style.cssText='width:100%;margin-top:8px';search.hidden=true;host.appendChild(search);
+ const findBtn=document.createElement('button');findBtn.type='button';findBtn.textContent='🔎 Cerca altre banche o app di pagamento';findBtn.style.marginTop='8px';host.appendChild(findBtn);
+ const search=document.createElement('input');search.type='search';search.placeholder='Nome banca o app (almeno 2 lettere)';search.style.cssText='width:100%;margin-top:8px';search.hidden=true;host.appendChild(search);
  const extra=document.createElement('div');extra.hidden=true;host.appendChild(extra);
- findBtn.onclick=()=>{let all=[];try{all=JSON.parse(bridge.discoverInstalledApps()||'[]')}catch(e){}const primary=new Set(sources.map(s=>s.package));const extras=all.filter(s=>!primary.has(s.package));search.hidden=false;extra.hidden=false;findBtn.hidden=true;const draw=()=>{const q=search.value.trim().toLowerCase();extra.textContent='';const rows=extras.filter(s=>!q||(s.label||s.package).toLowerCase().includes(q)).slice(0,120);if(!rows.length){extra.innerHTML='<div class="hint">Nessun’altra app trovata. Se manca la tua, dopo una sua notifica di pagamento riapri questa schermata.</div>';return}rows.forEach(source=>addSource(extra,source))};search.oninput=draw;draw();search.focus()};
+ const likelyPaymentApp=s=>/wallet|pay|paga|banc|bank|poste|postepay|satispay|revolut|n26|hype|isybank|unicredit|intesa|fineco|bper|buddy|bancomat|sumup|curve|wise|credit|american express|amex|klarna|scalapay|sella|mediolanum|illimity|tinaba|mooney|nexi|bbva/.test((String(s.label||'')+' '+String(s.package||'')).toLowerCase());
+ findBtn.onclick=()=>{
+  let all=[];try{all=JSON.parse(bridge.discoverInstalledApps()||'[]')}catch(e){}
+  all.filter(s=>s.enabled).forEach(s=>selectedPackages.add(s.package));
+  const primary=new Set(sources.map(s=>s.package)),extras=all.filter(s=>!primary.has(s.package));
+  search.hidden=false;extra.hidden=false;findBtn.hidden=true;
+  const help=document.createElement('p');help.className='hint';help.textContent='Cerchiamo sul tuo telefono. Qui proponiamo banche e app di pagamento. Se manca la tua, scrivi almeno 2 lettere del nome per cercarla tra le app installate.';host.insertBefore(help,search);
+  const draw=()=>{
+   const q=search.value.trim().toLowerCase();extra.textContent='';
+   const rows=extras.filter(s=>q.length>=2?(String(s.label||'')+' '+String(s.package||'')).toLowerCase().includes(q):(selectedPackages.has(s.package)||likelyPaymentApp(s))).slice(0,80);
+   if(!rows.length){const none=document.createElement('p');none.className='hint';none.textContent='Nessun’altra app di pagamento riconosciuta. Cerca la tua banca per nome.';extra.appendChild(none);return}
+   rows.forEach(source=>addSource(extra,source))
+  };search.oninput=draw;draw();search.focus()
+ };
 }
 $('#sourcesButton').onclick=renderPaymentSources;
 $('#sendNotices').onclick=sendAndroidPayments;
@@ -770,7 +783,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v47-notifiche', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v49-filtro-app', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
