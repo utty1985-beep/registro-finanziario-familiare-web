@@ -1,4 +1,4 @@
-name: Applica V61 online
+name: Applica V62 stabile online
 on:
   push:
     paths:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Integra pressione lunga e pallino rosso persistente
+      - name: Integra versione stabile del Registro
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -25,10 +25,23 @@ jobs:
           marker="<script>\nif ('serviceWorker' in navigator)"
           end=html.index(marker,start)
           html=html[:start]+'<script>\n'+ui+'\n</script>\n<script>\n'+main+'\n</script>\n<script>\n'+polish+'\n</script>\n<script>\n'+red+'\n</script>\n<script>\n'+longpress+'\n</script>\n'+html[end:]
-          for oldv in ['service-worker.js?v=20260929-v60-direct-red','service-worker.js?v=20260929-v59-rate-full-date','service-worker.js?v=20260929-v58-red-button','service-worker.js?v=20260929-v57-calendar-board','service-worker.js?v=20260929-v52-calculator']:
-              html=html.replace(oldv,'service-worker.js?v=20260929-v61-longpress-dot')
-          for required in ['rateDueDay','rateDueMonth','rateDueYear','calendarGrid','rffQuickNav','V60_DIRECT_RED_BUTTON','RFF_LONGPRESS_V61','provisionalDot']:
-              if required not in html: raise SystemExit('marker missing: '+required)
+          versions=[
+              'service-worker.js?v=20260929-v61-longpress-dot',
+              'service-worker.js?v=20260929-v60-direct-red',
+              'service-worker.js?v=20260929-v59-rate-full-date',
+              'service-worker.js?v=20260929-v58-red-button',
+              'service-worker.js?v=20260929-v57-calendar-board',
+              'service-worker.js?v=20260929-v52-calculator'
+          ]
+          for oldv in versions:
+              html=html.replace(oldv,'service-worker.js?v=20260929-v62-stable')
+          required=[
+              'rateDueDay','rateDueMonth','rateDueYear','calendarGrid','rffQuickNav',
+              'V60_DIRECT_RED_BUTTON','RFF_LONGPRESS_V61','provisionalDot','lastVerticalScroll',
+              '✅ Permessi attivi','✅ Notifiche da app attive','service-worker.js?v=20260929-v62-stable'
+          ]
+          for marker in required:
+              if marker not in html: raise SystemExit('marker missing: '+marker)
           Path('index.html').write_text(html)
           PY
       - name: Verifica JavaScript
@@ -38,10 +51,18 @@ jobs:
           node --check v57-polish.js
           node --check v58-red-button.js
           node --check v61-longpress-toggle.js
-      - name: Commit V61 online
+          node --check service-worker.js
+      - name: Verifica file essenziali
+        run: |
+          test -s index.html
+          test -s manifest.json
+          test -s service-worker.js
+          grep -q '20260929-v62-stable' service-worker.js
+          grep -q 'v61-longpress-toggle.js' service-worker.js
+      - name: Commit versione stabile online
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m "Enable long press provisional toggle with persistent red dot"
+          git diff --cached --quiet || git commit -m 'Publish stable Registro web build'
           git push
