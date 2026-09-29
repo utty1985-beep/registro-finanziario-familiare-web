@@ -64,7 +64,12 @@ async function patchedResponse(response){
 }
 
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
+self.addEventListener('activate',e=>e.waitUntil((async()=>{
+  const keys=await caches.keys();await Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)));
+  await self.clients.claim();
+  const windows=await self.clients.matchAll({type:'window'});
+  await Promise.all(windows.map(client=>{try{const u=new URL(client.url);if(!u.searchParams.has('rffv54')){u.searchParams.set('rffv54','1');return client.navigate(u.href)}}catch(err){}return Promise.resolve()}));
+})()));
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
   e.respondWith((async()=>{
