@@ -560,7 +560,9 @@ function rowEditor(arr,host,kind){
  ins[1].onchange=e=>{r[1]=Math.abs(Number(e.target.value)||0);if(kind==='planned')r[3]='-';else if(kind!=='income')r[3]=d.querySelector('select').value;save();calc()};
  if(kind!=='income'&&kind!=='planned')d.querySelector('select').onchange=e=>{r[1]=Math.abs(Number(r[1])||0);r[3]=e.target.value;d.querySelector('.signBox').dataset.sign=r[3];save();calc()};
  if(kind==='planned')ins[2].onchange=e=>{r[2]=e.target.checked;save();renderDaily()};d.querySelector('.del').onclick=()=>{arr.splice(i,1);save();render();if(kind==='rates')syncNativeFamilyTools()};
- if(r[4])d.querySelector('.confirmCarry').onclick=()=>{r[4]=false;save();render()};bindProvisionalHold(d,r);host.appendChild(d)})
+ if(r[4])d.querySelector('.confirmCarry').onclick=()=>{r[4]=false;save();render()};
+ if(!r[4]&&familyRole!=='viewer'){const mark=document.createElement('button');mark.type='button';mark.className='markProvisional';mark.textContent='🔴';mark.title='Segna come provvisoria';mark.setAttribute('aria-label','Segna questa voce come provvisoria rossa');mark.style.cssText='position:absolute;right:4px;top:4px;z-index:6;width:30px;height:30px;min-width:30px;min-height:30px;padding:0;border:1px solid #fca5a5;border-radius:999px;background:#fff;display:grid;place-items:center;font-size:16px;line-height:1;box-shadow:0 1px 4px #0002';d.style.position='relative';const desc=d.querySelector(':scope > input[type=\"text\"]');if(desc)desc.style.paddingRight='40px';mark.onclick=e=>{e.preventDefault();e.stopPropagation();r[4]=true;save();render()};d.appendChild(mark)}
+ /* V60_DIRECT_RED_BUTTON */ host.appendChild(d)})
 }
 function add(kind){let a=data()[kind],row=['Nuova voce',0,true,kind==='moves'?'+':'-'];if(kind==='rates')row[5]={id:'rate_'+crypto.randomUUID(),dueDay:'',reminderDays:3,target:'both',googleSync:true,createdBy:deviceId};a.push(row);save();render()}
 function calc(){let d=data(),inc=d.income.reduce((s,x)=>s+(+x[1]||0),0);
@@ -1129,7 +1131,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v59-rate-full-date', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v60-direct-red', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
