@@ -11,7 +11,7 @@ function boardData(){if(!Array.isArray(db._board))db._board=[];return db._board}
 function calendarData(){if(!Array.isArray(db._calendar))db._calendar=[];return db._calendar}
 function rateMeta(row,create=false){
  let meta=row&&row[5];
- if(!meta||typeof meta!=='object'||Array.isArray(meta)){if(!create)return null;meta={id:'rate_'+crypto.randomUUID(),dueDay:'',reminderDays:3,target:'both',googleSync:true,createdBy:deviceId};row[5]=meta}
+ if(!meta||typeof meta!=='object'||Array.isArray(meta)){if(!create)return null;meta={id:'rate_'+crypto.randomUUID(),dueDay:'',dueMonth:'',dueYear:'',reminderDays:3,target:'both',googleSync:true,createdBy:deviceId};row[5]=meta}
  if(!meta.id&&create)meta.id='rate_'+crypto.randomUUID();
  if(!meta.target)meta.target='both';if(meta.googleSync===undefined)meta.googleSync=true;if(meta.reminderDays===undefined)meta.reminderDays=3;if(!meta.createdBy&&create)meta.createdBy=deviceId;
  return meta
@@ -20,10 +20,11 @@ function rateCalendarEvents(){
  const out=[];
  for(const [monthKey,mdata] of Object.entries(db)){
   if(!/^\d{4}-\d{2}$/.test(monthKey)||!mdata||!Array.isArray(mdata.rates))continue;
-  const [yy,mm]=monthKey.split('-').map(Number),last=new Date(yy,mm,0).getDate();
+  const [baseY,baseM]=monthKey.split('-').map(Number);
   mdata.rates.forEach((row,index)=>{
    const meta=rateMeta(row,false),requested=Number(meta?.dueDay);if(!Number.isInteger(requested)||requested<1||requested>31)return;
-   const day=Math.min(requested,last),start=new Date(yy,mm-1,day,9,0,0),end=new Date(start.getTime()+30*60000),days=Math.max(0,Math.min(30,Number(meta.reminderDays)||0));
+   const yy=Number(meta?.dueYear)||baseY,mm=Number(meta?.dueMonth)||baseM;if(!Number.isInteger(yy)||yy<2000||yy>2100||!Number.isInteger(mm)||mm<1||mm>12)return;
+   const last=new Date(yy,mm,0).getDate(),day=Math.min(requested,last),start=new Date(yy,mm-1,day,9,0,0),end=new Date(start.getTime()+30*60000),days=Math.max(0,Math.min(30,Number(meta.reminderDays)||0));
    out.push({id:'rate:'+String(meta.id||monthKey+'_'+index),title:'Scadenza · '+String(row[0]||'Rata'),startAt:start.toISOString(),endAt:end.toISOString(),note:'Rata € '+euro(Math.abs(Number(row[1])||0))+(requested!==day?' · scadenza adattata all’ultimo giorno del mese':''),target:String(meta.target||'both'),reminderMinutes:days*1440,googleSync:meta.googleSync!==false,createdBy:String(meta.createdBy||''),source:'rate',sourceMonth:monthKey,sourceIndex:index});
   })
  }
@@ -229,9 +230,11 @@ function rowEditor(arr,host,kind){
  d.innerHTML=`<input type="text" value="${String(r[0]).replace(/"/g,'&quot;')}" aria-label="Descrizione">${sign}<input type="number" min="0" step="0.01" value="${Math.abs(Number(r[1])||0)}" aria-label="Importo">${kind==='planned'?`<input class="keep" type="checkbox" title="Mostra in Varie" aria-label="Mostra in Varie" ${r[2]?'checked':''}>`:''}<button class="del" title="Elimina voce">−</button>${r[4]?'<button class="confirmCarry" type="button">✓ Conferma voce</button>':''}`;
  if(kind==='rates'){
   const meta=rateMeta(r,true),rem=document.createElement('div');rem.className='rateReminder';
-  rem.innerHTML=`<label>Scadenza<input class="rateDueDay" type="number" min="1" max="31" inputmode="numeric" placeholder="gg" value="${meta.dueDay||''}"></label><label>Avvisami<select class="rateReminderDays"><option value="0">il giorno stesso</option><option value="1">1 giorno prima</option><option value="2">2 giorni prima</option><option value="3">3 giorni prima</option><option value="5">5 giorni prima</option><option value="7">7 giorni prima</option></select></label><label>Notifica a<select class="rateReminderTarget"><option value="both">Entrambi i telefoni</option><option value="creator">Solo questo telefono</option><option value="other">Solo l'altro telefono</option></select></label><div class="rateCalendarHint">📅 Se imposti il giorno, la rata compare automaticamente nel Calendario familiare alle 09:00 e può essere sincronizzata con Google Calendar.</div>`;
-  rem.querySelector('.rateReminderDays').value=String(meta.reminderDays??3);rem.querySelector('.rateReminderTarget').value=meta.target||'both';
+  rem.innerHTML=`<div class="rateDateRow"><label>Giorno<input class="rateDueDay" type="number" min="1" max="31" inputmode="numeric" placeholder="gg" value="${meta.dueDay||''}"></label><label>Mese<select class="rateDueMonth"><option value="1">Gen</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option><option value="5">Mag</option><option value="6">Giu</option><option value="7">Lug</option><option value="8">Ago</option><option value="9">Set</option><option value="10">Ott</option><option value="11">Nov</option><option value="12">Dic</option></select></label><label>Anno<input class="rateDueYear" type="number" min="2000" max="2100" inputmode="numeric"></label></div><label>Avvisami<select class="rateReminderDays"><option value="0">il giorno stesso</option><option value="1">1 giorno prima</option><option value="2">2 giorni prima</option><option value="3">3 giorni prima</option><option value="5">5 giorni prima</option><option value="7">7 giorni prima</option></select></label><label>Notifica a<select class="rateReminderTarget"><option value="both">Entrambi i telefoni</option><option value="creator">Solo questo telefono</option><option value="other">Solo l'altro telefono</option></select></label><div class="rateCalendarHint">📅 Se imposti il giorno, la rata compare automaticamente nel Calendario familiare alle 09:00 e può essere sincronizzata con Google Calendar.</div>`;
+  const [ratePageYear,ratePageMonth]=month.split('-').map(Number);rem.querySelector('.rateDueMonth').value=String(Number(meta.dueMonth)||ratePageMonth);rem.querySelector('.rateDueYear').value=String(Number(meta.dueYear)||ratePageYear);rem.querySelector('.rateReminderDays').value=String(meta.reminderDays??3);rem.querySelector('.rateReminderTarget').value=meta.target||'both';
   rem.querySelector('.rateDueDay').onchange=e=>{const n=Number(e.target.value);meta.dueDay=(Number.isInteger(n)&&n>=1&&n<=31)?n:'';if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};
+  rem.querySelector('.rateDueMonth').onchange=e=>{const n=Number(e.target.value);meta.dueMonth=(Number.isInteger(n)&&n>=1&&n<=12)?n:'';if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};
+  rem.querySelector('.rateDueYear').onchange=e=>{const n=Number(e.target.value);meta.dueYear=(Number.isInteger(n)&&n>=2000&&n<=2100)?n:'';if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};
   rem.querySelector('.rateReminderDays').onchange=e=>{meta.reminderDays=Number(e.target.value)||0;if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};
   rem.querySelector('.rateReminderTarget').onchange=e=>{meta.target=e.target.value||'both';if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};
   d.appendChild(rem);

@@ -17,8 +17,8 @@
 .calendarEventList{display:grid;gap:8px;margin-top:10px}.calendarEvent{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;border:1px solid #d8e1eb;border-radius:10px;padding:9px;background:#fff}.calendarEvent .when{font-size:12px;color:#64748b}.calendarEvent .meta{font-size:11px;color:#64748b;margin-top:3px}.calendarEvent button{background:#d9534f;color:#fff;border-color:#d9534f}
 .calendarNative{margin-top:12px;border-top:1px solid #dbe3ec;padding-top:10px}.calendarNative .toolbar{margin:6px 0}.calendarNative select{max-width:100%;width:100%}
 .targetChip{display:inline-block;border-radius:999px;background:#eaf4ff;color:#0b5685;font-size:10px;font-weight:800;padding:2px 7px;margin-left:4px}
-.rateReminder{grid-column:1/-1;border-top:1px dashed #cbd5e1;margin-top:3px;padding-top:6px;display:grid;grid-template-columns:78px minmax(120px,1fr) minmax(120px,1fr);gap:5px;align-items:end}.rateReminder label{font-size:10px;font-weight:800;color:#64748b}.rateReminder input,.rateReminder select{width:100%;margin-top:2px;padding:5px;font-size:11px}.rateReminder .rateCalendarHint{grid-column:1/-1;font-size:10px;color:#0b5685}
-@media(max-width:650px){.reminderGrid,.calendarForm{grid-template-columns:1fr}.calendarForm .full{grid-column:1}.calendarDay{min-height:52px;padding:3px}.calendarDay .eventMini{font-size:8px}.rateReminder{grid-template-columns:62px minmax(0,1fr)}.rateReminder label:nth-child(3){grid-column:1/-1}.rateReminder .rateCalendarHint{grid-column:1/-1}}
+.rateReminder{grid-column:1/-1;border-top:1px dashed #cbd5e1;margin-top:3px;padding-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:5px;align-items:end}.rateDateRow{grid-column:1/-1;display:grid;grid-template-columns:62px minmax(82px,1fr) 82px;gap:5px}.rateReminder label{font-size:10px;font-weight:800;color:#64748b}.rateReminder input,.rateReminder select{width:100%;margin-top:2px;padding:5px;font-size:11px}.rateReminder .rateCalendarHint{grid-column:1/-1;font-size:10px;color:#0b5685}
+@media(max-width:650px){.reminderGrid,.calendarForm{grid-template-columns:1fr}.calendarForm .full{grid-column:1}.calendarDay{min-height:52px;padding:3px}.calendarDay .eventMini{font-size:8px}.rateReminder{grid-template-columns:1fr 1fr}.rateDateRow{grid-template-columns:54px minmax(74px,1fr) 72px}.rateReminder .rateCalendarHint{grid-column:1/-1}}
 @media print{#openCalculator{display:none!important}}
 `;
   document.head.appendChild(style);
@@ -26,7 +26,7 @@
   const rateCard=document.querySelector('.ratesCard');
   if(rateCard&&!rateCard.querySelector('.rff-rate-hint')){
     const hint=document.createElement('div');hint.className='hint rff-rate-hint';
-    hint.textContent='Per ogni rata puoi impostare il giorno di scadenza: verrà mostrata automaticamente nel Calendario familiare e riceverai l’avviso in anticipo.';
+    hint.textContent='Per ogni rata puoi impostare giorno, mese e anno di scadenza: verrà mostrata automaticamente nel Calendario familiare e riceverai l’avviso in anticipo.';
     rateCard.insertBefore(hint,rateCard.querySelector('#rateRows'));
   }
   const balanceHint=document.querySelector('.balanceCard .hint');
