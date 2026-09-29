@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#315b38">
+<title>CacciaTraccia Italia</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<style>
+:root{--g:#315b38;--g2:#48784f;--sand:#f2efe3;--ink:#1d251d;--muted:#697469;--card:#fff;--line:#d8ded4;--danger:#a33b2d;--blue:#275d88}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#eef1ea;color:var(--ink)}
+header{position:sticky;top:0;z-index:1001;background:linear-gradient(135deg,#284b30,#497851);color:white;padding:12px 14px;box-shadow:0 2px 10px #0002}
+header h1{font-size:21px;margin:0}header small{opacity:.9}.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}.tabs button{border:0;border-radius:10px;padding:9px 4px;background:#ffffff1e;color:white;font-weight:800}.tabs button.active{background:white;color:var(--g)}
+main{max-width:900px;margin:auto;padding:10px 10px 90px}.page{display:none}.page.active{display:block}.card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:12px;margin-bottom:10px;box-shadow:0 3px 12px #0000000d}.card h2{margin:0 0 8px;font-size:15px;color:var(--g);text-transform:uppercase;letter-spacing:.03em}
+#map{height:52vh;min-height:390px;border-radius:15px;border:1px solid var(--line);overflow:hidden}.mapWrap{position:relative}.mapBtns{position:absolute;right:10px;top:10px;z-index:500;display:grid;gap:6px}.mapBtns button{background:white;border:1px solid #cbd5c7;border-radius:10px;padding:9px;font-weight:800;box-shadow:0 2px 8px #0002}
+.windGrid{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center}.windCompass{height:110px;width:110px;border-radius:999px;border:8px solid #e3eadf;display:grid;place-items:center;position:relative;background:#f9fbf7}.windArrow{font-size:54px;line-height:1;transform-origin:center;transition:transform .4s}.windCompass:before{content:'N';position:absolute;top:4px;font-size:12px;font-weight:900}.metric{font-size:14px;margin:3px 0}.metric strong{font-size:20px;color:var(--g)}
+.forecast{display:flex;gap:7px;overflow:auto;padding-bottom:3px}.hour{min-width:93px;border:1px solid var(--line);border-radius:11px;padding:8px;background:#f8faf6;text-align:center}.hour b{display:block;color:var(--g)}
+button,input,select,textarea{font:inherit}.primary{background:var(--g);color:white;border:0;border-radius:11px;padding:10px 13px;font-weight:800}.secondary{background:white;color:var(--g);border:1px solid var(--g);border-radius:11px;padding:9px 12px;font-weight:800}.danger{background:var(--danger);color:white;border:0;border-radius:10px;padding:9px 12px;font-weight:800}.btnrow{display:flex;gap:7px;flex-wrap:wrap}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.field{display:grid;gap:4px;font-size:13px;font-weight:700}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px;background:white}.field textarea{min-height:75px;resize:vertical}.full{grid-column:1/-1}
+.spot{border:1px solid var(--line);border-radius:12px;padding:10px;margin:7px 0;background:#fbfcfa}.spotTop{display:flex;justify-content:space-between;gap:8px;align-items:center}.spotName{font-weight:900}.spotMeta{font-size:12px;color:var(--muted);margin-top:4px}.chip{display:inline-block;border-radius:99px;background:#e4ecdf;color:var(--g);padding:3px 8px;font-size:11px;font-weight:800}.trackStat{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.stat{background:#f7faf5;border:1px solid var(--line);border-radius:12px;padding:9px;text-align:center}.stat b{display:block;font-size:18px;color:var(--g)}
+.notice{font-size:12px;color:#5d675d;background:#fff8df;border:1px solid #eadca5;border-radius:10px;padding:9px}.empty{color:var(--muted);font-size:13px;padding:10px 0}.photo{width:100%;max-height:190px;object-fit:cover;border-radius:10px;margin-top:8px}.install{position:fixed;left:10px;right:10px;bottom:10px;z-index:1200;background:#1d3b24;color:white;border-radius:14px;padding:10px 12px;display:none;align-items:center;justify-content:space-between;gap:8px;box-shadow:0 8px 30px #0004}.install button{border:0;border-radius:9px;padding:8px 10px;font-weight:900}.legal{font-size:12px;color:#697469;line-height:1.4}
+@media(max-width:620px){main{padding:8px 8px 88px}.tabs button{font-size:12px}.windGrid{grid-template-columns:100px 1fr}.windCompass{width:95px;height:95px}.grid2{grid-template-columns:1fr}.full{grid-column:auto}.trackStat{grid-template-columns:1fr 1fr 1fr}#map{height:50vh;min-height:360px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🦌 CacciaTraccia Italia</h1>
+  <small>Vento, posti, tracce e diario delle uscite</small>
+  <div class="tabs">
+    <button class="active" data-page="mappa">🗺️ Mappa</button>
+    <button data-page="vento">🌬️ Vento</button>
+    <button data-page="uscite">🥾 Uscite</button>
+    <button data-page="diario">📒 Diario</button>
+  </div>
+</header>
+<main>
+<section id="mappa" class="page active">
+  <div class="mapWrap"><div id="map"></div><div class="mapBtns"><button id="locateBtn">📍 Io</button><button id="saveHereBtn">➕ Punto</button></div></div>
+  <div class="card"><h2>Punti salvati</h2><div class="btnrow"><select id="spotFilter"><option value="all">Tutti</option><option>Postazione</option><option>Passaggio</option><option>Avvistamento</option><option>Parcheggio</option><option>Altro</option></select><button class="secondary" id="fitSpots">Mostra tutti</button></div><div id="spotsList"></div></div>
+</section>
+<section id="vento" class="page">
+  <div class="card"><h2>Vento adesso</h2><div class="windGrid"><div class="windCompass"><div id="windArrow" class="windArrow">➤</div></div><div><div class="metric"><strong id="windSpeed">--</strong> km/h</div><div class="metric">Direzione: <b id="windDir">--</b></div><div class="metric">Temperatura: <b id="temp">--</b> °C</div><div class="metric">Alba: <b id="sunrise">--</b> · Tramonto: <b id="sunset">--</b></div></div></div><div class="btnrow" style="margin-top:10px"><button class="primary" id="refreshWeather">Aggiorna dal GPS</button></div></div>
+  <div class="card"><h2>Prossime ore</h2><div id="forecast" class="forecast"></div></div>
+  <div class="notice">La freccia indica da dove proviene il vento. I dati meteo sono orientativi: sul posto possono cambiare rapidamente.</div>
+</section>
+<section id="uscite" class="page">
+  <div class="card"><h2>Traccia GPS</h2><div class="trackStat"><div class="stat"><b id="trackKm">0,00</b>km</div><div class="stat"><b id="trackTime">00:00</b>tempo</div><div class="stat"><b id="trackPts">0</b>punti</div></div><div class="btnrow" style="margin-top:10px"><button class="primary" id="startTrack">▶ Avvia uscita</button><button class="danger" id="stopTrack" disabled>■ Termina</button></div></div>
+  <div class="card"><h2>Uscite salvate</h2><div id="tracksList"></div></div>
+</section>
+<section id="diario" class="page">
+  <div class="card"><h2>Nuova nota di caccia</h2><div class="grid2"><label class="field">Data<input id="logDate" type="date"></label><label class="field">Zona<input id="logZone" placeholder="es. Agro di... / ATC..."></label><label class="field">Tipo<select id="logType"><option>Appostamento</option><option>Vagante</option><option>Con cane</option><option>Selecontrollo / selezione</option><option>Altro</option></select></label><label class="field">Selvaggina / avvistamenti<input id="logSpecies" placeholder="es. tordi, colombacci..."></label><label class="field full">Note<textarea id="logNotes" placeholder="Condizioni, vento, movimenti osservati, promemoria..."></textarea></label><label class="field full">Foto<input id="logPhoto" type="file" accept="image/*" capture="environment"></label></div><button class="primary" id="saveLog" style="margin-top:8px">Salva nel diario</button></div>
+  <div class="card"><h2>Diario</h2><div id="logsList"></div></div>
+  <div class="card"><h2>Backup</h2><div class="btnrow"><button class="secondary" id="exportBtn">Esporta dati</button><label class="secondary" style="cursor:pointer">Importa<input id="importFile" type="file" accept="application/json" hidden></label></div></div>
+  <div class="legal">CacciaTraccia Italia è uno strumento personale di orientamento e diario. Non certifica zone cacciabili, confini, giornate o specie consentite. Verifica sempre calendario venatorio regionale, ATC/CA, aree protette e norme vigenti prima dell'attività.</div>
+</section>
+</main>
+
+<dialog id="spotDialog" style="border:0;border-radius:16px;max-width:520px;width:calc(100% - 24px);padding:0;box-shadow:0 20px 60px #0005">
+<form method="dialog" style="padding:14px"><h3 style="margin-top:0;color:#315b38">Salva punto</h3><div class="grid2"><label class="field">Nome<input id="spotName" placeholder="es. Posta uliveto"></label><label class="field">Tipo<select id="spotType"><option>Postazione</option><option>Passaggio</option><option>Avvistamento</option><option>Parcheggio</option><option>Altro</option></select></label><label class="field full">Note<textarea id="spotNotes" placeholder="Vento ideale, orario, specie, accesso..."></textarea></label></div><div class="btnrow" style="margin-top:10px"><button value="cancel" class="secondary">Annulla</button><button id="confirmSpot" value="default" class="primary">Salva</button></div></form>
+</dialog>
+<div id="installBox" class="install"><span>Installa CacciaTraccia sul telefono</span><button id="installBtn">Installa</button></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const KEY='cacciatraccia_it_v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'{"spots":[],"tracks":[],"logs":[]}');
+const save=()=>localStorage.setItem(KEY,JSON.stringify(db));
+let currentPos=null,pendingSpot=null,userMarker=null,trackLine=null,trackWatch=null,trackStart=null,trackPoints=[],trackTimer=null,lastWeatherPos=null;
+const map=L.map('map',{zoomControl:true}).setView([41.4,12.7],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+const spotsLayer=L.layerGroup().addTo(map);const trackLayer=L.layerGroup().addTo(map);
+
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function euro(n){return Number(n||0).toLocaleString('it-IT',{maximumFractionDigits:2})}
+function fmtDate(x){return new Date(x).toLocaleString('it-IT',{dateStyle:'short',timeStyle:'short'})}
+function hav(a,b){const R=6371,d2r=Math.PI/180,dLat=(b.lat-a.lat)*d2r,dLon=(b.lng-a.lng)*d2r;const q=Math.sin(dLat/2)**2+Math.cos(a.lat*d2r)*Math.cos(b.lat*d2r)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(q))}
+function trackDistance(pts){let d=0;for(let i=1;i<pts.length;i++)d+=hav(pts[i-1],pts[i]);return d}
+function compass(deg){const names=['N','NE','E','SE','S','SO','O','NO'];return names[Math.round((((deg%360)+360)%360)/45)%8]+' '+Math.round(deg)+'°'}
+
+$$('.tabs button').forEach(b=>b.onclick=()=>{ $$('.tabs button').forEach(x=>x.classList.toggle('active',x===b)); $$('.page').forEach(p=>p.classList.toggle('active',p.id===b.dataset.page)); if(b.dataset.page==='mappa')setTimeout(()=>map.invalidateSize(),50); if(b.dataset.page==='vento'&&currentPos)loadWeather(currentPos.lat,currentPos.lng)});
+
+function locate(zoom=true){return new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(p=>{currentPos={lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy};if(userMarker)userMarker.setLatLng(currentPos);else userMarker=L.circleMarker(currentPos,{radius:8,color:'#245c83',fillColor:'#4b96ca',fillOpacity:.9}).addTo(map).bindPopup('La tua posizione');if(zoom)map.setView(currentPos,15);resolve(currentPos)},e=>{alert('Attiva la posizione GPS per usare questa funzione.');reject(e)},{enableHighAccuracy:true,timeout:12000,maximumAge:15000}))}
+$('#locateBtn').onclick=()=>locate();
+$('#saveHereBtn').onclick=async()=>{try{const p=currentPos||await locate();openSpot(p.lat,p.lng)}catch(e){}};
+map.on('click',e=>openSpot(e.latlng.lat,e.latlng.lng));
+function openSpot(lat,lng){pendingSpot={lat,lng};$('#spotName').value='';$('#spotNotes').value='';$('#spotType').value='Postazione';$('#spotDialog').showModal()}
+$('#confirmSpot').onclick=e=>{e.preventDefault();if(!pendingSpot)return;const name=$('#spotName').value.trim()||$('#spotType').value;db.spots.unshift({id:crypto.randomUUID(),name,type:$('#spotType').value,notes:$('#spotNotes').value.trim(),lat:pendingSpot.lat,lng:pendingSpot.lng,createdAt:new Date().toISOString()});save();renderSpots();$('#spotDialog').close();pendingSpot=null};
+function renderSpots(){spotsLayer.clearLayers();const filter=$('#spotFilter').value;const arr=db.spots.filter(s=>filter==='all'||s.type===filter);arr.forEach(s=>{const m=L.marker([s.lat,s.lng]).addTo(spotsLayer).bindPopup(`<b>${esc(s.name)}</b><br>${esc(s.type)}<br><small>${esc(s.notes)}</small>`);m.on('click',()=>{});});$('#spotsList').innerHTML=arr.length?'':'<div class="empty">Nessun punto salvato.</div>';arr.forEach(s=>{const d=document.createElement('div');d.className='spot';d.innerHTML=`<div class="spotTop"><div><div class="spotName">${esc(s.name)}</div><span class="chip">${esc(s.type)}</span></div><button class="secondary">Vai</button></div><div class="spotMeta">${s.lat.toFixed(5)}, ${s.lng.toFixed(5)} · ${fmtDate(s.createdAt)}</div>${s.notes?`<div style="margin-top:5px">${esc(s.notes)}</div>`:''}<div class="btnrow" style="margin-top:7px"><button class="danger del">Elimina</button><button class="secondary meteo">Vento qui</button></div>`;d.querySelector('.spotTop button').onclick=()=>{map.setView([s.lat,s.lng],16);$$('.tabs button')[0].click()};d.querySelector('.del').onclick=()=>{if(confirm('Eliminare questo punto?')){db.spots=db.spots.filter(x=>x.id!==s.id);save();renderSpots()}};d.querySelector('.meteo').onclick=()=>{loadWeather(s.lat,s.lng);$$('.tabs button')[1].click()};$('#spotsList').appendChild(d)})}
+$('#spotFilter').onchange=renderSpots;$('#fitSpots').onclick=()=>{const pts=db.spots.map(s=>[s.lat,s.lng]);if(pts.length)map.fitBounds(pts,{padding:[25,25]})};
+
+async function loadWeather(lat,lng){lastWeatherPos={lat,lng};$('#windSpeed').textContent='…';try{const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation_probability&daily=sunrise,sunset&timezone=auto&forecast_days=3`;const r=await fetch(url);if(!r.ok)throw new Error('meteo');const w=await r.json();const c=w.current;$('#windSpeed').textContent=Math.round(c.wind_speed_10m);$('#windDir').textContent=compass(c.wind_direction_10m);$('#temp').textContent=Math.round(c.temperature_2m);$('#windArrow').style.transform=`rotate(${c.wind_direction_10m+90}deg)`;$('#sunrise').textContent=(w.daily.sunrise[0]||'').slice(11,16);$('#sunset').textContent=(w.daily.sunset[0]||'').slice(11,16);const now=new Date();const idx=w.hourly.time.findIndex(t=>new Date(t)>=now);const host=$('#forecast');host.innerHTML='';for(let i=Math.max(0,idx);i<Math.min(w.hourly.time.length,Math.max(0,idx)+10);i++){const d=document.createElement('div');d.className='hour';d.innerHTML=`<b>${w.hourly.time[i].slice(11,16)}</b><div>🌬️ ${Math.round(w.hourly.wind_speed_10m[i])} km/h</div><div>${compass(w.hourly.wind_direction_10m[i])}</div><div>🌧️ ${w.hourly.precipitation_probability[i]??0}%</div>`;host.appendChild(d)}}catch(e){$('#windSpeed').textContent='--';alert('Meteo non disponibile. Controlla Internet.') }}
+$('#refreshWeather').onclick=async()=>{try{const p=await locate(false);loadWeather(p.lat,p.lng)}catch(e){}};
+
+function updateTrackUi(){const km=trackDistance(trackPoints);$('#trackKm').textContent=km.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});$('#trackPts').textContent=trackPoints.length;if(trackStart){const sec=Math.floor((Date.now()-trackStart)/1000);$('#trackTime').textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')}}
+$('#startTrack').onclick=()=>{if(trackWatch!==null)return;trackStart=Date.now();trackPoints=[];trackLayer.clearLayers();$('#startTrack').disabled=true;$('#stopTrack').disabled=false;trackWatch=navigator.geolocation.watchPosition(p=>{const pt={lat:p.coords.latitude,lng:p.coords.longitude,t:Date.now()};if(trackPoints.length&&hav(trackPoints.at(-1),pt)<0.005)return;trackPoints.push(pt);if(trackLine)trackLayer.removeLayer(trackLine);trackLine=L.polyline(trackPoints.map(x=>[x.lat,x.lng]),{color:'#a33b2d',weight:4}).addTo(trackLayer);map.setView([pt.lat,pt.lng],16);updateTrackUi()},()=>{}, {enableHighAccuracy:true,maximumAge:3000,timeout:15000});trackTimer=setInterval(updateTrackUi,1000)};
+$('#stopTrack').onclick=()=>{if(trackWatch===null)return;navigator.geolocation.clearWatch(trackWatch);trackWatch=null;clearInterval(trackTimer);const duration=Date.now()-trackStart;const km=trackDistance(trackPoints);if(trackPoints.length){const name=prompt('Nome uscita','Uscita '+new Date().toLocaleDateString('it-IT'))||'Uscita';db.tracks.unshift({id:crypto.randomUUID(),name,startedAt:new Date(trackStart).toISOString(),endedAt:new Date().toISOString(),duration,km,points:trackPoints});save()}trackStart=null;trackPoints=[];$('#startTrack').disabled=false;$('#stopTrack').disabled=true;updateTrackUi();renderTracks()};
+function renderTracks(){const h=$('#tracksList');h.innerHTML=db.tracks.length?'':'<div class="empty">Nessuna uscita registrata.</div>';db.tracks.forEach(t=>{const d=document.createElement('div');d.className='spot';d.innerHTML=`<div class="spotTop"><div class="spotName">${esc(t.name)}</div><span class="chip">${Number(t.km||0).toFixed(2)} km</span></div><div class="spotMeta">${fmtDate(t.startedAt)} · ${Math.round((t.duration||0)/60000)} min · ${(t.points||[]).length} punti</div><div class="btnrow" style="margin-top:7px"><button class="secondary show">Mostra traccia</button><button class="danger del">Elimina</button></div>`;d.querySelector('.show').onclick=()=>{trackLayer.clearLayers();const pts=(t.points||[]).map(x=>[x.lat,x.lng]);if(pts.length){L.polyline(pts,{color:'#a33b2d',weight:4}).addTo(trackLayer);map.fitBounds(pts,{padding:[20,20]});$$('.tabs button')[0].click()}};d.querySelector('.del').onclick=()=>{if(confirm('Eliminare questa uscita?')){db.tracks=db.tracks.filter(x=>x.id!==t.id);save();renderTracks()}};h.appendChild(d)})}
+
+$('#logDate').value=new Date().toISOString().slice(0,10);
+async function fileToPhoto(file){if(!file)return'';const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=URL.createObjectURL(file)});const max=900,scale=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.72)}
+$('#saveLog').onclick=async()=>{const photo=await fileToPhoto($('#logPhoto').files[0]);db.logs.unshift({id:crypto.randomUUID(),date:$('#logDate').value,zone:$('#logZone').value.trim(),type:$('#logType').value,species:$('#logSpecies').value.trim(),notes:$('#logNotes').value.trim(),photo,createdAt:new Date().toISOString()});save();$('#logZone').value='';$('#logSpecies').value='';$('#logNotes').value='';$('#logPhoto').value='';renderLogs()};
+function renderLogs(){const h=$('#logsList');h.innerHTML=db.logs.length?'':'<div class="empty">Il diario è vuoto.</div>';db.logs.forEach(l=>{const d=document.createElement('div');d.className='spot';d.innerHTML=`<div class="spotTop"><div><div class="spotName">${esc(l.zone||'Uscita')}</div><span class="chip">${esc(l.type)}</span></div><b>${esc(l.date||'')}</b></div>${l.species?`<div style="margin-top:6px"><b>Avvistamenti:</b> ${esc(l.species)}</div>`:''}${l.notes?`<div style="margin-top:5px">${esc(l.notes)}</div>`:''}${l.photo?`<img class="photo" src="${l.photo}">`:''}<div class="btnrow" style="margin-top:7px"><button class="danger del">Elimina</button></div>`;d.querySelector('.del').onclick=()=>{if(confirm('Eliminare questa nota?')){db.logs=db.logs.filter(x=>x.id!==l.id);save();renderLogs()}};h.appendChild(d)})}
+$('#exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='CacciaTraccia-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href)};
+$('#importFile').onchange=async e=>{try{const x=JSON.parse(await e.target.files[0].text());if(!x||!Array.isArray(x.spots)||!Array.isArray(x.tracks)||!Array.isArray(x.logs))throw 0;if(confirm('Sostituire i dati attuali con il backup?')){db=x;save();renderAll()}}catch(_){alert('Backup non valido.')}};
+function renderAll(){renderSpots();renderTracks();renderLogs()};renderAll();
+locate(false).then(p=>loadWeather(p.lat,p.lng)).catch(()=>{});
+
+let deferredPrompt=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#installBox').style.display='flex'});$('#installBtn').onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('#installBox').style.display='none'};
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');
+</script>
+</body></html>
