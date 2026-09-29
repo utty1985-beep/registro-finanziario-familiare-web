@@ -233,7 +233,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <label>Importo (€)<input id="entryAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></label>
  <label>Categoria<select id="entryCategory"></select></label>
  <label class="full">Giorno del pagamento<input id="entryDate" type="date"></label>
- <button id="addEntry" class="primary">+ Aggiungi pagamento</button></div>
+ <button id="addEntry" class="primary">+ Aggiungi pagamento</button><button id="sendForApproval" type="button">Invia da confermare</button><div class="full hint">“Invia da confermare” crea una richiesta rossa condivisa con gli altri telefoni, senza registrare ancora la spesa.</div></div>
  <details class="historyDrop"><summary>Pagamenti inseriti <span id="entryHistoryCount"></span></summary><div id="entryHistory"></div></details></div>
  <details class="card pending pendingDrop" id="pendingDrop"><summary><span>Pagamenti e richieste da confermare</span><span class="badge" id="badge" hidden>0</span></summary><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></details>
  <div class="card"><label>Mostra dal giorno <input id="viewDate" type="date"></label></div>
@@ -266,6 +266,7 @@ function boardData(){if(!Array.isArray(db._board))db._board=[];return db._board}
 const SUPABASE_URL='https://dqtqwfvszrtndwipyluh.supabase.co';
 const SUPABASE_KEY='sb_publishable_Qsbu5wHMUJ6ZJGuMNb16vA_gBx74NsB';
 const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+let localRevision=0,cloudDirty=false,cloudSaving=null,cloudRefreshing=false,lastRemoteSnapshot="",familySyncBusy=false,paymentActionBusy=false;
 let familyId=null, familyRole=null, accountRole=null, cloudTimer=null, cloudLoading=false, roleTimer=null, inboxBusy=false, pendingTimer=null, lastInboxSync=0;
 function syncStatus(message,error=false){const el=$('#syncStatus');el.textContent=message;el.classList.toggle('error',error);const mirror=$('#syncMirror');if(mirror){mirror.textContent=message;mirror.classList.toggle('error',error)}}
 const deviceId=localStorage.getItem('rff_device_id')||crypto.randomUUID();
@@ -275,16 +276,18 @@ const deviceArgs=()=>({p_family_id:familyId,p_device_id:deviceId,p_secret:device
 function data(){return db[month]||(db[month]=defaultMonth())}
 function save(){
  if(familyRole==='viewer')return;
+ cloudDirty=true;localRevision++;
  localStorage.setItem('rff_verified',JSON.stringify(db));
- if(sb && familyId && familyRole==='owner' && !cloudLoading){syncStatus('Salvataggio…');clearTimeout(cloudTimer);cloudTimer=setTimeout(saveCloud,500)}
+ if(sb && familyId && familyRole==='owner' && !cloudLoading){syncStatus('Salvataggio…');clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>{cloudTimer=null;saveCloud()},500)}
 }
 window.addEventListener('online',()=>{if(familyRole==='owner'&&familyId)saveCloud()});
 function applyPermissions(){
  const viewer=familyRole==='viewer';$('#viewerBanner').hidden=!viewer;
  $('#pairingCard').hidden=true;$('#sentinelBar').hidden=!familyRole;const hasBridge=!!window.RegistroAndroid;['authorizeNotices','sourcesButton','sendNotices'].forEach(id=>$('#'+id).disabled=!hasBridge);
- const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=viewer;
+ const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;$('#sendForApproval').hidden=viewer;
  document.querySelectorAll('#p1 input:not(#monthPick),#p2 input,#p1 button,#p2 button,#p2 select').forEach(el=>{
   if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','toBoard','toBoard2','authorizeNotices','sourcesButton','sendNotices'].includes(el.id))return;
+  if(el.closest('.entryForm')){el.disabled=false;return}
   el.disabled=viewer;
  });
  if($('#boardText'))$('#boardText').disabled=false;if($('#boardAdd'))$('#boardAdd').disabled=false;
@@ -308,7 +311,7 @@ async function loadCloud(){
    if(Object.keys(db).length && JSON.stringify(db)!==JSON.stringify(row.data)){
     try{if(!localStorage.getItem('rff_local_before_first_cloud'))localStorage.setItem('rff_local_before_first_cloud',JSON.stringify(db))}catch(e){console.log('Local backup:',e)}
    }
-   db=row.data;
+   lastRemoteSnapshot=JSON.stringify(row.data);cloudDirty=false;db=row.data;
    if(familyRole==='viewer')ensureMonth(month);
    localStorage.setItem('rff_verified',JSON.stringify(db)); render();
   } else if(familyRole==='viewer'){db={};localStorage.setItem('rff_verified','{}');render();}
@@ -319,14 +322,34 @@ async function loadCloud(){
  }finally{cloudLoading=false}
 }
 async function saveCloud(){
- try{
+ if(cloudSaving)return cloudSaving;
+ let saved=false;
+ cloudSaving=(async()=>{try{
   if(familyRole!=='owner')return false;
-  if(!familyId && !await resolveFamily()) return false;
-  const {error}=await sb.rpc('rff_save_register',{...deviceArgs(),p_data:db});
-  if(error) console.log('Cloud save:',error);
-  syncStatus(error?'Salvataggio non riuscito · riprova':'Salvato online',!!error);
-  return !error;
- }catch(e){console.log('Cloud save:',e);syncStatus('Salvataggio non riuscito · riprova',true);return false}
+  if(!familyId&&!await resolveFamily())return false;
+  const revision=localRevision,snapshot=JSON.parse(JSON.stringify(db));
+  const {error}=await sb.rpc('rff_save_register',{...deviceArgs(),p_data:snapshot});
+  if(error)throw error;
+  if(localRevision===revision)cloudDirty=false;
+  lastRemoteSnapshot=JSON.stringify(snapshot);syncStatus('Salvato online');saved=true;return true;
+ }catch(e){console.log('Cloud save:',e);syncStatus('Salvataggio non riuscito · modifiche conservate sul telefono',true);return false}})();
+ try{return await cloudSaving}finally{cloudSaving=null;if(saved&&cloudDirty){clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>{cloudTimer=null;saveCloud()},500)}}
+}
+async function refreshRemote(){
+ if(!sb||!familyId||cloudDirty||cloudSaving||cloudLoading||cloudRefreshing||paymentActionBusy||document.activeElement?.matches('input,select,textarea'))return;
+ cloudRefreshing=true;const revision=localRevision;
+ try{
+  const {data:row,error}=await sb.from('family_register').select('data').eq('family_id',familyId).limit(1).maybeSingle();
+  if(error)throw error;
+  if(cloudDirty||cloudSaving||localRevision!==revision||document.activeElement?.matches('input,select,textarea'))return;
+  if(row?.data){const serialized=JSON.stringify(row.data);if(serialized!==lastRemoteSnapshot){lastRemoteSnapshot=serialized;db=row.data;localStorage.setItem('rff_verified',JSON.stringify(db));render()}}
+  syncStatus('Registro sincronizzato');
+ }catch(e){console.log('Aggiornamento registro:',e);syncStatus('Sincronizzazione non riuscita · riprovo',true)}finally{cloudRefreshing=false}
+}
+async function syncFamily(){
+ if(familySyncBusy||paymentActionBusy||document.hidden||!familyId||!familyRole)return;familySyncBusy=true;
+ try{updateNotificationState();await refreshRemote();await sendAndroidPayments();await fetchInbox();if(familyRole==='owner')await showPairingRequests();await syncBoard(true)}
+ catch(e){console.log('Sincronizzazione famiglia:',e)}finally{familySyncBusy=false}
 }
 function ymParts(){let [y,m]=month.split('-').map(Number);return [y,m]}
 function title(){let [y,m]=ymParts();return new Date(y,m-1,1).toLocaleDateString('it-IT',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase())}
@@ -523,28 +546,26 @@ function renderVarieSingle(){
 }
 function cell(day,k,val,res,label){return `<td class="moneyCell"><strong>€ ${euro(val)}</strong><span class="res">${label}: <strong>€ ${euro(res)}</strong></span></td>`}
 $('#viewDate').onchange=e=>{if(e.target.value.startsWith(month)){data().daily.viewStart=e.target.value;save();renderDaily()}};
-$('#addEntry').onclick=async()=>{
+$('#sendForApproval').onclick=()=>$('#addEntry').onclick({sendForApproval:true});
+$('#addEntry').onclick=async(event)=>{
  const amount=Number($('#entryAmount').value),date=$('#entryDate').value;
  if(!Number.isFinite(amount)||amount<=0||!date.startsWith(month)){alert('Inserisci importo e giorno validi.');return}
  const day=Number(date.slice(-2)),[yy,mm]=ymParts();if(day<1||day>new Date(yy,mm,0).getDate())return;
  const sign=document.querySelector('input[name="entrySign"]:checked').value;
  const category=$('#entryCategory').value;
- // Sul telefono secondario NON registriamo direttamente la spesa: la inviamo alla coda del principale.
- if(familyRole==='viewer'){
-   if(!sb||!familyId){alert('Sincronizzazione non disponibile. Riprova tra qualche secondo.');return}
-   const btn=$('#addEntry');btn.disabled=true;btn.textContent='Invio…';
-   try{
-     const occurred=new Date(Number(yy),Number(mm)-1,day,new Date().getHours(),new Date().getMinutes(),new Date().getSeconds());
-     const nid='manual_'+deviceId+'_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-     const signMarker=sign==='-'?'__RFF_SIGN_NEG__':'__RFF_SIGN_POS__';
-     const desc=signMarker+' Inserito dal secondo telefono · '+categoryName(category)+' · '+new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
-     const {error}=await sb.rpc('rff_send_payment',{...deviceArgs(),p_notification_id:nid,p_amount:amount,p_description:desc,p_occurred_at:occurred.toISOString(),p_category:categoryName(category)});
-     if(error)throw error;
-     $('#entryAmount').value='';
-     btn.textContent='✓ Inviato al telefono principale';
-     setTimeout(()=>{btn.textContent='+ Invia pagamento';btn.disabled=false},1800);
-   }catch(e){console.log('Invio manuale:',e);alert('Invio non riuscito. Controlla Internet e riprova.');btn.textContent='+ Invia pagamento';btn.disabled=false}
-   return;
+ if(familyRole==='viewer'||event?.sendForApproval){
+  if(!sb||!familyId){alert('Sincronizzazione non disponibile. Riprova.');return}
+  const btn=event?.sendForApproval?$('#sendForApproval'):$('#addEntry'),label=btn.textContent;btn.disabled=true;btn.textContent='Invio…';
+  try{
+   const occurred=new Date(Number(yy),Number(mm)-1,day,12);
+   const nid='manual_'+deviceId+'_'+crypto.randomUUID();
+   const desc=(sign==='-'?'__RFF_SIGN_NEG__':'__RFF_SIGN_POS__')+' Pagamento manuale · '+categoryName(category);
+   const {error}=await sb.rpc('rff_send_payment',{...deviceArgs(),p_notification_id:nid,p_amount:amount,p_description:desc,p_occurred_at:occurred.toISOString(),p_category:categoryName(category)});
+   if(error)throw error;
+   $('#entryAmount').value='';$('#sendStatus').textContent='Richiesta inviata: resta rossa fino alla conferma nel registro condiviso.';
+   await fetchInbox();$('#pendingDrop').open=true;
+  }catch(e){console.log('Invio manuale:',e);alert('Invio non riuscito. Controlla Internet e riprova.')}finally{btn.textContent=label;btn.disabled=false}
+  return;
  }
  if(familyRole!=='owner')return;
  const d=data().daily;d.entries||(d.entries=[]);
@@ -574,17 +595,32 @@ function renderPending(){
   x.innerHTML=`<b>${sgn} € ${euro(n.amount)}</b> ${escapeNotice(cleanNoticeDesc(n.desc))}<br><select>${opts}</select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"><div class="pendingActions"><button class="confirmPay">Conferma</button><button class="rejectPay">Non confermare</button></div>`;
   const suggested=customCols().find(c=>(c.name||'').toLowerCase()===(n.category||'').toLowerCase());x.querySelector('select').value=suggested?colKey(suggested):(n.category==='Mangiare'?'food':(n.category==='Diesel'?'diesel-proposed':'varie'));if(n.day)x.querySelector('input').value=n.day;
   x.querySelector('.confirmPay').onclick=async()=>{
-   if(familyRole!=='owner')return;let cat=x.querySelector('select').value||'varie';if(cat==='diesel-proposed'){let col=customCols().find(c=>(c.name||'').toLowerCase()==='diesel');if(!col){col={id:'diesel',name:'Diesel',budget:0};customCols().push(col)}cat=colKey(col)}const [yy,mm]=ymParts(),last=new Date(yy,mm,0).getDate();const day=+x.querySelector('input').value;if(!Number.isInteger(day)||day<1||day>last)return;
-   const amount=Number(n.amount);if(!Number.isFinite(amount)||amount<=0)return;x.querySelectorAll('button').forEach(btn=>btn.disabled=true);
-   const current=data();current.daily.entries||(current.daily.entries=[]);const entry={id:'n_'+(n.id||Date.now()+'_'+i),day,category:cat,amount:(sgn==='-'?-1:1)*amount,desc:cleanNoticeDesc(n.desc)||'Notifica'};
-   const confirmed=current.daily.confirmedInboxIds||(current.daily.confirmedInboxIds=[]);current.daily.entries.push(entry);p.splice(i,1);if(n.inboxId&&!confirmed.includes(n.inboxId))confirmed.push(n.inboxId);save();
-   if(n.inboxId){clearTimeout(cloudTimer);const saved=await sb.rpc('rff_confirm_payment',{...deviceArgs(),p_inbox_id:n.inboxId,p_data:db});if(saved.error){current.daily.entries=current.daily.entries.filter(v=>v!==entry);p.splice(i,0,n);current.daily.confirmedInboxIds=confirmed.filter(id=>id!==n.inboxId);save();renderDaily();alert('Salvataggio online non riuscito. Riprova.');return}}
-   renderDaily();
+   if(familyRole!=='owner'||paymentActionBusy)return;
+   if(cloudDirty&&!await saveCloud()){alert('Salva prima le modifiche del registro.');return}
+   const [yy,mm]=ymParts(),day=Number(x.querySelector('input').value),amount=Number(n.amount);
+   if(!Number.isInteger(day)||day<1||day>new Date(yy,mm,0).getDate()||!Number.isFinite(amount)||amount<=0)return;
+   let cat=x.querySelector('select').value||'varie';
+   if(cat==='diesel-proposed'){let col=customCols().find(c=>(c.name||'').toLowerCase()==='diesel');if(!col){col={id:'diesel',name:'Diesel',budget:0};customCols().push(col)}cat=colKey(col)}
+   const current=data();current.daily.entries||(current.daily.entries=[]);
+   const entry={id:'n_'+(n.id||crypto.randomUUID()),day,category:cat,amount:(sgn==='-'?-1:1)*amount,desc:cleanNoticeDesc(n.desc)||'Notifica'};
+   if(!n.inboxId){current.daily.entries.push(entry);p.splice(i,1);save();renderDaily();return}
+   paymentActionBusy=true;x.querySelectorAll('button').forEach(btn=>btn.disabled=true);
+   const proposed=JSON.parse(JSON.stringify(db));proposed[month].daily.entries.push(entry);
+   try{
+    const {error}=await sb.rpc('rff_confirm_payment',{...deviceArgs(),p_inbox_id:n.inboxId,p_data:proposed});if(error)throw error;
+    await loadCloud();
+   }catch(e){console.log('Conferma:',e);alert('Conferma non completata. Riprova: il pagamento non verrà duplicato.');x.querySelectorAll('button').forEach(btn=>btn.disabled=false)}
+   finally{paymentActionBusy=false;await fetchInbox()}
   };
   x.querySelector('.rejectPay').onclick=async()=>{
-   if(familyRole!=='owner')return;if(!confirm('Non confermare questa richiesta? Verrà eliminata senza inserirla nelle spese.'))return;x.querySelectorAll('button').forEach(btn=>btn.disabled=true);
-   if(n.inboxId){const {error}=await sb.rpc('rff_reject_payment',{...deviceArgs(),p_inbox_id:n.inboxId});if(error){alert('Rifiuto non riuscito. Riprova.');x.querySelectorAll('button').forEach(btn=>btn.disabled=false);return}}
-   p.splice(i,1);save();renderPending();
+   if(familyRole!=='owner'||paymentActionBusy)return;if(!confirm('Non confermare questa richiesta? Verrà eliminata senza inserirla nelle spese.'))return;
+   x.querySelectorAll('button').forEach(btn=>btn.disabled=true);
+   if(n.inboxId){
+    const {error}=await sb.rpc('rff_reject_payment',{...deviceArgs(),p_inbox_id:n.inboxId});
+    if(error){alert('Rifiuto non riuscito. Riprova.');x.querySelectorAll('button').forEach(btn=>btn.disabled=false);return}
+    { const list=data().daily.pending;data().daily.pending=list.filter(v=>v.inboxId!==n.inboxId);localStorage.setItem('rff_verified',JSON.stringify(db)); }
+   }else{p.splice(i,1);save()}
+   renderPending();
   };
   h.appendChild(x)
  });applyPermissions()
@@ -598,22 +634,23 @@ $('#addCustomColumn').onclick=()=>{const cols=customCols();cols.push({id:'c_'+Da
 $('#testNotice').onclick=()=>{data().daily.pending.push({amount:12.50,desc:'Pagamento da confermare'});save();renderPending()};
 function guessCategory(s){s=String(s||'').toLowerCase();if(/\b(q8|eni|esso|tamoil|keropetrol|totalerg|ip|api)\b|carburant|benzina|gasolio|diesel|distributore|stazione di servizio|fuel/.test(s))return'Diesel';const c=customCols().find(c=>(c.name||'').toLowerCase()&&s.includes((c.name||'').toLowerCase()));if(c)return c.name;if(/supermerc|aliment|conad|coop|lidl|eurospin|esselunga|ristor|bar |pizzeria/.test(s))return'Mangiare';return'Varie'}
 async function fetchInbox(){
- if(inboxBusy||familyRole!=='owner'||!familyId)return;inboxBusy=true;
+ if(inboxBusy||!['owner','viewer'].includes(familyRole)||!familyId||paymentActionBusy||$('#pendingList').contains(document.activeElement))return;inboxBusy=true;
  try{
-  const {data:rows,error}=await sb.rpc('rff_pending_payments',deviceArgs());
-  if(error)throw error;lastInboxSync=Date.now();let changed=false;
+  const {data:rows,error}=await sb.rpc('rff_pending_payments',deviceArgs());if(error)throw error;
+  lastInboxSync=Date.now();const byMonth={};
   for(const row of rows||[]){
    const dt=new Date(row.occurred_at);if(!Number.isFinite(dt.getTime()))continue;
-   const key=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
-   const target=db[key]||(db[key]=defaultMonth());const daily=target.daily||(target.daily=defaultMonth().daily);
-   if((daily.confirmedInboxIds||[]).includes(row.id))continue;
-   if(!daily.pending.some(n=>n.inboxId===row.id)){
-    const rawDesc=String(row.description||'');const sign=rawDesc.startsWith('__RFF_SIGN_POS__')?'+':'-';
-    daily.pending.push({inboxId:row.id,id:'i_'+row.id,amount:Number(row.amount),desc:rawDesc,sign,category:row.suggested_category,day:dt.getDate()});changed=true;
-   }
+   const key=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'),rawDesc=String(row.description||'');
+   (byMonth[key]||(byMonth[key]=[])).push({inboxId:row.id,id:'i_'+row.id,amount:Number(row.amount),desc:rawDesc,sign:rawDesc.startsWith('__RFF_SIGN_POS__')?'+':'-',category:row.suggested_category,day:dt.getDate()});
   }
-  if(changed){save();renderPending()}
- }catch(e){console.log('Pagamenti in attesa:',e)}finally{inboxBusy=false}
+  let changed=false;
+  for(const key of new Set([...Object.keys(db).filter(k=>/^\d{4}-\d{2}$/.test(k)),...Object.keys(byMonth)])){
+   const target=db[key]||(db[key]=defaultMonth()),daily=target.daily||(target.daily=defaultMonth().daily);
+   const next=[...(daily.pending||[]).filter(n=>!n.inboxId),...(byMonth[key]||[])];
+   if(JSON.stringify(daily.pending||[])!==JSON.stringify(next)){daily.pending=next;changed=true}
+  }
+  if(changed){localStorage.setItem('rff_verified',JSON.stringify(db));renderPending()}
+ }catch(e){console.log('Pagamenti in attesa:',e);syncStatus('Pagamenti da confermare non sincronizzati · riprovo',true)}finally{inboxBusy=false}
 }
 async function sendAndroidPayments(){
  if(!['owner','viewer'].includes(familyRole)||!familyId||!window.RegistroAndroid)return;
@@ -717,7 +754,7 @@ async function enter(session){
   if(!await resolveFamily())throw new Error('Account non collegato alla famiglia.');
   const {data:device,error:pairError}=await sb.rpc('rff_register_device',{...deviceArgs(),p_label:'Telefono '+deviceId.slice(-6)});
   if(pairError)throw pairError;
-  familyRole=(device.status==='active'&&accountRole==='owner')?'owner':'viewer';if(familyRole==='viewer')$('#addEntry').textContent='+ Invia pagamento';else $('#addEntry').textContent='+ Aggiungi pagamento';
+  familyRole=(device.status==='active'&&accountRole==='owner')?'owner':'viewer';if(familyRole==='viewer')$('#addEntry').textContent='Invia da confermare';else $('#addEntry').textContent='+ Aggiungi pagamento';
   if(device.status==='pending'){
    say('Questo telefono è in attesa. Sul principale autorizza il codice '+deviceId.slice(-6)+'.',true);
    pendingTimer=setInterval(async()=>{
@@ -729,13 +766,13 @@ async function enter(session){
   if(window.RegistroAndroid?.configureBackgroundSync)RegistroAndroid.configureBackgroundSync(String(familyId),String(deviceId),String(deviceSecret));
   await loadCloud();await syncBoard(false);gate.classList.add('hidden');say('');updateNotificationState();
   if(familyRole==='owner'){await sendAndroidPayments();await fetchInbox(true);await showPairingRequests()}else await sendAndroidPayments();
-  roleTimer=setInterval(()=>{if(document.hidden)return;updateNotificationState();if(familyRole==='owner'){sendAndroidPayments();fetchInbox();showPairingRequests();syncBoard(true)}else if(familyRole==='viewer'){loadCloud().catch(e=>console.log('Aggiornamento:',e));sendAndroidPayments();syncBoard(true)}},4000);
-   document.addEventListener('visibilitychange',()=>{if(!document.hidden){updateNotificationState();if(familyRole==='owner')fetchInbox(true)}},{passive:true});
-   window.addEventListener('focus',()=>{if(familyRole==='owner')fetchInbox(true)},{passive:true});
-   window.addEventListener('pageshow',()=>{if(familyRole==='owner')fetchInbox(true)},{passive:true});
+  roleTimer=setInterval(syncFamily,4000);
+
  }
  catch(e){gate.classList.remove('hidden');say('Accesso al registro: '+(e?.message||'errore di connessione'))}
 }
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncFamily()});
+window.addEventListener('focus',syncFamily);window.addEventListener('pageshow',syncFamily);
 $('#loginBtn').onclick=async()=>{
  if(!sb)return say('Connessione non disponibile. Riprova con Internet attivo.');
  say('Accesso…',true);
@@ -796,9 +833,10 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v50-layout', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v51-sync', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
 </script>
 <!-- Registro Finanziario Familiare V45 - selezione app pagamento estesa --></body></html>
+
