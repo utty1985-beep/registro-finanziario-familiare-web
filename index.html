@@ -178,11 +178,12 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 29/09</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Notifiche aggiornate 29/09</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
-<div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><span class="syncStatus" id="syncStatus" role="status"></span></div>
+<div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><span class="syncStatus" id="syncStatus" role="status">Connessione…</span></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Profilo familiare in sola lettura. I dispositivi approvati dello stesso account proprietario hanno accesso completo al registro.</div>
 <div class="card" id="pairingCard" hidden><h2>Telefoni da autorizzare</h2><div id="pairingList"></div></div>
+<div class="card" id="sentinelBar" hidden><h2>Notifiche e sincronizzazione</h2><div class="syncInfo">Stato registro: <strong id="syncMirror">Connessione…</strong></div><button id="authorizeNotices">Autorizza notifiche</button> <button id="sourcesButton">Scegli app di pagamento</button> <button id="sendNotices">Importa pagamenti</button><div id="notificationState" class="hint" role="status"></div><div id="paymentSources" class="hint" role="group" aria-label="App di pagamento" hidden></div><p class="hint" id="sendStatus">Scegli le app da cui importare le spese. Arriveranno in rosso, da confermare.</p></div>
 <section id="p1" class="page active">
  <div class="toolbar"><button id="prevM">‹</button><input id="monthPick" type="month"><div class="month" id="monthTitle"></div><button id="nextM">›</button></div>
  <div class="monthActions"><button class="primary" id="confirmMonth" type="button">✓ Conferma mese</button><button id="editMonth" type="button" hidden>✏️ Modifica</button><span id="monthModeLabel" class="hint"></span></div>
@@ -227,7 +228,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="card"><label>Mostra dal giorno <input id="viewDate" type="date"></label></div>
  <div class="tableWrap"><table><thead><tr id="dailyHead"><th>Giorno</th><th>Mangiare</th></tr></thead><tbody id="dailyBody"></tbody></table></div>
  <div class="card"><h2>Varie</h2><div class="hint">Le voci selezionate dalla prima pagina e i pagamenti confermati in Varie compaiono qui.</div><div id="varieSingle"></div></div>
- <div class="card" id="sentinelBar" hidden><h2>Pagamenti dal telefono</h2><button id="authorizeNotices">Autorizza notifiche</button> <button id="sourcesButton">Scegli app di pagamento</button> <button id="sendNotices">Importa pagamenti</button><div id="notificationState" class="hint" role="status"></div><div id="paymentSources" class="hint" role="group" aria-label="App di pagamento" hidden></div><p class="hint" id="sendStatus">Scegli le app da cui importare le spese. Arriveranno in rosso, da confermare.</p></div>
+ 
  <div class="nav"><button class="primary" id="toMonth">←</button><button id="toBoard2">📝 Lavagna</button></div>
 </section>
 </main>
@@ -255,7 +256,7 @@ const SUPABASE_URL='https://dqtqwfvszrtndwipyluh.supabase.co';
 const SUPABASE_KEY='sb_publishable_Qsbu5wHMUJ6ZJGuMNb16vA_gBx74NsB';
 const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 let familyId=null, familyRole=null, accountRole=null, cloudTimer=null, cloudLoading=false, roleTimer=null, inboxBusy=false, pendingTimer=null, lastInboxSync=0;
-function syncStatus(message,error=false){const el=$('#syncStatus');el.textContent=message;el.classList.toggle('error',error)}
+function syncStatus(message,error=false){const el=$('#syncStatus');el.textContent=message;el.classList.toggle('error',error);const mirror=$('#syncMirror');if(mirror){mirror.textContent=message;mirror.classList.toggle('error',error)}}
 const deviceId=localStorage.getItem('rff_device_id')||crypto.randomUUID();
 const deviceSecret=localStorage.getItem('rff_device_secret')||Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
 localStorage.setItem('rff_device_id',deviceId);localStorage.setItem('rff_device_secret',deviceSecret);
@@ -269,7 +270,7 @@ function save(){
 window.addEventListener('online',()=>{if(familyRole==='owner'&&familyId)saveCloud()});
 function applyPermissions(){
  const viewer=familyRole==='viewer';$('#viewerBanner').hidden=!viewer;
- $('#pairingCard').hidden=true;$('#sentinelBar').hidden=!(familyRole&&window.RegistroAndroid);
+ $('#pairingCard').hidden=true;$('#sentinelBar').hidden=!familyRole;const hasBridge=!!window.RegistroAndroid;['authorizeNotices','sourcesButton','sendNotices'].forEach(id=>$('#'+id).disabled=!hasBridge);
  const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=viewer;
  document.querySelectorAll('#p1 input:not(#monthPick),#p2 input,#p1 button,#p2 button,#p2 select').forEach(el=>{
   if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','toBoard','toBoard2','authorizeNotices','sourcesButton','sendNotices'].includes(el.id))return;
@@ -617,7 +618,7 @@ async function sendAndroidPayments(){
  if(sent){$('#sendStatus').textContent=sent+' pagamento/i inviato/i. Compariranno tra i pagamenti da confermare sui telefoni autorizzati.';if(familyRole==='owner')await fetchInbox(true)}updateNotificationState()
 }
 window.sendAndroidPayments=sendAndroidPayments;
-function updateNotificationState(){const bridge=window.RegistroAndroid,el=$('#notificationState');if(!el)return;if(!bridge){el.textContent='Le notifiche di pagamento si leggono solo nell’app Android.';return}const enabled=bridge.notificationAccessEnabled?.();const pending=Number(bridge.queuedPaymentCount?.()||0);el.textContent=(enabled===true||enabled==='true'?'Accesso notifiche attivo.':'Accesso notifiche da attivare nelle impostazioni Android.')+' '+pending+' pagamento/i ancora sul telefono. Seleziona le app qui sotto: i pagamenti riconosciuti compariranno in rosso su tutti i telefoni autorizzati dopo la sincronizzazione.'}
+function updateNotificationState(){const bridge=window.RegistroAndroid,el=$('#notificationState');if(!el)return;if(!bridge){el.textContent='Le notifiche dei pagamenti si attivano nell’app Android. Sul sito puoi vedere i pagamenti sincronizzati.';return}const enabled=bridge.notificationAccessEnabled?.();const pending=Number(bridge.queuedPaymentCount?.()||0);el.textContent=(enabled===true||enabled==='true'?'Accesso notifiche attivo.':'Accesso notifiche da attivare nelle impostazioni Android.')+' '+pending+' pagamento/i ancora sul telefono. Seleziona le app qui sotto: i pagamenti riconosciuti compariranno in rosso su tutti i telefoni autorizzati dopo la sincronizzazione.'}
 $('#authorizeNotices').onclick=()=>window.RegistroAndroid?.openNotificationAccess();
 function renderPaymentSources(){
  const host=$('#paymentSources'),bridge=window.RegistroAndroid;
@@ -702,7 +703,7 @@ async function enter(session){
   if(window.RegistroAndroid?.configureBackgroundSync)RegistroAndroid.configureBackgroundSync(String(familyId),String(deviceId),String(deviceSecret));
   await loadCloud();await syncBoard(false);gate.classList.add('hidden');say('');updateNotificationState();
   if(familyRole==='owner'){await sendAndroidPayments();await fetchInbox(true);await showPairingRequests()}else await sendAndroidPayments();
-  roleTimer=setInterval(()=>{if(document.hidden)return;if(familyRole==='owner'){sendAndroidPayments();fetchInbox();showPairingRequests();syncBoard(true)}else if(familyRole==='viewer'){loadCloud().catch(e=>console.log('Aggiornamento:',e));sendAndroidPayments();syncBoard(true)}},4000);
+  roleTimer=setInterval(()=>{if(document.hidden)return;updateNotificationState();if(familyRole==='owner'){sendAndroidPayments();fetchInbox();showPairingRequests();syncBoard(true)}else if(familyRole==='viewer'){loadCloud().catch(e=>console.log('Aggiornamento:',e));sendAndroidPayments();syncBoard(true)}},4000);
    document.addEventListener('visibilitychange',()=>{if(!document.hidden){updateNotificationState();if(familyRole==='owner')fetchInbox(true)}},{passive:true});
    window.addEventListener('focus',()=>{if(familyRole==='owner')fetchInbox(true)},{passive:true});
    window.addEventListener('pageshow',()=>{if(familyRole==='owner')fetchInbox(true)},{passive:true});
@@ -769,7 +770,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v46', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v47-notifiche', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
