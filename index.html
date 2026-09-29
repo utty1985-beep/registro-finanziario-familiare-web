@@ -176,6 +176,15 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 #sentinelBar label span{overflow-wrap:anywhere;min-width:0}
 .monthPreview #sentinelBar{margin-top:10px;padding:8px;font-size:14px}
 .monthPreview #sentinelBar h2{font-size:14px}
+
+#openCalculator{font-size:14px;padding:8px 10px;min-height:40px}
+#calculatorDialog{width:min(350px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;padding:16px;border:0;border-radius:18px;background:rgba(244,247,251,.76);color:#172033;box-shadow:0 16px 60px #0005;border:1px solid #ffffffaa}
+#calculatorDialog::backdrop{background:transparent}
+.calcHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.calcHeader h2{margin:0;font-size:20px}.calcHeader button{min-width:44px;min-height:44px}
+#calcExpression{min-height:24px;text-align:right;color:#64748b;font-size:14px;overflow-wrap:anywhere}
+#calcDisplay{display:block;background:rgba(255,255,255,.8);border:1px solid #cbd5e1;border-radius:10px;padding:12px;text-align:right;font-size:30px;font-weight:800;overflow-wrap:anywhere;margin:5px 0 12px;font-variant-numeric:tabular-nums}
+.calcKeys{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.calcKeys button{min-height:52px;font-size:21px;padding:8px}.calcKeys .calcOp{color:#0b4f8a;background:#e0efff}.calcKeys .calcEquals{background:#0b4f8a;color:white}.calcHint{margin:12px 0 0;font-size:12px;color:#64748b}
+@media print{#calculatorDialog,#openCalculator{display:none!important}}
 </style>
 <link rel="manifest" href="./manifest.json?v=20260924-abbinamento-2">
 <meta name="theme-color" content="#0b4f8a">
@@ -189,7 +198,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Notifiche aggiornate 29/09</small><div class="userBar"><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Notifiche aggiornate 29/09</small><div class="userBar"><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><span class="syncStatus" id="syncStatus" role="status">Connessione…</span></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Profilo familiare in sola lettura. I dispositivi approvati dello stesso account proprietario hanno accesso completo al registro.</div>
@@ -833,10 +842,52 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v51-sync', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v52-calculator', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
 </script>
-<!-- Registro Finanziario Familiare V45 - selezione app pagamento estesa --></body></html>
-
+<!-- Registro Finanziario Familiare V45 - selezione app pagamento estesa --><dialog id="calculatorDialog" aria-labelledby="calculatorTitle"><div class="calcHeader"><h2 id="calculatorTitle">Calcolatrice</h2><button id="closeCalculator" type="button" aria-label="Chiudi calcolatrice">✕</button></div><div id="calcExpression"></div><output id="calcDisplay" aria-live="polite" aria-atomic="true">0</output><div class="calcKeys"><button type="button" class="calcOp" data-calc="C" aria-label="Cancella tutto">C</button><button type="button" class="calcOp" data-calc="⌫" aria-label="Cancella ultima cifra">⌫</button><button type="button" class="calcOp" data-calc="%" aria-label="Percentuale">%</button><button type="button" class="calcOp" data-calc="÷" aria-label="Dividi">÷</button><button type="button" class="" data-calc="7" aria-label="7">7</button><button type="button" class="" data-calc="8" aria-label="8">8</button><button type="button" class="" data-calc="9" aria-label="9">9</button><button type="button" class="calcOp" data-calc="×" aria-label="Moltiplica">×</button><button type="button" class="" data-calc="4" aria-label="4">4</button><button type="button" class="" data-calc="5" aria-label="5">5</button><button type="button" class="" data-calc="6" aria-label="6">6</button><button type="button" class="calcOp" data-calc="−" aria-label="Sottrai">−</button><button type="button" class="" data-calc="1" aria-label="1">1</button><button type="button" class="" data-calc="2" aria-label="2">2</button><button type="button" class="" data-calc="3" aria-label="3">3</button><button type="button" class="calcOp" data-calc="+" aria-label="Somma">+</button><button type="button" class="calcOp" data-calc="±" aria-label="Cambia segno">±</button><button type="button" class="" data-calc="0" aria-label="0">0</button><button type="button" class="" data-calc="," aria-label="Virgola">,</button><button type="button" class="calcEquals" data-calc="=" aria-label="Uguale">=</button></div><p class="calcHint">I calcoli non modificano gli importi del registro.</p></dialog>
+<script>
+(()=>{
+ const dialog=document.getElementById('calculatorDialog'),display=document.getElementById('calcDisplay'),expression=document.getElementById('calcExpression');
+ let value='0',stored=null,op=null,replace=true,trail='';
+ const number=()=>Number(value);
+ const format=n=>String(Number(n.toPrecision(12)));
+ const show=()=>{display.textContent=value.replace('.',',');expression.textContent=trail};
+ function clear(){value='0';stored=null;op=null;replace=true;trail=''}
+ function solve(){
+  if(stored===null||!op)return true;
+  const b=number(),result=op==='+'?stored+b:op==='−'?stored-b:op==='×'?stored*b:b===0?NaN:stored/b;
+  if(!Number.isFinite(result)){clear();value='Errore';trail='Operazione non valida';return false}
+  value=format(result);stored=null;op=null;return true;
+ }
+ function press(key){
+  if(value==='Errore')clear();
+  if(/^\d$/.test(key)){if(replace){value=key;replace=false;if(!op)trail=''}else if(value.replace(/[-.]/g,'').length<12)value=value==='0'?key:value+key}
+  else if(key===','){if(replace){value='0.';replace=false;if(!op)trail=''}else if(!value.includes('.'))value+='.'}
+  else if(key==='C')clear();
+  else if(key==='⌫'){if(!replace)value=value.length>1?value.slice(0,-1):'0';if(value==='-')value='0'}
+  else if(key==='±'){if(number()!==0)value=value.startsWith('-')?value.slice(1):'-'+value}
+  else if(key==='%'){value=format(stored!==null&&(op==='+'||op==='−')?stored*number()/100:number()/100);replace=true}
+  else if(['+','−','×','÷'].includes(key)){
+   if(op&&!replace&&!solve()){show();return}
+   stored=number();op=key;trail=value.replace('.',',')+' '+key;replace=true;
+  }else if(key==='='){
+   if(op!==null&&!replace){const calc=String(stored).replace('.',',')+' '+op+' '+value.replace('.',',')+' =';if(solve())trail=calc}
+   replace=true;
+  }
+  show();
+ }
+ document.getElementById('openCalculator').onclick=()=>{if(!dialog.open)dialog.showModal()};
+ document.getElementById('closeCalculator').onclick=()=>dialog.close();
+ dialog.querySelectorAll('[data-calc]').forEach(button=>button.onclick=()=>press(button.dataset.calc));
+ dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close()}});
+ dialog.addEventListener('keydown',event=>{
+  const key=({'/':'÷','*':'×','-':'−','.':',','Backspace':'⌫','Delete':'C','Enter':'='})[event.key]||event.key;
+  if(/^\d$/.test(key)||['÷','×','−','+',',','⌫','C','=','%'].includes(key)){event.preventDefault();press(key)}
+ });
+ show();
+})();
+</script>
+</body></html>
