@@ -264,6 +264,57 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (()=>{
+  document.title='Registro Finanziario Familiare V56';
+  const style=document.createElement('style');
+  style.id='rff-v56-style';
+  style.textContent=`
+#openCalculator{position:fixed!important;right:14px!important;bottom:82px!important;z-index:9998!important;width:58px!important;height:58px!important;border-radius:50%!important;padding:0!important;display:grid!important;place-items:center!important;background:rgba(255,255,255,.86)!important;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);border:1px solid #ffffffcc!important;box-shadow:0 7px 24px #0f172a38!important;font-size:0!important;min-height:0!important}
+#openCalculator::before{content:'🧮';font-size:28px;line-height:1}
+#openCalculator:focus-visible{outline:3px solid #f59e0b;outline-offset:3px}
+#monthHistory summary{cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-weight:700;padding:4px 0}
+#monthHistory summary::-webkit-details-marker{display:none}#monthHistory summary::marker{content:''}#monthHistory summary::before{content:'▶';font-size:10px;transition:transform .15s}#monthHistory[open] summary::before{transform:rotate(90deg)}#monthHistoryList{padding-top:5px}
+.boardReminder{margin-top:10px;border-top:1px solid #dbe3ec;padding-top:8px}.boardReminder summary{cursor:pointer;font-weight:800;color:#0b5685}
+.reminderGrid,.calendarForm{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.reminderGrid label,.calendarForm label{font-size:12px;font-weight:800}.reminderGrid input,.reminderGrid select,.calendarForm input,.calendarForm select,.calendarForm textarea{width:100%;margin-top:4px}
+.calendarCard{border-left:5px solid #0b4f8a}.calendarToolbar{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px;align-items:center;margin-bottom:8px}.calendarToolbar button{height:44px;padding:0;font-size:24px}.calendarTitle{text-align:center;font-weight:900;color:#0b5685}
+.calendarWeek,.calendarGrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}.calendarWeek div{text-align:center;font-size:11px;font-weight:900;color:#64748b;padding:4px 0}
+.calendarDay{min-height:62px;border:1px solid #d8e1eb;border-radius:8px;padding:4px;background:#fff;text-align:left;position:relative;overflow:hidden}.calendarDay.other{opacity:.35}.calendarDay.today{border:2px solid #0b4f8a;background:#eef7ff}.calendarDay.hasEvents{background:#f1f8ff}.calendarDay .dayNum{font-weight:900;font-size:12px}.calendarDay .eventMini{font-size:9px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;color:#0b5685}.calendarDay button{all:unset;position:absolute;inset:0;cursor:pointer}
+.calendarAdd{margin-top:12px}.calendarAdd summary{cursor:pointer;font-weight:900;color:#0b5685}.calendarForm .full{grid-column:1/-1}.calendarForm textarea{min-height:70px;resize:vertical}.calendarForm button{grid-column:1/-1}
+.calendarEventList{display:grid;gap:8px;margin-top:10px}.calendarEvent{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;border:1px solid #d8e1eb;border-radius:10px;padding:9px;background:#fff}.calendarEvent .when{font-size:12px;color:#64748b}.calendarEvent .meta{font-size:11px;color:#64748b;margin-top:3px}.calendarEvent button{background:#d9534f;color:#fff;border-color:#d9534f}
+.calendarNative{margin-top:12px;border-top:1px solid #dbe3ec;padding-top:10px}.calendarNative .toolbar{margin:6px 0}.calendarNative select{max-width:100%;width:100%}
+.targetChip{display:inline-block;border-radius:999px;background:#eaf4ff;color:#0b5685;font-size:10px;font-weight:800;padding:2px 7px;margin-left:4px}
+.rateReminder{grid-column:1/-1;border-top:1px dashed #cbd5e1;margin-top:3px;padding-top:6px;display:grid;grid-template-columns:78px minmax(120px,1fr) minmax(120px,1fr);gap:5px;align-items:end}.rateReminder label{font-size:10px;font-weight:800;color:#64748b}.rateReminder input,.rateReminder select{width:100%;margin-top:2px;padding:5px;font-size:11px}.rateReminder .rateCalendarHint{grid-column:1/-1;font-size:10px;color:#0b5685}
+@media(max-width:650px){.reminderGrid,.calendarForm{grid-template-columns:1fr}.calendarForm .full{grid-column:1}.calendarDay{min-height:52px;padding:3px}.calendarDay .eventMini{font-size:8px}.rateReminder{grid-template-columns:62px minmax(0,1fr)}.rateReminder label:nth-child(3){grid-column:1/-1}.rateReminder .rateCalendarHint{grid-column:1/-1}}
+@media print{#openCalculator{display:none!important}}
+`;
+  document.head.appendChild(style);
+
+  const rateCard=document.querySelector('.ratesCard');
+  if(rateCard&&!rateCard.querySelector('.rff-rate-hint')){
+    const hint=document.createElement('div');hint.className='hint rff-rate-hint';
+    hint.textContent='Per ogni rata puoi impostare il giorno di scadenza: verrà mostrata automaticamente nel Calendario familiare e riceverai l’avviso in anticipo.';
+    rateCard.insertBefore(hint,rateCard.querySelector('#rateRows'));
+  }
+  const balanceHint=document.querySelector('.balanceCard .hint');
+  if(balanceHint)balanceHint.textContent='Il totale somma le tre sezioni con i segni + e −. La differenza tra ingressi e spese preventivate resta un calcolo separato nella colonna sinistra. Le voci rosse da confermare entrano comunque nel calcolo; il rosso indica solo che sono provvisorie finché non le confermi. Le voci ripetute sono contate ogni volta.';
+
+  const p3=document.getElementById('p3');
+  if(p3&&!document.getElementById('calendarGrid')){
+    const boardCard=p3.querySelector('.card');
+    const boardAdd=boardCard?.querySelector('.boardAdd');
+    if(boardCard&&boardAdd){
+      const reminder=document.createElement('details');reminder.className='boardReminder';
+      reminder.innerHTML=`<summary>⏰ Aggiungi giorno e ora per una notifica</summary><div class="reminderGrid"><label>Giorno<input id="boardReminderDate" type="date"></label><label>Ora<input id="boardReminderTime" type="time"></label><label>Notifica a<select id="boardReminderTarget"><option value="both">Entrambi i telefoni</option><option value="creator">Solo questo telefono</option><option value="other">Solo l'altro telefono</option></select></label><div class="hint">Se lasci giorno e ora vuoti, l'appunto resta senza notifica.</div></div>`;
+      boardAdd.after(reminder);
+    }
+    const calendar=document.createElement('div');calendar.className='card calendarCard';
+    calendar.innerHTML=`<h2>📅 Calendario familiare</h2><div class="calendarToolbar"><button id="calendarPrev" type="button">‹</button><div id="calendarTitle" class="calendarTitle"></div><button id="calendarNext" type="button">›</button></div><div class="calendarWeek"><div>Lun</div><div>Mar</div><div>Mer</div><div>Gio</div><div>Ven</div><div>Sab</div><div>Dom</div></div><div id="calendarGrid" class="calendarGrid"></div><details id="calendarAddPanel" class="calendarAdd"><summary>＋ Nuovo appuntamento</summary><div class="calendarForm"><label class="full">Titolo<input id="calendarEventTitle" maxlength="160" placeholder="Es. Dentista, visita, riunione..."></label><label>Giorno<input id="calendarEventDate" type="date"></label><label>Ora<input id="calendarEventTime" type="time" value="09:00"></label><label>Durata<select id="calendarEventDuration"><option value="30">30 minuti</option><option value="60" selected>1 ora</option><option value="90">1 ora e 30</option><option value="120">2 ore</option><option value="1440">Tutto il giorno</option></select></label><label>Avviso<select id="calendarEventReminder"><option value="0">All'orario</option><option value="5">5 minuti prima</option><option value="15" selected>15 minuti prima</option><option value="30">30 minuti prima</option><option value="60">1 ora prima</option><option value="1440">1 giorno prima</option></select></label><label>Notifica a<select id="calendarEventTarget"><option value="both">Entrambi i telefoni</option><option value="creator">Solo questo telefono</option><option value="other">Solo l'altro telefono</option></select></label><label>Google Calendar<select id="calendarEventGoogle"><option value="yes" selected>Sincronizza</option><option value="no">Non sincronizzare</option></select></label><label class="full">Note<textarea id="calendarEventNote" maxlength="500" placeholder="Note facoltative"></textarea></label><button id="calendarEventAdd" type="button" class="primary">Salva appuntamento</button></div></details><div class="calendarNative"><b>Notifiche e Google Calendar del telefono</b><div class="toolbar"><button id="calendarPermissions" type="button">🔔 Attiva permessi</button><button id="calendarRefreshAccounts" type="button">↻ Calendari</button></div><select id="androidCalendarSelect" hidden aria-label="Calendario Google da usare"></select><div id="calendarNativeStatus" class="hint"></div></div><div id="calendarEventList" class="calendarEventList"></div>`;
+    const nav=p3.querySelector('.nav');p3.insertBefore(calendar,nav||null);
+  }
+})();
+</script>
+<script>
+
+(()=>{
 const $=s=>document.querySelector(s), euro=n=>(Number(n)||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
 function printRegister(){buildPrintSheets();if(window.RegistroAndroid?.printRegister){RegistroAndroid.printRegister();return}window.print()}
 $('#printRegister').onclick=printRegister;
@@ -272,6 +323,29 @@ let month=keyNow;
 const defaultMonth=()=>({income:[['Stipendio Mario',0,true],['Stipendio Simona',0,true],['Assegno Unico',0,true]],planned:[],moves:[],rates:[],daily:{start:'',viewStart:'',food:0,sat:0,columns:[],spend:{},pending:[]}});
 let db=JSON.parse(localStorage.getItem('rff_verified')||'{}');
 function boardData(){if(!Array.isArray(db._board))db._board=[];return db._board}
+function calendarData(){if(!Array.isArray(db._calendar))db._calendar=[];return db._calendar}
+function rateMeta(row,create=false){
+ let meta=row&&row[5];
+ if(!meta||typeof meta!=='object'||Array.isArray(meta)){if(!create)return null;meta={id:'rate_'+crypto.randomUUID(),dueDay:'',reminderDays:3,target:'both',googleSync:true,createdBy:deviceId};row[5]=meta}
+ if(!meta.id&&create)meta.id='rate_'+crypto.randomUUID();
+ if(!meta.target)meta.target='both';if(meta.googleSync===undefined)meta.googleSync=true;if(meta.reminderDays===undefined)meta.reminderDays=3;if(!meta.createdBy&&create)meta.createdBy=deviceId;
+ return meta
+}
+function rateCalendarEvents(){
+ const out=[];
+ for(const [monthKey,mdata] of Object.entries(db)){
+  if(!/^\d{4}-\d{2}$/.test(monthKey)||!mdata||!Array.isArray(mdata.rates))continue;
+  const [yy,mm]=monthKey.split('-').map(Number),last=new Date(yy,mm,0).getDate();
+  mdata.rates.forEach((row,index)=>{
+   const meta=rateMeta(row,false),requested=Number(meta?.dueDay);if(!Number.isInteger(requested)||requested<1||requested>31)return;
+   const day=Math.min(requested,last),start=new Date(yy,mm-1,day,9,0,0),end=new Date(start.getTime()+30*60000),days=Math.max(0,Math.min(30,Number(meta.reminderDays)||0));
+   out.push({id:'rate:'+String(meta.id||monthKey+'_'+index),title:'Scadenza · '+String(row[0]||'Rata'),startAt:start.toISOString(),endAt:end.toISOString(),note:'Rata € '+euro(Math.abs(Number(row[1])||0))+(requested!==day?' · scadenza adattata all’ultimo giorno del mese':''),target:String(meta.target||'both'),reminderMinutes:days*1440,googleSync:meta.googleSync!==false,createdBy:String(meta.createdBy||''),source:'rate',sourceMonth:monthKey,sourceIndex:index});
+  })
+ }
+ return out
+}
+function allCalendarEvents(){return [...calendarData(),...rateCalendarEvents()]}
+let calendarMonth=keyNow;
 const SUPABASE_URL='https://dqtqwfvszrtndwipyluh.supabase.co';
 const SUPABASE_KEY='sb_publishable_Qsbu5wHMUJ6ZJGuMNb16vA_gBx74NsB';
 const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
@@ -357,7 +431,7 @@ async function refreshRemote(){
 }
 async function syncFamily(){
  if(familySyncBusy||paymentActionBusy||document.hidden||!familyId||!familyRole)return;familySyncBusy=true;
- try{updateNotificationState();await refreshRemote();await sendAndroidPayments();await fetchInbox();if(familyRole==='owner')await showPairingRequests();await syncBoard(true)}
+ try{updateNotificationState();await refreshRemote();await sendAndroidPayments();await fetchInbox();if(familyRole==='owner')await showPairingRequests();await syncBoard(false);await syncCalendar(false);syncNativeFamilyTools();if($('#p3').classList.contains('active')){renderBoard();renderCalendar()}}
  catch(e){console.log('Sincronizzazione famiglia:',e)}finally{familySyncBusy=false}
 }
 function ymParts(){let [y,m]=month.split('-').map(Number);return [y,m]}
@@ -375,7 +449,11 @@ function ensureMonth(nm){
     if(!name||name==='nuova voce')continue;
     const occurrence=seen.get(name)||0;seen.set(name,occurrence+1);
     const existing=target.filter(x=>String(x[0]||'').trim().toLowerCase()===name);
-    if(existing.length<=occurrence)target.push([r[0],r[1],r[2],r[3],true]);
+    if(existing.length<=occurrence){
+     const nextRow=[r[0],r[1],r[2],r[3],true];
+     if(kind==='rates'&&r[5]&&typeof r[5]==='object'&&!Array.isArray(r[5])){nextRow[5]={...r[5],id:'rate_'+crypto.randomUUID(),createdBy:r[5].createdBy||deviceId}}
+     target.push(nextRow);
+    }
     else if(!neu._carryInitializedFrom && kind==='income' && occurrence===0 &&
       ['stipendio mario','stipendio simona','assegno unico'].includes(name) &&
       Number(existing[occurrence][1])===0 && !existing[occurrence][4]){
@@ -434,29 +512,56 @@ function renderMonthMode(){
  $('#confirmMonth').hidden=confirmed||viewer;$('#editMonth').hidden=!confirmed||viewer;
  $('#monthModeLabel').textContent=confirmed?'Mese confermato · riepilogo pronto per la stampa':'Mese in modifica';
  if(confirmed){buildPrintSheets();$('#monthPreview').innerHTML=$('#printSheets .printSheet').outerHTML;if(notificationPanel)$('#monthPreview .printColumns>div:last-child').appendChild(notificationPanel)}
- const history=d._monthHistory||[],details=$('#monthHistory');details.hidden=!history.length;
+ const history=d._monthHistory||[],details=$('#monthHistory');if(details.dataset.month!==month){details.open=false;details.dataset.month=month}details.hidden=!history.length;
  $('#monthHistoryList').innerHTML=history.map((h,i)=>`<div>${escapeNotice(new Date(h.at).toLocaleString('it-IT'))} · ${escapeNotice(h.action)} ${viewer?'':`<button type="button" data-version="${i}">Ripristina</button>`}</div>`).join('');
- $('#monthHistoryList').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(familyRole!=='owner'||!confirm('Ripristinare questa versione delle voci del mese?'))return;const rows=history[Number(b.dataset.version)].rows;rememberMonth(d,'Prima del ripristino');for(const k of ['income','planned','moves','rates'])d[k]=JSON.parse(JSON.stringify(rows[k]||[]));d._monthConfirmed=false;save();render()});
+ $('#monthHistoryList').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(familyRole!=='owner'||!confirm('Ripristinare questa versione delle voci del mese?'))return;const rows=history[Number(b.dataset.version)].rows;rememberMonth(d,'Prima del ripristino');for(const k of ['income','planned','moves','rates'])d[k]=JSON.parse(JSON.stringify(rows[k]||[]));d._monthConfirmed=false;details.open=false;save();render()});
 }
-$('#confirmMonth').onclick=()=>{if(familyRole!=='owner')return;const d=data();rememberMonth(d,'Conferma');d._monthConfirmed=true;d._confirmedAt=new Date().toISOString();save();render();window.scrollTo(0,0)};
-$('#editMonth').onclick=()=>{if(familyRole!=='owner')return;const d=data();rememberMonth(d,'Prima della modifica');d._monthConfirmed=false;save();render();window.scrollTo(0,0)};
+$('#confirmMonth').onclick=()=>{if(familyRole!=='owner')return;const d=data();rememberMonth(d,'Conferma');d._monthConfirmed=true;d._confirmedAt=new Date().toISOString();const h=$('#monthHistory');if(h)h.open=false;save();render();window.scrollTo(0,0)};
+$('#editMonth').onclick=()=>{if(familyRole!=='owner')return;const d=data();rememberMonth(d,'Prima della modifica');d._monthConfirmed=false;const h=$('#monthHistory');if(h)h.open=false;save();render();window.scrollTo(0,0)};
 function rowSign(r,kind){return r[3]==='+'||r[3]==='-'?r[3]:(kind==='moves'?(Number(r[1])<0?'-':'+'):'-')}
+function bindProvisionalHold(row,r){
+ if(r[4]||familyRole==='viewer')return;
+ let timer=0,startX=0,startY=0,fired=false;
+ const clearHold=()=>{if(timer){clearTimeout(timer);timer=0}};
+ const mark=()=>{
+  if(fired||r[4]||familyRole==='viewer')return;
+  fired=true;clearHold();
+  try{if(navigator.vibrate)navigator.vibrate(35)}catch(_){ }
+  if(confirm('Segnare questa voce come provvisoria (rossa)?\nResterà comunque nel conteggio.')){r[4]=true;save();render()}
+ };
+ row.querySelectorAll('input[type="text"],input[type="number"]').forEach(el=>{
+  el.title='Tieni premuto per segnare la voce come provvisoria (rossa)';
+  el.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;fired=false;startX=e.clientX;startY=e.clientY;clearHold();timer=setTimeout(mark,650)});
+  el.addEventListener('pointermove',e=>{if(Math.hypot(e.clientX-startX,e.clientY-startY)>12)clearHold()});
+  ['pointerup','pointercancel','pointerleave'].forEach(type=>el.addEventListener(type,clearHold));
+  el.addEventListener('contextmenu',e=>{if(r[4]||familyRole==='viewer')return;e.preventDefault();mark()});
+ });
+}
 function rowEditor(arr,host,kind){
  host.innerHTML='';
  arr.forEach((r,i)=>{let d=document.createElement('div');d.className='row'+(kind==='planned'?' plannedRow':kind==='income'?'':' signedRow')+(r[4]?' pendingCarry':'');
  let sign=(kind==='income'||kind==='planned')?'':`<span class="signBox" data-sign="${rowSign(r,kind)}"><select aria-label="Aggiungi o sottrai"><option value="+" ${rowSign(r,kind)==='+'?'selected':''}>+</option><option value="-" ${rowSign(r,kind)==='-'?'selected':''}>−</option></select></span>`;
  d.innerHTML=`<input type="text" value="${String(r[0]).replace(/"/g,'&quot;')}" aria-label="Descrizione">${sign}<input type="number" min="0" step="0.01" value="${Math.abs(Number(r[1])||0)}" aria-label="Importo">${kind==='planned'?`<input class="keep" type="checkbox" title="Mostra in Varie" aria-label="Mostra in Varie" ${r[2]?'checked':''}>`:''}<button class="del" title="Elimina voce">−</button>${r[4]?'<button class="confirmCarry" type="button">✓ Conferma voce</button>':''}`;
- let ins=d.querySelectorAll('input');
+ if(kind==='rates'){
+  const meta=rateMeta(r,true),rem=document.createElement('div');rem.className='rateReminder';
+  rem.innerHTML=`<label>Scadenza<input class="rateDueDay" type="number" min="1" max="31" inputmode="numeric" placeholder="gg" value="${meta.dueDay||''}"></label><label>Avvisami<select class="rateReminderDays"><option value="0">il giorno stesso</option><option value="1">1 giorno prima</option><option value="2">2 giorni prima</option><option value="3">3 giorni prima</option><option value="5">5 giorni prima</option><option value="7">7 giorni prima</option></select></label><label>Notifica a<select class="rateReminderTarget"><option value="both">Entrambi i telefoni</option><option value="creator">Solo questo telefono</option><option value="other">Solo l'altro telefono</option></select></label><div class="rateCalendarHint">📅 Se imposti il giorno, la rata compare automaticamente nel Calendario familiare alle 09:00 e può essere sincronizzata con Google Calendar.</div>`;
+  rem.querySelector('.rateReminderDays').value=String(meta.reminderDays??3);rem.querySelector('.rateReminderTarget').value=meta.target||'both';
+  rem.querySelector('.rateDueDay').onchange=e=>{const n=Number(e.target.value);meta.dueDay=(Number.isInteger(n)&&n>=1&&n<=31)?n:'';if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};
+  rem.querySelector('.rateReminderDays').onchange=e=>{meta.reminderDays=Number(e.target.value)||0;if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};
+  rem.querySelector('.rateReminderTarget').onchange=e=>{meta.target=e.target.value||'both';if(!meta.createdBy)meta.createdBy=deviceId;save();renderCalendar();syncNativeFamilyTools()};
+  d.appendChild(rem);
+ }
+ let ins=d.querySelectorAll(':scope > input');
  ins[0].onfocus=e=>{if(e.target.value.trim().toLowerCase()==='nuova voce')e.target.value=''};
  ins[0].onchange=e=>{r[0]=e.target.value.trim()||'Nuova voce';e.target.value=r[0];save();renderDaily()};
  ins[1].onchange=e=>{r[1]=Math.abs(Number(e.target.value)||0);if(kind==='planned')r[3]='-';else if(kind!=='income')r[3]=d.querySelector('select').value;save();calc()};
  if(kind!=='income'&&kind!=='planned')d.querySelector('select').onchange=e=>{r[1]=Math.abs(Number(r[1])||0);r[3]=e.target.value;d.querySelector('.signBox').dataset.sign=r[3];save();calc()};
- if(kind==='planned')ins[2].onchange=e=>{r[2]=e.target.checked;save();renderDaily()};d.querySelector('.del').onclick=()=>{arr.splice(i,1);save();render()};
- if(r[4])d.querySelector('.confirmCarry').onclick=()=>{r[4]=false;save();render()};host.appendChild(d)})
+ if(kind==='planned')ins[2].onchange=e=>{r[2]=e.target.checked;save();renderDaily()};d.querySelector('.del').onclick=()=>{arr.splice(i,1);save();render();if(kind==='rates')syncNativeFamilyTools()};
+ if(r[4])d.querySelector('.confirmCarry').onclick=()=>{r[4]=false;save();render()};bindProvisionalHold(d,r);host.appendChild(d)})
 }
-function add(kind){let a=data()[kind];a.push(['Nuova voce',0,true,kind==='moves'?'+':'-']);save();render()}
-function calc(){let d=data(),inc=d.income.reduce((s,x)=>s+(x[4]?0:(+x[1]||0)),0);
- let signed=(rows,kind)=>rows.reduce((sum,r)=>sum+(r[4]?0:(kind==='planned'?-1:(rowSign(r,kind)==='+'?1:-1))*Math.abs(Number(r[1])||0)),0);
+function add(kind){let a=data()[kind],row=['Nuova voce',0,true,kind==='moves'?'+':'-'];if(kind==='rates')row[5]={id:'rate_'+crypto.randomUUID(),dueDay:'',reminderDays:3,target:'both',googleSync:true,createdBy:deviceId};a.push(row);save();render()}
+function calc(){let d=data(),inc=d.income.reduce((s,x)=>s+(+x[1]||0),0);
+ let signed=(rows,kind)=>rows.reduce((sum,r)=>sum+(kind==='planned'?-1:(rowSign(r,kind)==='+'?1:-1))*Math.abs(Number(r[1])||0),0);
  let plannedTotal=-signed(d.planned,'planned'),remaining=inc-plannedTotal;
  $('#incomeTotal').textContent=euro(inc);$('#plannedTotal').textContent=euro(plannedTotal);
  $('#incomeAfterPlanned').textContent=euro(remaining);$('#incomeAfterPlannedCard').classList.toggle('negative',remaining<0);
@@ -466,7 +571,7 @@ function calc(){let d=data(),inc=d.income.reduce((s,x)=>s+(x[4]?0:(+x[1]||0)),0)
 function render(){
  $('#monthPick').value=month;$('#monthTitle').textContent=title();$('#monthTitle2').textContent=title();
  let d=data();rowEditor(d.income,$('#incomeRows'),'income');rowEditor(d.planned,$('#plannedRows'),'planned');rowEditor(d.moves,$('#moveRows'),'moves');rowEditor(d.rates,$('#rateRows'),'rates');calc();renderDaily();renderMonthMode();applyPermissions()
- renderBoard();}
+ renderBoard();if($('#p3').classList.contains('active'))renderCalendar();}
 function validStart(){
  let d=data().daily,[y,m]=ymParts(),last=new Date(y,m,0).getDate(),fallback=`${month}-01`;
  if(!d.start || !d.start.startsWith(month)) d.start=fallback;
@@ -738,16 +843,97 @@ async function syncBoard(renderIfOpen=true){
  if(!sb||!familyId||!['owner','viewer'].includes(familyRole))return false;
  try{const {data:items,error}=await sb.rpc('rff_board_get',deviceArgs());if(error)throw error;db._board=Array.isArray(items)?items:[];try{localStorage.setItem('rff_verified',JSON.stringify(db))}catch(e){}if(renderIfOpen&&$('#p3').classList.contains('active'))renderBoard();return true}catch(e){console.log('Lavagna sync:',e);return false}
 }
+async function syncCalendar(renderIfOpen=true){
+ if(!sb||!familyId||!['owner','viewer'].includes(familyRole))return false;
+ try{const {data:items,error}=await sb.rpc('rff_calendar_get',deviceArgs());if(error)throw error;db._calendar=Array.isArray(items)?items:[];try{localStorage.setItem('rff_verified',JSON.stringify(db))}catch(e){}if(renderIfOpen&&$('#p3').classList.contains('active'))renderCalendar();return true}catch(e){console.log('Calendario sync:',e);return false}
+}
+function targetApplies(it){
+ const target=String(it?.target||'both'),creator=String(it?.createdBy||'');
+ return target==='both'||(target==='creator'&&creator===deviceId)||(target==='other'&&creator!==deviceId)
+}
+function targetLabel(it){
+ const target=String(it?.target||'both');return target==='creator'?'questo telefono':target==='other'?'altro telefono':'entrambi'
+}
+function syncNativeFamilyTools(){
+ const bridge=window.FamilyAndroid;if(!bridge)return;
+ const reminders=[];
+ for(const it of boardData()){if(!it||typeof it!=='object'||!it.dueAt||!targetApplies(it))continue;const at=Date.parse(it.dueAt);if(Number.isFinite(at)&&at>Date.now()-60000)reminders.push({id:'board:'+it.id,title:'Lavagna familiare',text:String(it.text||'Promemoria'),atMillis:at})}
+ const google=[];
+ for(const it of allCalendarEvents()){if(!it||!targetApplies(it))continue;const start=Date.parse(it.startAt),end=Date.parse(it.endAt);if(!Number.isFinite(start))continue;const mins=Math.max(0,Number(it.reminderMinutes)||0),notifyAt=start-mins*60000;if(notifyAt>Date.now()-60000)reminders.push({id:'calendar:'+it.id,title:String(it.title||'Appuntamento'),text:String(it.note||'Calendario familiare'),atMillis:notifyAt});if(it.googleSync&&Number.isFinite(end))google.push({id:String(it.id),title:String(it.title||'Appuntamento'),description:String(it.note||'Calendario familiare'),startMillis:start,endMillis:end,reminderMinutes:mins})}
+ try{bridge.syncFamilyReminders?.(JSON.stringify(reminders))}catch(e){console.log('Promemoria Android:',e)}
+ try{bridge.syncGoogleCalendarEvents?.(JSON.stringify(google))}catch(e){console.log('Google Calendar:',e)}
+}
 function renderBoard(){
  const host=$('#boardList');if(!host)return;host.innerHTML='';const items=boardData();if(!items.length){const e=document.createElement('div');e.className='hint';e.textContent='Nessun appunto. Aggiungi qui cose da comprare o promemoria.';host.appendChild(e);return}
- items.forEach((it,i)=>{const row=document.createElement('div');row.className='boardItem';const t=document.createElement('div');t.textContent=typeof it==='string'?it:(it.text||'');const b=document.createElement('button');b.textContent='✓ Fatto / elimina';
-  b.onclick=async()=>{if(!sb||!familyId){alert('Sincronizzazione non disponibile. Riprova tra qualche secondo.');return}const itemId=(it&&typeof it==='object')?it.id:null;if(!itemId){if(familyRole==='owner'){boardData().splice(i,1);save();renderBoard()}return}b.disabled=true;const {error}=await sb.rpc('rff_board_delete',{...deviceArgs(),p_item_id:String(itemId)});if(error){alert('Eliminazione non riuscita. Controlla Internet e riprova.');b.disabled=false;return}await syncBoard(true)};
-  row.append(t,b);host.appendChild(row)
+ items.forEach((it,i)=>{const row=document.createElement('div');row.className='boardItem';const wrap=document.createElement('div');const t=document.createElement('div');t.textContent=typeof it==='string'?it:(it.text||'');wrap.appendChild(t);if(it&&typeof it==='object'&&it.dueAt){const meta=document.createElement('div');meta.className='hint';const dt=new Date(it.dueAt);meta.textContent='⏰ '+(Number.isFinite(dt.getTime())?dt.toLocaleString('it-IT'):'')+' · '+targetLabel(it);wrap.appendChild(meta)}const b=document.createElement('button');b.textContent='✓ Fatto / elimina';
+  b.onclick=async()=>{if(!sb||!familyId){alert('Sincronizzazione non disponibile. Riprova tra qualche secondo.');return}const itemId=(it&&typeof it==='object')?it.id:null;if(!itemId){if(familyRole==='owner'){boardData().splice(i,1);save();renderBoard()}return}b.disabled=true;const {error}=await sb.rpc('rff_board_delete',{...deviceArgs(),p_item_id:String(itemId)});if(error){alert('Eliminazione non riuscita. Controlla Internet e riprova.');b.disabled=false;return}await syncBoard(true);syncNativeFamilyTools()};
+  row.append(wrap,b);host.appendChild(row)
  })
 }
-$('#boardAdd').onclick=async()=>{const inp=$('#boardText'),value=inp.value.trim();if(!value)return;if(!sb||!familyId){alert('Sincronizzazione non disponibile. Riprova tra qualche secondo.');return}const btn=$('#boardAdd');btn.disabled=true;const old=btn.textContent;btn.textContent='Invio…';const itemId='b_'+deviceId+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);const {error}=await sb.rpc('rff_board_add',{...deviceArgs(),p_item_id:itemId,p_text:value.slice(0,300),p_at:new Date().toISOString()});if(error){alert('Invio alla lavagna non riuscito. Controlla Internet e riprova.');btn.disabled=false;btn.textContent=old;return}inp.value='';await syncBoard(true);btn.disabled=false;btn.textContent=old};
+$('#boardAdd').onclick=async()=>{
+ const inp=$('#boardText'),value=inp.value.trim();if(!value)return;if(!sb||!familyId){alert('Sincronizzazione non disponibile. Riprova tra qualche secondo.');return}
+ const date=$('#boardReminderDate').value,time=$('#boardReminderTime').value,target=$('#boardReminderTarget').value||'both';
+ let due=null;if(date&&time){const dt=new Date(date+'T'+time+':00');if(!Number.isFinite(dt.getTime())||dt.getTime()<=Date.now()){alert('Scegli un giorno e un orario futuri.');return}due=dt.toISOString()}else if(date||time){alert('Per la notifica inserisci sia il giorno sia l’orario.');return}
+ const btn=$('#boardAdd');btn.disabled=true;const old=btn.textContent;btn.textContent='Invio…';const itemId='b_'+deviceId+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+ const {error}=await sb.rpc('rff_board_add_v2',{...deviceArgs(),p_item_id:itemId,p_text:value.slice(0,300),p_at:new Date().toISOString(),p_due_at:due,p_target:target});
+ if(error){alert('Invio alla lavagna non riuscito. Controlla Internet e riprova.');btn.disabled=false;btn.textContent=old;return}
+ inp.value='';$('#boardReminderDate').value='';$('#boardReminderTime').value='';await syncBoard(true);syncNativeFamilyTools();btn.disabled=false;btn.textContent=old
+};
 $('#boardText').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#boardAdd').click()}});
-$('#toBoard').onclick=async()=>{showPage('#p3');await syncBoard(true)};$('#toBoard2').onclick=async()=>{showPage('#p3');await syncBoard(true)};$('#boardBack').onclick=()=>showPage('#p1');$('#boardDaily').onclick=()=>showPage('#p2');
+
+function calendarParts(){const [y,m]=calendarMonth.split('-').map(Number);return [y,m]}
+function calendarTitleText(){const [y,m]=calendarParts();return new Date(y,m-1,1).toLocaleDateString('it-IT',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase())}
+function calendarMove(delta){const [y,m]=calendarParts(),d=new Date(y,m-1+delta,1);calendarMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');renderCalendar()}
+function renderCalendar(){
+ const grid=$('#calendarGrid');if(!grid)return;$('#calendarTitle').textContent=calendarTitleText();grid.innerHTML='';
+ const [y,m]=calendarParts(),first=new Date(y,m-1,1),offset=(first.getDay()+6)%7,last=new Date(y,m,0).getDate(),prevLast=new Date(y,m-1,0).getDate();
+ const allEvents=allCalendarEvents(),events=allEvents.filter(e=>String(e.startAt||'').slice(0,7)===calendarMonth).sort((a,b)=>Date.parse(a.startAt)-Date.parse(b.startAt));
+ for(let cell=0;cell<42;cell++){
+  let day=cell-offset+1,cy=y,cm=m,other=false;
+  if(day<1){other=true;const pd=new Date(y,m-2,1);cy=pd.getFullYear();cm=pd.getMonth()+1;day=prevLast+day}
+  else if(day>last){other=true;const nd=new Date(y,m,1);cy=nd.getFullYear();cm=nd.getMonth()+1;day-=last}
+  const key=cy+'-'+String(cm).padStart(2,'0')+'-'+String(day).padStart(2,'0'),dayEvents=allEvents.filter(e=>String(e.startAt||'').slice(0,10)===key);
+  const box=document.createElement('div');box.className='calendarDay'+(other?' other':'')+(dayEvents.length?' hasEvents':'');
+  const today=new Date();if(cy===today.getFullYear()&&cm===today.getMonth()+1&&day===today.getDate())box.classList.add('today');
+  box.innerHTML='<div class="dayNum">'+day+'</div>'+dayEvents.slice(0,2).map(e=>'<div class="eventMini">'+escapeNotice(e.title||'Appuntamento')+'</div>').join('')+'<button type="button" aria-label="Scegli '+key+'"></button>';
+  box.querySelector('button').onclick=()=>{$('#calendarEventDate').value=key;$('#calendarAddPanel').open=true;$('#calendarEventTitle').focus()};grid.appendChild(box)
+ }
+ const list=$('#calendarEventList');list.innerHTML='';
+ if(!events.length){list.innerHTML='<div class="hint">Nessun appuntamento in questo mese.</div>'}else events.forEach(it=>{
+  const row=document.createElement('div');row.className='calendarEvent';const content=document.createElement('div'),start=new Date(it.startAt);
+  content.innerHTML='<b>'+escapeNotice(it.title||'Appuntamento')+'</b><div class="when">'+escapeNotice(start.toLocaleString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}))+'</div><div class="meta">'+escapeNotice(it.note||'')+' <span class="targetChip">'+escapeNotice(targetLabel(it))+'</span>'+(it.googleSync?' <span class="targetChip">Google</span>':'')+(it.source==='rate'?' <span class="targetChip">Rata</span>':'')+'</div>';
+  const del=document.createElement('button');del.type='button';
+  if(it.source==='rate'){del.textContent='Apri rata';del.style.background='#0b4f8a';del.style.borderColor='#0b4f8a';del.onclick=()=>{month=it.sourceMonth;ensureMonth(month);showPage('#p1');render();setTimeout(()=>document.getElementById('rateRows')?.scrollIntoView({behavior:'smooth',block:'center'}),50)}}
+  else{del.textContent='Elimina';del.onclick=async()=>{if(!confirm('Eliminare questo appuntamento?'))return;del.disabled=true;const {error}=await sb.rpc('rff_calendar_delete',{...deviceArgs(),p_event_id:String(it.id)});if(error){alert('Eliminazione non riuscita.');del.disabled=false;return}await syncCalendar(true);syncNativeFamilyTools()}};
+  row.append(content,del);list.appendChild(row)
+ });
+ renderCalendarNativeSettings()
+}
+$('#calendarPrev').onclick=()=>calendarMove(-1);$('#calendarNext').onclick=()=>calendarMove(1);
+$('#calendarEventAdd').onclick=async()=>{
+ const title=$('#calendarEventTitle').value.trim(),date=$('#calendarEventDate').value,time=$('#calendarEventTime').value||'09:00';if(!title||!date){alert('Inserisci titolo e giorno.');return}
+ const start=new Date(date+'T'+time+':00'),duration=Number($('#calendarEventDuration').value)||60;if(!Number.isFinite(start.getTime()))return;
+ const end=new Date(start.getTime()+duration*60000),reminder=Number($('#calendarEventReminder').value)||0,target=$('#calendarEventTarget').value||'both',google=$('#calendarEventGoogle').value==='yes',note=$('#calendarEventNote').value.trim();
+ const id='c_'+deviceId+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),btn=$('#calendarEventAdd');btn.disabled=true;
+ const {error}=await sb.rpc('rff_calendar_add',{...deviceArgs(),p_event_id:id,p_title:title.slice(0,160),p_start_at:start.toISOString(),p_end_at:end.toISOString(),p_note:note.slice(0,500),p_target:target,p_reminder_minutes:reminder,p_google_sync:google});
+ btn.disabled=false;if(error){alert('Salvataggio appuntamento non riuscito.');return}
+ $('#calendarEventTitle').value='';$('#calendarEventNote').value='';$('#calendarAddPanel').open=false;calendarMonth=date.slice(0,7);await syncCalendar(true);syncNativeFamilyTools()
+};
+function renderCalendarNativeSettings(){
+ const bridge=window.FamilyAndroid,status=$('#calendarNativeStatus'),sel=$('#androidCalendarSelect');if(!status||!sel)return;
+ if(!bridge){status.textContent='Notifiche automatiche e Google Calendar sono disponibili nell’app Android aggiornata.';sel.hidden=true;return}
+ let notify=false,cal=false;try{notify=bridge.reminderPermissionGranted?.()===true||bridge.reminderPermissionGranted?.()==='true'}catch(e){}try{cal=bridge.calendarPermissionGranted?.()===true||bridge.calendarPermissionGranted?.()==='true'}catch(e){}
+ status.textContent='Notifiche: '+(notify?'attive':'da autorizzare')+' · Calendario: '+(cal?'autorizzato':'da autorizzare');
+ if(!cal){sel.hidden=true;return}
+ let rows=[];try{rows=JSON.parse(bridge.availableCalendars?.()||'[]')}catch(e){}const chosen=String(bridge.preferredCalendarId?.()||'');sel.innerHTML='';rows.forEach(c=>{const o=document.createElement('option');o.value=String(c.id);o.textContent=(c.name||'Calendario')+(c.accountName?' · '+c.accountName:'');sel.appendChild(o)});sel.hidden=!rows.length;if(chosen&&[...sel.options].some(o=>o.value===chosen))sel.value=chosen;else if(rows.length){sel.value=String(rows[0].id);bridge.setPreferredCalendar?.(sel.value)}
+ if(!rows.length)status.textContent+=' · Nessun calendario scrivibile trovato sul telefono.';else syncNativeFamilyTools()
+}
+$('#calendarPermissions').onclick=()=>window.FamilyAndroid?.requestFamilyPermissions?.();
+$('#calendarRefreshAccounts').onclick=renderCalendarNativeSettings;
+$('#androidCalendarSelect').onchange=e=>{window.FamilyAndroid?.setPreferredCalendar?.(String(e.target.value));syncNativeFamilyTools()};
+$('#toBoard').onclick=async()=>{showPage('#p3');await syncBoard(false);await syncCalendar(false);renderBoard();renderCalendar();syncNativeFamilyTools()};
+$('#toBoard2').onclick=async()=>{showPage('#p3');await syncBoard(false);await syncCalendar(false);renderBoard();renderCalendar();syncNativeFamilyTools()};
+$('#boardBack').onclick=()=>showPage('#p1');$('#boardDaily').onclick=()=>showPage('#p2');
 
 render();
 const gate=$('#authGate'),msg=$('#authMsg'),email=$('#authEmail'),pass=$('#authPassword'),newPass=$('#authNewPassword');
@@ -773,7 +959,7 @@ async function enter(session){
    return;
   }
   if(window.RegistroAndroid?.configureBackgroundSync)RegistroAndroid.configureBackgroundSync(String(familyId),String(deviceId),String(deviceSecret));
-  await loadCloud();await syncBoard(false);gate.classList.add('hidden');say('');updateNotificationState();
+  await loadCloud();await syncBoard(false);await syncCalendar(false);syncNativeFamilyTools();gate.classList.add('hidden');say('');updateNotificationState();
   if(familyRole==='owner'){await sendAndroidPayments();await fetchInbox(true);await showPairingRequests()}else await sendAndroidPayments();
   roleTimer=setInterval(syncFamily,4000);
 
@@ -835,6 +1021,46 @@ if(sb){
  (async()=>{try{const {data,error}=await sb.auth.getSession();if(error)throw error;await enter(data.session)}catch(e){say('Accesso non disponibile: '+(e?.message||'errore'))}})();
 }else say('Connessione non disponibile. Riprova con Internet attivo.');
 })();
+
+</script>
+<script>
+(()=>{
+  document.title='Registro Finanziario Familiare V57';
+  const style=document.createElement('style');
+  style.id='rff-v57-polish';
+  style.textContent=`
+#openCalculator{position:static!important;right:auto!important;bottom:auto!important;z-index:auto!important;width:auto!important;height:auto!important;border-radius:10px!important;padding:8px 10px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;background:#fff!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;border:1px solid #cbd5e1!important;box-shadow:none!important;font-size:14px!important;min-height:40px!important}
+#openCalculator::before{content:none!important}
+.rffQuickNav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 10px}
+.rffQuickNav button{padding:9px 5px;font-size:12px;min-width:0;white-space:normal;line-height:1.15}
+#p3 .boardReminder{display:block!important}
+#p3 .boardReminder>summary{font-size:14px;padding:4px 0}
+#p3 .calendarCard{display:block!important}
+@media(max-width:650px){.rffQuickNav{position:sticky;top:0;z-index:4;background:#f4f7fb;padding:5px 0}.rffQuickNav button{font-size:11px;padding:8px 3px}}
+@media print{.rffQuickNav{display:none!important}}
+`;
+  document.head.appendChild(style);
+
+  const main=document.querySelector('main');
+  const p1=document.getElementById('p1');
+  if(main&&p1&&!document.getElementById('rffQuickNav')){
+    const nav=document.createElement('div');
+    nav.id='rffQuickNav';nav.className='rffQuickNav';
+    nav.innerHTML=`<button type="button" data-rff-page="register">🏠 Registro</button><button type="button" data-rff-page="daily">💳 Spese</button><button type="button" data-rff-page="board">📝 Lavagna</button><button type="button" data-rff-page="calendar">📅 Calendario</button>`;
+    main.insertBefore(nav,p1);
+    const showDirect=id=>{document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelector(id)?.classList.add('active');window.scrollTo(0,0)};
+    nav.querySelector('[data-rff-page="register"]').onclick=()=>showDirect('#p1');
+    nav.querySelector('[data-rff-page="daily"]').onclick=()=>{const b=document.getElementById('toDaily');if(b)b.click();else showDirect('#p2')};
+    nav.querySelector('[data-rff-page="board"]').onclick=()=>{const b=document.getElementById('toBoard');if(b)b.click();else showDirect('#p3');setTimeout(()=>document.getElementById('boardText')?.scrollIntoView({block:'center'}),120)};
+    nav.querySelector('[data-rff-page="calendar"]').onclick=()=>{const b=document.getElementById('toBoard');if(b)b.click();else showDirect('#p3');setTimeout(()=>document.querySelector('.calendarCard')?.scrollIntoView({block:'start'}),180)};
+  }
+
+  const boardReminder=document.querySelector('#p3 .boardReminder');
+  if(boardReminder)boardReminder.open=true;
+  const boardInput=document.getElementById('boardText');
+  if(boardInput)boardInput.placeholder='Scrivi un appunto, una cosa da comprare o un promemoria';
+})();
+
 </script>
 <script>
 if ('serviceWorker' in navigator) {
@@ -842,7 +1068,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v52-calculator', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v57-calendar-board', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
