@@ -16,14 +16,17 @@ function applyV46(text) {
     '<div class=\"card ratesCard\"><h2>Rate / scadenze</h2><div id=\"rateRows\"></div><button id=\"addRate\">+ Rata</button><div class=\"total\">Parziale rate: € <span id=\"rateTotal\">0,00</span></div></div>',
     'rate');
   replace('<div class=\"card balanceCard\"><h2>Bilancio finale</h2><div class=\"total\">Saldo: € <span id=\"balance\">0,00</span></div></div>',
-    '<div class=\"card balanceCard\"><h2>Bilancio finale</h2><div class=\"total\">Saldo: € <span id=\"balance\">0,00</span></div><p class=\"hint\">Ingressi − spese preventivate + parziale movimenti + parziale rate. Le voci rosse da confermare non entrano nel calcolo. Se ripeti un ingresso anche nei movimenti, viene contato due volte.</p></div>',
+    '<div class=\"card balanceCard\"><h2>Bilancio finale</h2><div class=\"total\">Somma spese preventivate + situazione economica + rate: € <span id=\"sectionsTotal\">0,00</span></div><div class=\"total\">Saldo finale con ingressi: € <span id=\"balance\">0,00</span></div><p class=\"hint\">La somma delle tre sezioni rispetta i segni + e −. Il saldo finale aggiunge gli ingressi. Le voci rosse da confermare non entrano nel calcolo. Se ripeti un ingresso anche nei movimenti, viene contato due volte.</p></div>',
     'saldo');
   replace("$('#balance').textContent=euro(inc+signed(d.planned,'planned')+signed(d.moves,'moves')+signed(d.rates,'rates'))}",
-    "const moveTotal=signed(d.moves,'moves'),rateTotal=signed(d.rates,'rates');\n $('#moveTotal').textContent=(moveTotal<0?'− ':'+ ')+euro(Math.abs(moveTotal));$('#rateTotal').textContent=(rateTotal<0?'− ':'+ ')+euro(Math.abs(rateTotal));\n $('#balance').textContent=euro(remaining+moveTotal+rateTotal)}",
+    "const moveTotal=signed(d.moves,'moves'),rateTotal=signed(d.rates,'rates'),sectionsTotal=-plannedTotal+moveTotal+rateTotal;\n $('#moveTotal').textContent=(moveTotal<0?'− ':'+ ')+euro(Math.abs(moveTotal));$('#rateTotal').textContent=(rateTotal<0?'− ':'+ ')+euro(Math.abs(rateTotal));$('#sectionsTotal').textContent=(sectionsTotal<0?'− ':'+ ')+euro(Math.abs(sectionsTotal));\n $('#balance').textContent=euro(inc+sectionsTotal)}",
     'calcolo');
   replace("${block('Situazione economica / movimenti',entries('moves'),'','moves')}${block('Rate / scadenze',entries('rates'),'','rates')}",
     "${block('Situazione economica / movimenti',entries('moves'),'Parziale: € '+$('#moveTotal').textContent,'moves')}${block('Rate / scadenze',entries('rates'),'Parziale: € '+$('#rateTotal').textContent,'rates')}",
     'stampa parziali');
+  replace("block('Bilancio finale','', 'Saldo: € '+$('#balance').textContent,'balance')",
+    "block('Bilancio finale','', 'Somma delle tre sezioni: € '+$('#sectionsTotal').textContent+' · Saldo con ingressi: € '+$('#balance').textContent,'balance')",
+    'stampa somma sezioni');
   replace('<button id=\"sendNotices\">Importa pagamenti</button><div id=\"paymentSources\"',
     '<button id=\"sendNotices\">Importa pagamenti</button><div id=\"notificationState\" class=\"hint\" role=\"status\"></div><div id=\"paymentSources\"',
     'stato notifiche');
