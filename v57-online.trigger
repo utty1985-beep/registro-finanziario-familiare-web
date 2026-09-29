@@ -1,1 +1,1 @@
-apply v58 red provisional button 2026-09-29 13:10
+apply v59 full rate date 2026-09-29 13:22
