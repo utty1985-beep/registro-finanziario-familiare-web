@@ -1,0 +1,125 @@
+
+(()=>{
+const $=s=>document.querySelector(s), euro=n=>(Number(n)||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+function printRegister(){buildPrintSheets();if(window.RegistroAndroid?.printRegister){RegistroAndroid.printRegister();return}window.print()}
+$('#printRegister').onclick=printRegister;
+let now=new Date(); const keyNow=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+let month=keyNow;
+const defaultMonth=()=>({income:[['Stipendio Mario',0,true],['Stipendio Simona',0,true],['Assegno Unico',0,true]],planned:[],moves:[],rates:[],daily:{start:'',viewStart:'',food:0,sat:0,columns:[],spend:{},pending:[]}});
+let db=JSON.parse(localStorage.getItem('rff_verified')||'{}');
+function boardData(){if(!Array.isArray(db._board))db._board=[];return db._board}
+function calendarData(){if(!Array.isArray(db._calendar))db._calendar=[];return db._calendar}
+function rateMeta(row,create=false){
+ let meta=row&&row[5];
+ if(!meta||typeof meta!=='object'||Array.isArray(meta)){if(!create)return null;meta={id:'rate_'+crypto.randomUUID(),dueDay:'',reminderDays:3,target:'both',googleSync:true,createdBy:deviceId};row[5]=meta}
+ if(!meta.id&&create)meta.id='rate_'+crypto.randomUUID();
+ if(!meta.target)meta.target='both';if(meta.googleSync===undefined)meta.googleSync=true;if(meta.reminderDays===undefined)meta.reminderDays=3;if(!meta.createdBy&&create)meta.createdBy=deviceId;
+ return meta
+}
+function rateCalendarEvents(){
+ const out=[];
+ for(const [monthKey,mdata] of Object.entries(db)){
+  if(!/^\d{4}-\d{2}$/.test(monthKey)||!mdata||!Array.isArray(mdata.rates))continue;
+  const [yy,mm]=monthKey.split('-').map(Number),last=new Date(yy,mm,0).getDate();
+  mdata.rates.forEach((row,index)=>{
+   const meta=rateMeta(row,false),requested=Number(meta?.dueDay);if(!Number.isInteger(requested)||requested<1||requested>31)return;
+   const day=Math.min(requested,last),start=new Date(yy,mm-1,day,9,0,0),end=new Date(start.getTime()+30*60000),days=Math.max(0,Math.min(30,Number(meta.reminderDays)||0));
+   out.push({id:'rate:'+String(meta.id||monthKey+'_'+index),title:'Scadenza · '+String(row[0]||'Rata'),startAt:start.toISOString(),endAt:end.toISOString(),note:'Rata € '+euro(Math.abs(Number(row[1])||0))+(requested!==day?' · scadenza adattata all’ultimo giorno del mese':''),target:String(meta.target||'both'),reminderMinutes:days*1440,googleSync:meta.googleSync!==false,createdBy:String(meta.createdBy||''),source:'rate',sourceMonth:monthKey,sourceIndex:index});
+  })
+ }
+ return out
+}
+function allCalendarEvents(){return [...calendarData(),...rateCalendarEvents()]}
+let calendarMonth=keyNow;
+const SUPABASE_URL='https://dqtqwfvszrtndwipyluh.supabase.co';
+const SUPABASE_KEY='sb_publishable_Qsbu5wHMUJ6ZJGuMNb16vA_gBx74NsB';
+const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+let localRevision=0,cloudDirty=false,cloudSaving=null,cloudRefreshing=false,lastRemoteSnapshot="",familySyncBusy=false,paymentActionBusy=false;
+let familyId=null, familyRole=null, accountRole=null, cloudTimer=null, cloudLoading=false, roleTimer=null, inboxBusy=false, pendingTimer=null, lastInboxSync=0;
+function syncStatus(message,error=false){const el=$('#syncStatus');el.textContent=message;el.classList.toggle('error',error);const mirror=$('#syncMirror');if(mirror){mirror.textContent=message;mirror.classList.toggle('error',error)}}
+const deviceId=localStorage.getItem('rff_device_id')||crypto.randomUUID();
+const deviceSecret=localStorage.getItem('rff_device_secret')||Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
+localStorage.setItem('rff_device_id',deviceId);localStorage.setItem('rff_device_secret',deviceSecret);
+const deviceArgs=()=>({p_family_id:familyId,p_device_id:deviceId,p_secret:deviceSecret});
+function data(){return db[month]||(db[month]=defaultMonth())}
+function save(){
+ if(familyRole==='viewer')return;
+ cloudDirty=true;localRevision++;
+ localStorage.setItem('rff_verified',JSON.stringify(db));
+ if(sb && familyId && familyRole==='owner' && !cloudLoading){syncStatus('Salvataggio…');clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>{cloudTimer=null;saveCloud()},500)}
+}
+window.addEventListener('online',()=>{if(familyRole==='owner'&&familyId)saveCloud()});
+function applyPermissions(){
+ const viewer=familyRole==='viewer';$('#viewerBanner').hidden=!viewer;
+ $('#pairingCard').hidden=true;$('#sentinelBar').hidden=!familyRole;const hasBridge=!!window.RegistroAndroid;['authorizeNotices','sourcesButton','sendNotices'].forEach(id=>$('#'+id).disabled=!hasBridge);
+ const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;$('#sendForApproval').hidden=viewer;
+ document.querySelectorAll('#p1 input:not(#monthPick),#p2 input,#p1 button,#p2 button,#p2 select').forEach(el=>{
+  if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','toBoard','toBoard2','authorizeNotices','sourcesButton','sendNotices'].includes(el.id))return;
+  if(el.closest('.entryForm')){el.disabled=false;return}
+  el.disabled=viewer;
+ });
+ if($('#boardText'))$('#boardText').disabled=false;if($('#boardAdd'))$('#boardAdd').disabled=false;
+}
+async function resolveFamily(){
+ if(!sb) return false;
+ const {data:{session}}=await sb.auth.getSession();
+ if(!session?.user) return false;
+ const {data:member,error}=await sb.from('family_members').select('family_id,role').eq('user_id',session.user.id).limit(1).maybeSingle();
+ if(error)return false;
+ if(!member?.family_id){const {data:newFamily,error:createError}=await sb.rpc('rff_bootstrap_family');if(createError||!newFamily)return false;familyId=newFamily;return true}
+ familyId=member.family_id;accountRole=member.role||null;return true;
+}
+async function loadCloud(){
+ try{
+  if(!await resolveFamily()) throw new Error('Account non collegato alla famiglia.');
+  cloudLoading=true;
+  const {data:row,error}=await sb.from('family_register').select('data').eq('family_id',familyId).limit(1).maybeSingle();
+  if(error) throw error;
+  if(!error && row?.data && typeof row.data==='object' && Object.keys(row.data).length){
+   if(Object.keys(db).length && JSON.stringify(db)!==JSON.stringify(row.data)){
+    try{if(!localStorage.getItem('rff_local_before_first_cloud'))localStorage.setItem('rff_local_before_first_cloud',JSON.stringify(db))}catch(e){console.log('Local backup:',e)}
+   }
+   lastRemoteSnapshot=JSON.stringify(row.data);cloudDirty=false;db=row.data;
+   if(familyRole==='viewer')ensureMonth(month);
+   localStorage.setItem('rff_verified',JSON.stringify(db)); render();
+  } else if(familyRole==='viewer'){db={};localStorage.setItem('rff_verified','{}');render();}
+  else if(!error && Object.keys(db).length && familyRole==='owner'){ if(!await saveCloud())throw new Error('Salvataggio online non disponibile. Riprova.'); }
+  applyPermissions();
+  syncStatus('Dati aggiornati');
+  return true;
+ }finally{cloudLoading=false}
+}
+async function saveCloud(){
+ if(cloudSaving)return cloudSaving;
+ let saved=false;
+ cloudSaving=(async()=>{try{
+  if(familyRole!=='owner')return false;
+  if(!familyId&&!await resolveFamily())return false;
+  const revision=localRevision,snapshot=JSON.parse(JSON.stringify(db));
+  const {error}=await sb.rpc('rff_save_register',{...deviceArgs(),p_data:snapshot});
+  if(error)throw error;
+  if(localRevision===revision)cloudDirty=false;
+  lastRemoteSnapshot=JSON.stringify(snapshot);syncStatus('Salvato online');saved=true;return true;
+ }catch(e){console.log('Cloud save:',e);syncStatus('Salvataggio non riuscito · modifiche conservate sul telefono',true);return false}})();
+ try{return await cloudSaving}finally{cloudSaving=null;if(saved&&cloudDirty){clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>{cloudTimer=null;saveCloud()},500)}}
+}
+async function refreshRemote(){
+ if(!sb||!familyId||cloudDirty||cloudSaving||cloudLoading||cloudRefreshing||paymentActionBusy||document.activeElement?.matches('input,select,textarea'))return;
+ cloudRefreshing=true;const revision=localRevision;
+ try{
+  const {data:row,error}=await sb.from('family_register').select('data').eq('family_id',familyId).limit(1).maybeSingle();
+  if(error)throw error;
+  if(cloudDirty||cloudSaving||localRevision!==revision||document.activeElement?.matches('input,select,textarea'))return;
+  if(row?.data){const serialized=JSON.stringify(row.data);if(serialized!==lastRemoteSnapshot){lastRemoteSnapshot=serialized;db=row.data;localStorage.setItem('rff_verified',JSON.stringify(db));render()}}
+  syncStatus('Registro sincronizzato');
+ }catch(e){console.log('Aggiornamento registro:',e);syncStatus('Sincronizzazione non riuscita · riprovo',true)}finally{cloudRefreshing=false}
+}
+async function syncFamily(){
+ if(familySyncBusy||paymentActionBusy||document.hidden||!familyId||!familyRole)return;familySyncBusy=true;
+ try{updateNotificationState();await refreshRemote();await sendAndroidPayments();await fetchInbox();if(familyRole==='owner')await showPairingRequests();await syncBoard(false);await syncCalendar(false);syncNativeFamilyTools();if($('#p3').classList.contains('active')){renderBoard();renderCalendar()}}
+ catch(e){console.log('Sincronizzazione famiglia:',e)}finally{familySyncBusy=false}
+}
+function ymParts(){let [y,m]=month.split('-').map(Number);return [y,m]}
+function title(){let [y,m]=ymParts();return new Date(y,m-1,1).toLocaleDateString('it-IT',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase())}
+function ensureMonth(nm){
+ let [y,m]=nm.split('-').map(Number)
