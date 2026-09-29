@@ -1,1 +1,1 @@
-apply v61 long press provisional dot 2026-09-29 13:42
+apply v61 android touch long press fix 2026-09-29 13:46
