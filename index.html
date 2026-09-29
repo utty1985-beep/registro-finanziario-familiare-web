@@ -1246,7 +1246,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v61-longpress-dot', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v62-stable', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
