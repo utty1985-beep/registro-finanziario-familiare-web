@@ -1,4 +1,4 @@
-name: Applica V75 azioni pagamenti
+name: Applica V76 tocco diretto pagamenti
 on:
   push:
     paths:
@@ -10,36 +10,43 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Correggi Conferma e Non confermare
+      - name: Rendi i pulsanti sensibili al tocco Android
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re,base64
+          import re
+
           html=Path('index.html').read_text()
           sw=Path('service-worker.js').read_text()
-          pattern=r"  x\.querySelector\('\.confirmPay'\)\.onclick=async\(\)=>\{.*?  h\.appendChild\(x\)"
-          encoded="ICBjb25zdCBjb25maXJtQnRuPXgucXVlcnlTZWxlY3RvcignLmNvbmZpcm1QYXknKSxyZWplY3RCdG49eC5xdWVyeVNlbGVjdG9yKCcucmVqZWN0UGF5Jyk7CiAgY29uc3Qgc2V0UGVuZGluZ0J1c3k9KGJ1c3ksbGFiZWw9JycpPT57CiAgIFtjb25maXJtQnRuLHJlamVjdEJ0bl0uZm9yRWFjaChidG49PntidG4uZGlzYWJsZWQ9YnVzeTtidG4uc3R5bGUucG9pbnRlckV2ZW50cz1idXN5Pydub25lJzonYXV0byc7YnRuLnN0eWxlLm9wYWNpdHk9YnVzeT8nLjY1JzonMSd9KTsKICAgaWYobGFiZWwpY29uZmlybUJ0bi50ZXh0Q29udGVudD1sYWJlbDtlbHNlIGNvbmZpcm1CdG4udGV4dENvbnRlbnQ9J0NvbmZlcm1hJzsKICB9OwogIGNvbmZpcm1CdG4ub25jbGljaz1hc3luYyhldik9PnsKICAgZXYucHJldmVudERlZmF1bHQoKTtldi5zdG9wUHJvcGFnYXRpb24oKTsKICAgaWYocGF5bWVudEFjdGlvbkJ1c3kpcmV0dXJuOwogICBjb25zdCBbeXksbW1dPXltUGFydHMoKSxkYXk9TnVtYmVyKHgucXVlcnlTZWxlY3RvcignaW5wdXQnKS52YWx1ZSksYW1vdW50PU51bWJlcihuLmFtb3VudCk7CiAgIGlmKCFOdW1iZXIuaXNJbnRlZ2VyKGRheSl8fGRheTwxfHxkYXk+bmV3IERhdGUoeXksbW0sMCkuZ2V0RGF0ZSgpfHwhTnVtYmVyLmlzRmluaXRlKGFtb3VudCl8fGFtb3VudDw9MCl7YWxlcnQoJ0NvbnRyb2xsYSBnaW9ybm8gZSBpbXBvcnRvLicpO3JldHVybn0KICAgbGV0IGNhdD14LnF1ZXJ5U2VsZWN0b3IoJ3NlbGVjdCcpLnZhbHVlfHwndmFyaWUnOwogICBwYXltZW50QWN0aW9uQnVzeT10cnVlO3NldFBlbmRpbmdCdXN5KHRydWUsJ0NvbmZlcm1v4oCmJyk7CiAgIHRyeXsKICAgIGlmKCFuLmluYm94SWQpewogICAgIGNvbnN0IGN1cnJlbnQ9ZGF0YSgpO2N1cnJlbnQuZGFpbHkuZW50cmllc3x8KGN1cnJlbnQuZGFpbHkuZW50cmllcz1bXSk7CiAgICAgaWYoY2F0PT09J2RpZXNlbC1wcm9wb3NlZCcpe2xldCBjb2w9Y3VzdG9tQ29scygpLmZpbmQoYz0+KGMubmFtZXx8JycpLnRvTG93ZXJDYXNlKCk9PT0nZGllc2VsJyk7aWYoIWNvbCl7Y29sPXtpZDonZGllc2VsJyxuYW1lOidEaWVzZWwnLGJ1ZGdldDowfTtjdXN0b21Db2xzKCkucHVzaChjb2wpfWNhdD1jb2xLZXkoY29sKX0KICAgICBjdXJyZW50LmRhaWx5LmVudHJpZXMucHVzaCh7aWQ6J25fJytjcnlwdG8ucmFuZG9tVVVJRCgpLGRheSxjYXRlZ29yeTpjYXQsYW1vdW50OihzZ249PT0nLSc/LTE6MSkqYW1vdW50LGRlc2M6Y2xlYW5Ob3RpY2VEZXNjKG4uZGVzYyl8fCdOb3RpZmljYSd9KTsKICAgICBwLnNwbGljZShpLDEpO3NhdmUoKTtyZW5kZXJEYWlseSgpO3JldHVybgogICAgfQogICAgaWYoY2xvdWREaXJ0eSl7Y29uc3Qgc2F2ZWQ9YXdhaXQgc2F2ZUNsb3VkKCk7aWYoIXNhdmVkKXRocm93IG5ldyBFcnJvcignU2FsdmF0YWdnaW8gZGVsIHJlZ2lzdHJvIG5vbiByaXVzY2l0bycpfQogICAgY29uc3Qge2RhdGE6b2ssZXJyb3J9PWF3YWl0IHNiLnJwYygncmZmX2NvbmZpcm1fcGF5bWVudF92Mycsey4uLmRldmljZUFyZ3MoKSxwX2luYm94X2lkOm4uaW5ib3hJZCxwX21vbnRoOm1vbnRoLHBfZGF5OmRheSxwX2NhdGVnb3J5OmNhdH0pOwogICAgaWYoZXJyb3IpdGhyb3cgZXJyb3I7aWYob2shPT10cnVlKXRocm93IG5ldyBFcnJvcignSWwgc2VydmVyIG5vbiBoYSBjb25mZXJtYXRvIGzigJlvcGVyYXppb25lJyk7CiAgICBhd2FpdCBsb2FkQ2xvdWQoKTthd2FpdCBmZXRjaEluYm94KCk7CiAgIH1jYXRjaChlKXtjb25zb2xlLmxvZygnQ29uZmVybWEgVjc1OicsZSk7YWxlcnQoJ0NvbmZlcm1hIG5vbiByaXVzY2l0YTogJysoZT8ubWVzc2FnZXx8J2Vycm9yZScpKX0KICAgZmluYWxseXtwYXltZW50QWN0aW9uQnVzeT1mYWxzZTtzZXRQZW5kaW5nQnVzeShmYWxzZSl9CiAgfTsKICByZWplY3RCdG4ub25jbGljaz1hc3luYyhldik9PnsKICAgZXYucHJldmVudERlZmF1bHQoKTtldi5zdG9wUHJvcGFnYXRpb24oKTsKICAgaWYocGF5bWVudEFjdGlvbkJ1c3kpcmV0dXJuOwogICBpZighY29uZmlybSgnTm9uIGNvbmZlcm1hcmUgcXVlc3RhIHJpY2hpZXN0YT8gVmVycsOgIGVsaW1pbmF0YSBzZW56YSBpbnNlcmlybGEgbmVsbGUgc3Blc2UuJykpcmV0dXJuOwogICBwYXltZW50QWN0aW9uQnVzeT10cnVlO3NldFBlbmRpbmdCdXN5KHRydWUpO3JlamVjdEJ0bi50ZXh0Q29udGVudD0nRWxpbWlub+KApic7CiAgIHRyeXsKICAgIGlmKCFuLmluYm94SWQpe3Auc3BsaWNlKGksMSk7c2F2ZSgpO3JlbmRlclBlbmRpbmcoKTtyZXR1cm59CiAgICBpZihjbG91ZERpcnR5KXtjb25zdCBzYXZlZD1hd2FpdCBzYXZlQ2xvdWQoKTtpZighc2F2ZWQpdGhyb3cgbmV3IEVycm9yKCdTYWx2YXRhZ2dpbyBkZWwgcmVnaXN0cm8gbm9uIHJpdXNjaXRvJyl9CiAgICBjb25zdCB7ZGF0YTpvayxlcnJvcn09YXdhaXQgc2IucnBjKCdyZmZfcmVqZWN0X3BheW1lbnRfdjMnLHsuLi5kZXZpY2VBcmdzKCkscF9pbmJveF9pZDpuLmluYm94SWR9KTsKICAgIGlmKGVycm9yKXRocm93IGVycm9yO2lmKG9rIT09dHJ1ZSl0aHJvdyBuZXcgRXJyb3IoJ0lsIHNlcnZlciBub24gaGEgZWxpbWluYXRvIGxhIHJpY2hpZXN0YScpOwogICAgYXdhaXQgbG9hZENsb3VkKCk7YXdhaXQgZmV0Y2hJbmJveCgpOwogICB9Y2F0Y2goZSl7Y29uc29sZS5sb2coJ1JpZml1dG8gVjc1OicsZSk7YWxlcnQoJ05vbiBjb25mZXJtYXJlIG5vbiByaXVzY2l0bzogJysoZT8ubWVzc2FnZXx8J2Vycm9yZScpKX0KICAgZmluYWxseXtwYXltZW50QWN0aW9uQnVzeT1mYWxzZTtyZWplY3RCdG4udGV4dENvbnRlbnQ9J05vbiBjb25mZXJtYXJlJztzZXRQZW5kaW5nQnVzeShmYWxzZSl9CiAgfTsKICBbY29uZmlybUJ0bixyZWplY3RCdG5dLmZvckVhY2goYnRuPT57YnRuLnR5cGU9J2J1dHRvbic7YnRuLnN0eWxlLnBvaW50ZXJFdmVudHM9J2F1dG8nO2J0bi5zdHlsZS50b3VjaEFjdGlvbj0nbWFuaXB1bGF0aW9uJztidG4uc3R5bGUucG9zaXRpb249J3JlbGF0aXZlJztidG4uc3R5bGUuekluZGV4PScyMCd9KTsKICBoLmFwcGVuZENoaWxkKHgp"
-          replacement=base64.b64decode(encoded).decode()
-          html,n=re.subn(pattern,replacement,html,count=1,flags=re.S)
-          if n!=1: raise SystemExit('Handler pagamenti V74 non trovato')
-          html=re.sub(r"service-worker\.js\?v=[^'\" ]+",'service-worker.js?v=20260930-v75-server-actions',html)
-          sw=re.sub(r"const CACHE='[^']+';","const CACHE='rff-20260930-v75-server-actions';",sw,count=1)
-          sw=re.sub(r"const SW_VERSION='[^']+';","const SW_VERSION='20260930-v75-server-actions';",sw,count=1)
-          for marker in ['rff_confirm_payment_v3','rff_reject_payment_v3','Confermo…','Elimino…']:
-            if marker not in html: raise SystemExit('Marker V75 mancante: '+marker)
-          if '20260930-v75-server-actions' not in sw: raise SystemExit('Cache V75 mancante')
+
+          old="""  [confirmBtn,rejectBtn].forEach(btn=>{btn.type='button';btn.style.pointerEvents='auto';btn.style.touchAction='manipulation';btn.style.position='relative';btn.style.zIndex='20'});\n  h.appendChild(x)"""
+          new="""  [confirmBtn,rejectBtn].forEach(btn=>{btn.type='button';btn.disabled=false;btn.style.pointerEvents='auto';btn.style.touchAction='manipulation';btn.style.position='relative';btn.style.zIndex='50'});\n  if(!h.dataset.rffDirectTouch){\n   h.dataset.rffDirectTouch='1';\n   const directFire=ev=>{\n    const btn=ev.target&&ev.target.closest?ev.target.closest('.confirmPay,.rejectPay'):null;\n    if(!btn||!h.contains(btn))return;\n    const now=Date.now(),last=Number(btn.dataset.rffLastTap||0);\n    if(now-last<650)return;btn.dataset.rffLastTap=String(now);\n    ev.preventDefault();ev.stopPropagation();\n    const fn=btn.onclick;if(typeof fn==='function')fn.call(btn,ev);\n   };\n   h.addEventListener('pointerup',directFire,true);\n   h.addEventListener('touchend',directFire,{capture:true,passive:false});\n  }\n  h.appendChild(x)"""
+          if old not in html:
+            raise SystemExit('Punto V75 non trovato')
+          html=html.replace(old,new,1)
+
+          # Piccolo marcatore diagnostico, senza cambiare il layout.
+          html=html.replace('<title>Registro Finanziario Familiare V46</title>','<title>Registro Finanziario Familiare V76</title>',1)
+          html=re.sub(r"service-worker\.js\?v=[^'\" ]+",'service-worker.js?v=20260930-v76-direct-touch',html)
+          sw=re.sub(r"const CACHE='[^']+';","const CACHE='rff-20260930-v76-direct-touch';",sw,count=1)
+          sw=re.sub(r"const SW_VERSION='[^']+';","const SW_VERSION='20260930-v76-direct-touch';",sw,count=1)
+
+          for marker in ['rff_confirm_payment_v3','rff_reject_payment_v3','rffDirectTouch','pointerup','touchend','Registro Finanziario Familiare V76']:
+            if marker not in html: raise SystemExit('Marker V76 mancante: '+marker)
+          if '20260930-v76-direct-touch' not in sw: raise SystemExit('Cache V76 mancante')
+
           Path('index.html').write_text(html)
           Path('service-worker.js').write_text(sw)
           PY
-      - name: Verifica V75
+      - name: Verifica V76
         run: |
+          grep -q 'rffDirectTouch' index.html
           grep -q 'rff_confirm_payment_v3' index.html
-          grep -q 'rff_reject_payment_v3' index.html
-          grep -q '20260930-v75-server-actions' service-worker.js
-      - name: Pubblica V75
+          grep -q '20260930-v76-direct-touch' service-worker.js
+      - name: Pubblica V76
         run: |
           git config user.name "github-actions[bot]"
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html service-worker.js
-          git diff --cached --quiet || git commit -m 'Publish V75 server-side payment actions'
+          git diff --cached --quiet || git commit -m 'Publish V76 direct Android touch actions'
           git push
