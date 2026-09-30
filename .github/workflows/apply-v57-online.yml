@@ -1,4 +1,4 @@
-name: Applica V76 tocco diretto pagamenti
+name: Applica V77 non confermare pagamenti
 on:
   push:
     paths:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Rendi i pulsanti sensibili al tocco Android
+      - name: Correggi Non confermare su Android
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -19,34 +19,36 @@ jobs:
           html=Path('index.html').read_text()
           sw=Path('service-worker.js').read_text()
 
-          old="""  [confirmBtn,rejectBtn].forEach(btn=>{btn.type='button';btn.style.pointerEvents='auto';btn.style.touchAction='manipulation';btn.style.position='relative';btn.style.zIndex='20'});\n  h.appendChild(x)"""
-          new="""  [confirmBtn,rejectBtn].forEach(btn=>{btn.type='button';btn.disabled=false;btn.style.pointerEvents='auto';btn.style.touchAction='manipulation';btn.style.position='relative';btn.style.zIndex='50'});\n  if(!h.dataset.rffDirectTouch){\n   h.dataset.rffDirectTouch='1';\n   const directFire=ev=>{\n    const btn=ev.target&&ev.target.closest?ev.target.closest('.confirmPay,.rejectPay'):null;\n    if(!btn||!h.contains(btn))return;\n    const now=Date.now(),last=Number(btn.dataset.rffLastTap||0);\n    if(now-last<650)return;btn.dataset.rffLastTap=String(now);\n    ev.preventDefault();ev.stopPropagation();\n    const fn=btn.onclick;if(typeof fn==='function')fn.call(btn,ev);\n   };\n   h.addEventListener('pointerup',directFire,true);\n   h.addEventListener('touchend',directFire,{capture:true,passive:false});\n  }\n  h.appendChild(x)"""
+          old="""   if(!confirm('Non confermare questa richiesta? Verrà eliminata senza inserirla nelle spese.'))return;\n   paymentActionBusy=true;setPendingBusy(true);rejectBtn.textContent='Elimino…';"""
+          new="""   const rejectArmed=rejectBtn.dataset.rffRejectArmed==='1';\n   if(!rejectArmed){\n    rejectBtn.dataset.rffRejectArmed='1';\n    rejectBtn.textContent='Tocca ancora per eliminare';\n    rejectBtn.style.fontSize='13px';\n    setTimeout(()=>{if(rejectBtn.dataset.rffRejectArmed==='1'){delete rejectBtn.dataset.rffRejectArmed;rejectBtn.textContent='Non confermare';rejectBtn.style.fontSize=''}},4000);\n    return;\n   }\n   delete rejectBtn.dataset.rffRejectArmed;rejectBtn.style.fontSize='';\n   paymentActionBusy=true;setPendingBusy(true);rejectBtn.textContent='Elimino…';"""
           if old not in html:
-            raise SystemExit('Punto V75 non trovato')
+            raise SystemExit('Handler Non confermare V76 non trovato')
           html=html.replace(old,new,1)
 
-          # Piccolo marcatore diagnostico, senza cambiare il layout.
-          html=html.replace('<title>Registro Finanziario Familiare V46</title>','<title>Registro Finanziario Familiare V76</title>',1)
-          html=re.sub(r"service-worker\.js\?v=[^'\" ]+",'service-worker.js?v=20260930-v76-direct-touch',html)
-          sw=re.sub(r"const CACHE='[^']+';","const CACHE='rff-20260930-v76-direct-touch';",sw,count=1)
-          sw=re.sub(r"const SW_VERSION='[^']+';","const SW_VERSION='20260930-v76-direct-touch';",sw,count=1)
+          html=html.replace('<title>Registro Finanziario Familiare V76</title>','<title>Registro Finanziario Familiare V77</title>',1)
+          html=re.sub(r"service-worker\.js\?v=[^'\" ]+",'service-worker.js?v=20260930-v77-reject-no-dialog',html)
+          sw=re.sub(r"const CACHE='[^']+';","const CACHE='rff-20260930-v77-reject-no-dialog';",sw,count=1)
+          sw=re.sub(r"const SW_VERSION='[^']+';","const SW_VERSION='20260930-v77-reject-no-dialog';",sw,count=1)
 
-          for marker in ['rff_confirm_payment_v3','rff_reject_payment_v3','rffDirectTouch','pointerup','touchend','Registro Finanziario Familiare V76']:
-            if marker not in html: raise SystemExit('Marker V76 mancante: '+marker)
-          if '20260930-v76-direct-touch' not in sw: raise SystemExit('Cache V76 mancante')
+          for marker in ['rff_reject_payment_v3','Tocca ancora per eliminare','rffRejectArmed','Registro Finanziario Familiare V77']:
+            if marker not in html: raise SystemExit('Marker V77 mancante: '+marker)
+          if "confirm('Non confermare questa richiesta?" in html:
+            raise SystemExit('Dialog conferma vecchio ancora presente')
+          if '20260930-v77-reject-no-dialog' not in sw:
+            raise SystemExit('Cache V77 mancante')
 
           Path('index.html').write_text(html)
           Path('service-worker.js').write_text(sw)
           PY
-      - name: Verifica V76
+      - name: Verifica V77
         run: |
-          grep -q 'rffDirectTouch' index.html
-          grep -q 'rff_confirm_payment_v3' index.html
-          grep -q '20260930-v76-direct-touch' service-worker.js
-      - name: Pubblica V76
+          grep -q 'Tocca ancora per eliminare' index.html
+          grep -q 'rffRejectArmed' index.html
+          grep -q '20260930-v77-reject-no-dialog' service-worker.js
+      - name: Pubblica V77
         run: |
           git config user.name "github-actions[bot]"
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html service-worker.js
-          git diff --cached --quiet || git commit -m 'Publish V76 direct Android touch actions'
+          git diff --cached --quiet || git commit -m 'Publish V77 reject action without JS dialog'
           git push
