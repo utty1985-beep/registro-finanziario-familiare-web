@@ -368,7 +368,7 @@ window.addEventListener('online',()=>{if(familyRole==='owner'&&familyId)saveClou
 function applyPermissions(){
  const viewer=familyRole==='viewer';$('#viewerBanner').hidden=!viewer;
  $('#pairingCard').hidden=true;$('#sentinelBar').hidden=!familyRole;const hasBridge=!!window.RegistroAndroid;['authorizeNotices','sourcesButton','sendNotices'].forEach(id=>$('#'+id).disabled=!hasBridge);
- const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;const dailySettings=$('#p2 .settingsDrop');if(dailySettings){dailySettings.hidden=viewer;if(viewer)dailySettings.open=false}const pendingDrop=$('#pendingDrop');if(pendingDrop)pendingDrop.hidden=viewer;$('#sendForApproval').hidden=viewer;if(viewer)$('#addEntry').textContent='Invia pagamento';ensurePrimaryButton();
+ const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;const dailySettings=$('#p2 .settingsDrop');if(dailySettings){dailySettings.hidden=viewer;if(viewer)dailySettings.open=false}const pendingDrop=$('#pendingDrop');if(pendingDrop)pendingDrop.hidden=viewer;const importBtn=$('#sendNotices');if(importBtn)importBtn.hidden=true;$('#sendForApproval').hidden=viewer;if(viewer)$('#addEntry').textContent='Invia pagamento';else $('#addEntry').textContent='+ Aggiungi pagamento';ensurePrimaryButton();
  document.querySelectorAll('#p1 input:not(#monthPick),#p2 input,#p1 button,#p2 button,#p2 select').forEach(el=>{
   if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','toBoard','toBoard2','authorizeNotices','sourcesButton','sendNotices','makePrimaryPhone'].includes(el.id))return;
   if(el.closest('.entryForm')){el.disabled=false;return}
@@ -430,9 +430,13 @@ async function refreshRemote(){
   syncStatus('Registro sincronizzato');
  }catch(e){console.log('Aggiornamento registro:',e);syncStatus('Sincronizzazione non riuscita · riprovo',true)}finally{cloudRefreshing=false}
 }
+async function refreshDeviceRole(forceRender=false){
+ if(!sb||!familyId)return false;
+ try{const {data:status,error}=await sb.rpc('rff_device_status',deviceArgs());if(error||!status)return false;const next=(status.status==='active'&&String(status.role||'')==='primary'&&accountRole==='owner')?'owner':'viewer';const changed=next!==familyRole;familyRole=next;if(familyRole==='viewer')$('#addEntry').textContent='Invia pagamento';else $('#addEntry').textContent='+ Aggiungi pagamento';if(changed||forceRender){applyPermissions();renderDaily()}return changed}catch(e){console.log('Aggiornamento ruolo dispositivo:',e);return false}
+}
 async function syncFamily(){
  if(familySyncBusy||paymentActionBusy||document.hidden||!familyId||!familyRole)return;familySyncBusy=true;
- try{updateNotificationState();await refreshRemote();await sendAndroidPayments();await fetchInbox();if(familyRole==='owner')await showPairingRequests();await syncBoard(false);await syncCalendar(false);syncNativeFamilyTools();if($('#p3').classList.contains('active')){renderBoard();renderCalendar()}}
+ try{await refreshDeviceRole();updateNotificationState();await refreshRemote();await sendAndroidPayments();await fetchInbox();if(familyRole==='owner')await showPairingRequests();await syncBoard(false);await syncCalendar(false);syncNativeFamilyTools();if($('#p3').classList.contains('active')){renderBoard();renderCalendar()}}
  catch(e){console.log('Sincronizzazione famiglia:',e)}finally{familySyncBusy=false}
 }
 function ymParts(){let [y,m]=month.split('-').map(Number);return [y,m]}
@@ -826,7 +830,7 @@ function ensurePrimaryButton(){
  const p1=$('#p1');if(!p1)return;
  let card=$('#primaryRecoveryCard'),btn=$('#makePrimaryPhone'),hint=$('#makePrimaryHint');
  if(!card){card=document.createElement('div');card.id='primaryRecoveryCard';card.className='card';card.style.cssText='border:2px solid #0b4f8a;background:#eef6ff;margin:16px 0;padding:14px';const title=document.createElement('h2');title.textContent='📱 Telefono principale';card.appendChild(title)}
- if(!btn){btn=document.createElement('button');btn.id='makePrimaryPhone';btn.type='button';btn.className='primary';btn.textContent='📱 Rendi questo il telefono principale';btn.onclick=async()=>{if(!confirm('Impostare questo come telefono principale? Gli altri telefoni resteranno sentinelle.'))return;const old=btn.textContent;btn.disabled=true;btn.textContent='Impostazione…';try{const {data,error}=await sb.rpc('rff_make_primary',deviceArgs());if(error)throw error;if(data!==true)throw new Error('Il server non ha confermato il cambio.');familyRole='owner';btn.textContent='✓ Telefono principale';applyPermissions();await fetchInbox();renderDaily();alert('Questo telefono ora è il principale. Puoi confermare o rifiutare i pagamenti.')}catch(e){console.log('Telefono principale:',e);alert('Impostazione non riuscita: '+(e?.message||'errore')+'. Riprova con Internet attivo.');btn.disabled=false;btn.textContent=old}}}
+ if(!btn){btn=document.createElement('button');btn.id='makePrimaryPhone';btn.type='button';btn.className='primary';btn.textContent='📱 Rendi questo il telefono principale';btn.onclick=async()=>{if(!confirm('Impostare questo come telefono principale? Gli altri telefoni resteranno sentinelle.'))return;const old=btn.textContent;btn.disabled=true;btn.textContent='Impostazione…';try{const {data,error}=await sb.rpc('rff_make_primary',deviceArgs());if(error)throw error;if(data!==true)throw new Error('Il server non ha confermato il cambio.');await refreshDeviceRole(true);await fetchInbox();renderDaily();alert('Questo telefono ora è il principale. Puoi confermare o rifiutare i pagamenti.')}catch(e){console.log('Telefono principale:',e);alert('Impostazione non riuscita: '+(e?.message||'errore')+'. Riprova con Internet attivo.');btn.disabled=false;btn.textContent=old}}}
  if(!hint){hint=document.createElement('div');hint.id='makePrimaryHint';hint.className='hint';hint.textContent='Premilo solo sul telefono che deve approvare o rifiutare i pagamenti.'}
  if(btn.parentElement!==card)card.appendChild(btn);if(hint.parentElement!==card)card.appendChild(hint);if(card.parentElement!==p1)p1.appendChild(card);
  const show=familyRole==='viewer'&&accountRole==='owner';card.hidden=!show;btn.hidden=!show;hint.hidden=!show;
@@ -1257,7 +1261,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260930-v71-primary-clean', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260930-v72-confirm-refresh', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
