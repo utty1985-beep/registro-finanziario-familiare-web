@@ -1,4 +1,4 @@
-name: Applica V74 stabile online
+name: Applica V75 azioni pagamenti
 on:
   push:
     paths:
@@ -10,123 +10,80 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Integra versione stabile del Registro
+      - name: Correggi Conferma e Non confermare
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
 
           html=Path('index.html').read_text()
-          ui=Path('v56-ui.js').read_text()
-          main=Path('v56-main.js').read_text()
-          polish=Path('v57-polish.js').read_text()
-          red=Path('v58-red-button.js').read_text()
-          longpress=Path('v61-longpress-toggle.js').read_text()
+          sw=Path('service-worker.js').read_text()
 
-          def repl(old,new,label):
-              global main
-              if old not in main: raise SystemExit('V74 marker missing: '+label)
-              main=main.replace(old,new,1)
+          pattern=r"  x\.querySelector\('\.confirmPay'\)\.onclick=async\(\)=>\{.*?  h\.appendChild\(x\)"
+          replacement=r'''  const confirmBtn=x.querySelector('.confirmPay'),rejectBtn=x.querySelector('.rejectPay');
+  const setPendingBusy=(busy,label='')=>{
+   [confirmBtn,rejectBtn].forEach(btn=>{btn.disabled=busy;btn.style.pointerEvents=busy?'none':'auto';btn.style.opacity=busy?'.65':'1'});
+   if(label)confirmBtn.textContent=label;else confirmBtn.textContent='Conferma';
+  };
+  confirmBtn.onclick=async(ev)=>{
+   ev.preventDefault();ev.stopPropagation();
+   if(paymentActionBusy)return;
+   const [yy,mm]=ymParts(),day=Number(x.querySelector('input').value),amount=Number(n.amount);
+   if(!Number.isInteger(day)||day<1||day>new Date(yy,mm,0).getDate()||!Number.isFinite(amount)||amount<=0){alert('Controlla giorno e importo.');return}
+   let cat=x.querySelector('select').value||'varie';
+   paymentActionBusy=true;setPendingBusy(true,'Confermo…');
+   try{
+    if(!n.inboxId){
+     const current=data();current.daily.entries||(current.daily.entries=[]);
+     if(cat==='diesel-proposed'){let col=customCols().find(c=>(c.name||'').toLowerCase()==='diesel');if(!col){col={id:'diesel',name:'Diesel',budget:0};customCols().push(col)}cat=colKey(col)}
+     current.daily.entries.push({id:'n_'+crypto.randomUUID(),day,category:cat,amount:(sgn==='-'?-1:1)*amount,desc:cleanNoticeDesc(n.desc)||'Notifica'});
+     p.splice(i,1);save();renderDaily();return
+    }
+    if(cloudDirty){const saved=await saveCloud();if(!saved)throw new Error('Salvataggio del registro non riuscito')}
+    const {data:ok,error}=await sb.rpc('rff_confirm_payment_v3',{...deviceArgs(),p_inbox_id:n.inboxId,p_month:month,p_day:day,p_category:cat});
+    if(error)throw error;if(ok!==true)throw new Error('Il server non ha confermato l’operazione');
+    await loadCloud();await fetchInbox();
+   }catch(e){console.log('Conferma V75:',e);alert('Conferma non riuscita: '+(e?.message||'errore'))}
+   finally{paymentActionBusy=false;setPendingBusy(false)}
+  };
+  rejectBtn.onclick=async(ev)=>{
+   ev.preventDefault();ev.stopPropagation();
+   if(paymentActionBusy)return;
+   if(!confirm('Non confermare questa richiesta? Verrà eliminata senza inserirla nelle spese.'))return;
+   paymentActionBusy=true;setPendingBusy(true);rejectBtn.textContent='Elimino…';
+   try{
+    if(!n.inboxId){p.splice(i,1);save();renderPending();return}
+    if(cloudDirty){const saved=await saveCloud();if(!saved)throw new Error('Salvataggio del registro non riuscito')}
+    const {data:ok,error}=await sb.rpc('rff_reject_payment_v3',{...deviceArgs(),p_inbox_id:n.inboxId});
+    if(error)throw error;if(ok!==true)throw new Error('Il server non ha eliminato la richiesta');
+    await loadCloud();await fetchInbox();
+   }catch(e){console.log('Rifiuto V75:',e);alert('Non confermare non riuscito: '+(e?.message||'errore'))}
+   finally{paymentActionBusy=false;rejectBtn.textContent='Non confermare';setPendingBusy(false)}
+  };
+  [confirmBtn,rejectBtn].forEach(btn=>{btn.type='button';btn.style.pointerEvents='auto';btn.style.touchAction='manipulation';btn.style.position='relative';btn.style.zIndex='20'});
+  h.appendChild(x)'''
 
-          repl("familyRole=(device.status==='active'&&accountRole==='owner')?'owner':'viewer';if(familyRole==='viewer')$('#addEntry').textContent='Invia da confermare';else $('#addEntry').textContent='+ Aggiungi pagamento';",
-               "familyRole=(device.status==='active'&&String(device.role||'')==='primary'&&accountRole==='owner')?'owner':'viewer';if(familyRole==='viewer')$('#addEntry').textContent='Invia pagamento';else $('#addEntry').textContent='+ Aggiungi pagamento';",
-               'role')
+          html,n=re.subn(pattern,replacement,html,count=1,flags=re.S)
+          if n!=1: raise SystemExit('Handler pagamenti V74 non trovato')
+          html=re.sub(r"service-worker\.js\?v=[^'\" ]+",'service-worker.js?v=20260930-v75-server-actions',html)
+          sw=re.sub(r"const CACHE='[^']+';","const CACHE='rff-20260930-v75-server-actions';",sw,count=1)
+          sw=re.sub(r"const SW_VERSION='[^']+';","const SW_VERSION='20260930-v75-server-actions';",sw,count=1)
 
-          repl("const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;$('#sendForApproval').hidden=viewer;",
-               "const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;const dailySettings=$('#p2 .settingsDrop');if(dailySettings){dailySettings.hidden=viewer;if(viewer)dailySettings.open=false}const pendingDrop=$('#pendingDrop');if(pendingDrop)pendingDrop.hidden=viewer;const importBtn=$('#sendNotices');if(importBtn)importBtn.hidden=true;$('#sendForApproval').hidden=viewer;if(viewer)$('#addEntry').textContent='Invia pagamento';else $('#addEntry').textContent='+ Aggiungi pagamento';ensurePrimaryButton();",
-               'permissions')
-
-          repl("if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','toBoard','toBoard2','authorizeNotices','sourcesButton','sendNotices'].includes(el.id))return;",
-               "if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','toBoard','toBoard2','authorizeNotices','sourcesButton','sendNotices','makePrimaryPhone'].includes(el.id))return;",
-               'allow-list')
-
-          repl("async function sendAndroidPayments(){\n if(!['owner','viewer'].includes(familyRole)||!familyId||!window.RegistroAndroid)return;",
-               "function ensurePaymentSourcesEnabled(){const bridge=window.RegistroAndroid;if(!bridge?.availablePaymentSources||!bridge?.setAllowedPaymentSources)return;try{const sources=JSON.parse(bridge.availablePaymentSources()||'[]');if(!Array.isArray(sources)||!sources.length)return;const enabled=sources.filter(s=>s&&s.enabled&&s.package).map(s=>s.package);if(enabled.length)return;const packages=sources.map(s=>s&&s.package).filter(Boolean);if(packages.length)bridge.setAllowedPaymentSources(JSON.stringify(packages))}catch(e){console.log('Sorgenti pagamenti:',e)}}\nasync function sendAndroidPayments(){\n if(!['owner','viewer'].includes(familyRole)||!familyId||!window.RegistroAndroid)return;ensurePaymentSourcesEnabled();",
-               'payment sources')
-
-          primary_anchor="$('#sourcesButton').onclick=renderPaymentSources;\n$('#sendNotices').onclick=sendAndroidPayments;"
-          primary_code="\n".join([
-              "$('#sourcesButton').onclick=renderPaymentSources;",
-              "$('#sendNotices').onclick=sendAndroidPayments;",
-              "function ensurePrimaryButton(){",
-              " const p1=$('#p1');if(!p1)return;",
-              " let card=$('#primaryRecoveryCard'),btn=$('#makePrimaryPhone'),hint=$('#makePrimaryHint');",
-              " if(!card){card=document.createElement('div');card.id='primaryRecoveryCard';card.className='card';card.style.cssText='border:2px solid #0b4f8a;background:#eef6ff;margin:16px 0;padding:14px';const title=document.createElement('h2');title.textContent='📱 Telefono principale';card.appendChild(title)}",
-              " if(!btn){btn=document.createElement('button');btn.id='makePrimaryPhone';btn.type='button';btn.className='primary';btn.textContent='📱 Rendi questo il telefono principale';btn.onclick=async()=>{if(!confirm('Impostare questo come telefono principale? Gli altri telefoni resteranno sentinelle.'))return;const old=btn.textContent;btn.disabled=true;btn.textContent='Impostazione…';try{const {data,error}=await sb.rpc('rff_make_primary',deviceArgs());if(error)throw error;if(data!==true)throw new Error('Il server non ha confermato il cambio.');await refreshDeviceRole(true);await fetchInbox();renderDaily();alert('Questo telefono ora è il principale. Puoi confermare o rifiutare i pagamenti.')}catch(e){console.log('Telefono principale:',e);alert('Impostazione non riuscita: '+(e?.message||'errore')+'. Riprova con Internet attivo.');btn.disabled=false;btn.textContent=old}}}",
-              " if(!hint){hint=document.createElement('div');hint.id='makePrimaryHint';hint.className='hint';hint.textContent='Premilo solo sul telefono che deve approvare o rifiutare i pagamenti.'}",
-              " if(btn.parentElement!==card)card.appendChild(btn);if(hint.parentElement!==card)card.appendChild(hint);if(card.parentElement!==p1)p1.appendChild(card);",
-              " const show=familyRole==='viewer'&&accountRole==='owner';card.hidden=!show;btn.hidden=!show;hint.hidden=!show;",
-              " if(show){btn.disabled=false;btn.removeAttribute('disabled');btn.style.cssText='width:100%;margin-top:8px;font-size:18px;padding:14px;opacity:1;pointer-events:auto'}",
-              "}"
-          ])
-          repl(primary_anchor,primary_code,'primary button')
-
-          sync_marker="async function syncFamily(){\n if(familySyncBusy||paymentActionBusy||document.hidden||!familyId||!familyRole)return;familySyncBusy=true;\n try{updateNotificationState();await refreshRemote();await sendAndroidPayments();await fetchInbox();if(familyRole==='owner')await showPairingRequests();"
-          sync_repl="async function refreshDeviceRole(forceRender=false){\n if(!sb||!familyId)return false;\n try{const {data:status,error}=await sb.rpc('rff_device_status',deviceArgs());if(error||!status)return false;const next=(status.status==='active'&&String(status.role||'')==='primary'&&accountRole==='owner')?'owner':'viewer';const changed=next!==familyRole;familyRole=next;if(familyRole==='viewer')$('#addEntry').textContent='Invia pagamento';else $('#addEntry').textContent='+ Aggiungi pagamento';if(changed||forceRender){applyPermissions();renderDaily()}return changed}catch(e){console.log('Aggiornamento ruolo dispositivo:',e);return false}\n}\nasync function syncFamily(){\n if(familySyncBusy||paymentActionBusy||document.hidden||!familyId||!familyRole)return;familySyncBusy=true;\n try{await refreshDeviceRole();updateNotificationState();await refreshRemote();await sendAndroidPayments();await fetchInbox();if(familyRole==='owner')await showPairingRequests();"
-          repl(sync_marker,sync_repl,'role refresh')
-
-          repl("sb.rpc('rff_pending_payments',deviceArgs())","sb.rpc('rff_pending_payments_v2',deviceArgs())",'pending v2')
-
-          old_map="(byMonth[key]||(byMonth[key]=[])).push({inboxId:row.id,id:'i_'+row.id,amount:Number(row.amount),desc:rawDesc,sign:rawDesc.startsWith('__RFF_SIGN_POS__')?'+':'-',category:row.suggested_category,day:dt.getDate()});"
-          new_map="(byMonth[key]||(byMonth[key]=[])).push({inboxId:row.id,id:'i_'+row.id,amount:Number(row.amount),desc:rawDesc,sign:rawDesc.startsWith('__RFF_SIGN_POS__')?'+':'-',category:row.suggested_category,day:dt.getDate(),sourceDeviceId:row.source_device_id,sourceDeviceLabel:row.source_device_label,sourceDeviceRole:row.source_device_role});"
-          repl(old_map,new_map,'pending origin map')
-
-          old_clean="function cleanNoticeDesc(s){return String(s||'').replace(/^__RFF_SIGN_(?:NEG|POS)__\\s*/,'')}"
-          new_clean="function noticeAppName(s){const t=String(s||'').replace(/^__RFF_SIGN_(?:NEG|POS)__\\s*/,'');const m=t.match(/^__RFF_APP__(.*?)__\\s*/);return m?String(m[1]||'').trim():''}\nfunction cleanNoticeDesc(s){return String(s||'').replace(/^__RFF_SIGN_(?:NEG|POS)__\\s*/,'').replace(/^__RFF_APP__(.*?)__\\s*/,'')}\nfunction noticeOrigin(n){const who=n?.sourceDeviceRole==='primary'?'Tuo telefono (principale)':(n?.sourceDeviceRole==='sentinel'?'Telefono sentinella':'Telefono');const label=String(n?.sourceDeviceLabel||'').trim();const app=noticeAppName(n?.desc||'');return who+(label?' · '+label:'')+(app?' · App: '+app:' · App: non disponibile')}"
-          repl(old_clean,new_clean,'notice metadata helpers')
-
-          old_html="x.innerHTML=`<b>${sgn} € ${euro(n.amount)}</b> ${escapeNotice(cleanNoticeDesc(n.desc))}<br><select>${opts}</select> <input type=\"number\" min=\"1\" max=\"31\" value=\"${validStart()}\" style=\"width:65px\"><div class=\"pendingActions\"><button class=\"confirmPay\">Conferma</button><button class=\"rejectPay\">Non confermare</button></div>`;"
-          new_html="x.innerHTML=`<div style=\"font-size:12px;font-weight:800;color:#0b5685;margin-bottom:6px\">${escapeNotice(noticeOrigin(n))}</div><b>${sgn} € ${euro(n.amount)}</b> ${escapeNotice(cleanNoticeDesc(n.desc))}<br><select>${opts}</select> <input type=\"number\" min=\"1\" max=\"31\" value=\"${validStart()}\" style=\"width:65px\"><div class=\"pendingActions\"><button type=\"button\" class=\"confirmPay\">Conferma</button><button type=\"button\" class=\"rejectPay\">Non confermare</button></div>`;"
-          repl(old_html,new_html,'pending origin ui')
-
-          old_confirm="x.querySelector('.confirmPay').onclick=async()=>{\n   if(familyRole!=='owner'||paymentActionBusy)return;"
-          new_confirm="x.querySelector('.confirmPay').onclick=async()=>{\n   const actionButtons=[...x.querySelectorAll('button')];actionButtons.forEach(btn=>btn.disabled=true);paymentActionBusy=true;"
-          repl(old_confirm,new_confirm,'confirm start')
-          repl("sb.rpc('rff_confirm_payment',","sb.rpc('rff_confirm_payment_v2',",'confirm rpc')
-          main=main.replace("alert('Conferma non completata. Riprova: il pagamento non verrà duplicato.');","alert('Conferma non completata: '+(e?.message||'errore')+'. Il pagamento non verrà duplicato.');",1)
-
-          old_reject="x.querySelector('.rejectPay').onclick=async()=>{\n   if(familyRole!=='owner'||paymentActionBusy)return;if(!confirm('Non confermare questa richiesta? Verrà eliminata senza inserirla nelle spese.'))return;"
-          new_reject="x.querySelector('.rejectPay').onclick=async()=>{\n   if(!confirm('Non confermare questa richiesta? Verrà eliminata senza inserirla nelle spese.'))return;const actionButtons=[...x.querySelectorAll('button')];actionButtons.forEach(btn=>btn.disabled=true);paymentActionBusy=true;"
-          repl(old_reject,new_reject,'reject start')
-          repl("sb.rpc('rff_reject_payment',","sb.rpc('rff_reject_payment_v2',",'reject rpc')
-          main=main.replace("alert('Rifiuto non riuscito. Riprova.');","alert('Rifiuto non riuscito: '+(error?.message||'errore')+'. Riprova.');",1)
-          main=main.replace("if(error){alert('Rifiuto non riuscito: '+(error?.message||'errore')+'. Riprova.');x.querySelectorAll('button').forEach(btn=>btn.disabled=false);return}","if(error){paymentActionBusy=false;alert('Rifiuto non riuscito: '+(error?.message||'errore')+'. Riprova.');x.querySelectorAll('button').forEach(btn=>btn.disabled=false);return}",1)
-          main=main.replace("renderPending();\n  };","paymentActionBusy=false;renderPending();\n  };",1)
-
-          old_desc="const desc=String(((x.title||'')+' '+(x.text||'')).trim()||'Pagamento rilevato').slice(0,180);"
-          new_desc="let sourceLabel=String(x.package||'');try{const srcs=JSON.parse(RegistroAndroid.availablePaymentSources?.()||'[]');const hit=srcs.find(s=>s&&s.package===x.package);if(hit?.label)sourceLabel=String(hit.label)}catch(_){ }sourceLabel=sourceLabel.replace(/__/g,' ');const body=String(((x.title||'')+' '+(x.text||'')).trim()||'Pagamento rilevato').slice(0,140);const desc=(sourceLabel?'__RFF_APP__'+sourceLabel+'__ ':'')+body;"
-          repl(old_desc,new_desc,'source app foreground')
-
-          anchor='<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'
-          start=html.index('<script>',html.index(anchor)+len(anchor))
-          marker="<script>\nif ('serviceWorker' in navigator)"
-          end=html.index(marker,start)
-          html=html[:start]+'<script>\n'+ui+'\n</script>\n<script>\n'+main+'\n</script>\n<script>\n'+polish+'\n</script>\n<script>\n'+red+'\n</script>\n<script>\n'+longpress+'\n</script>\n'+html[end:]
-          html=re.sub(r"service-worker\.js\?v=[^'\" ]+",'service-worker.js?v=20260930-v74-direct-actions',html)
-
-          required=['service-worker.js?v=20260930-v74-direct-actions',"String(device.role||'')==='primary'",'Invia pagamento','ensurePaymentSourcesEnabled','refreshDeviceRole','importBtn.hidden=true','rff_pending_payments_v2','rff_confirm_payment_v2','rff_reject_payment_v2','noticeOrigin','__RFF_APP__','type=\"button\" class=\"confirmPay\"','paymentActionBusy=true']
+          required=['rff_confirm_payment_v3','rff_reject_payment_v3','Confermo…','Elimino…','20260930-v75-server-actions']
           for marker in required:
-              if marker not in html: raise SystemExit('marker missing: '+marker)
+            if marker not in html and marker not in sw: raise SystemExit('Marker V75 mancante: '+marker)
           Path('index.html').write_text(html)
+          Path('service-worker.js').write_text(sw)
           PY
-      - name: Verifica JavaScript
+      - name: Verifica V75
         run: |
-          node --check v56-ui.js
-          node --check v56-main.js
-          node --check v57-polish.js
-          node --check v58-red-button.js
-          node --check v61-longpress-toggle.js
-          node --check service-worker.js
-      - name: Verifica file essenziali
-        run: |
-          test -s index.html
-          test -s manifest.json
-          test -s service-worker.js
-          grep -q '20260930-v74-direct-actions' service-worker.js
-      - name: Commit versione stabile online
+          grep -q 'rff_confirm_payment_v3' index.html
+          grep -q 'rff_reject_payment_v3' index.html
+          grep -q '20260930-v75-server-actions' service-worker.js
+      - name: Pubblica V75
         run: |
           git config user.name "github-actions[bot]"
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html
-          git diff --cached --quiet || git commit -m 'Publish V74 direct payment actions'
+          git add index.html service-worker.js
+          git diff --cached --quiet || git commit -m 'Publish V75 server-side payment actions'
           git push
