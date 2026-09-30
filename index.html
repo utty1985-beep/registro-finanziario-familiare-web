@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V76</title>
+<title>Registro Finanziario Familiare V77</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -748,7 +748,15 @@ function renderPending(){
   rejectBtn.onclick=async(ev)=>{
    ev.preventDefault();ev.stopPropagation();
    if(paymentActionBusy)return;
-   if(!confirm('Non confermare questa richiesta? Verrà eliminata senza inserirla nelle spese.'))return;
+   const rejectArmed=rejectBtn.dataset.rffRejectArmed==='1';
+   if(!rejectArmed){
+    rejectBtn.dataset.rffRejectArmed='1';
+    rejectBtn.textContent='Tocca ancora per eliminare';
+    rejectBtn.style.fontSize='13px';
+    setTimeout(()=>{if(rejectBtn.dataset.rffRejectArmed==='1'){delete rejectBtn.dataset.rffRejectArmed;rejectBtn.textContent='Non confermare';rejectBtn.style.fontSize=''}},4000);
+    return;
+   }
+   delete rejectBtn.dataset.rffRejectArmed;rejectBtn.style.fontSize='';
    paymentActionBusy=true;setPendingBusy(true);rejectBtn.textContent='Elimino…';
    try{
     if(!n.inboxId){p.splice(i,1);save();renderPending();return}
@@ -1289,7 +1297,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260930-v76-direct-touch', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260930-v77-reject-no-dialog', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
