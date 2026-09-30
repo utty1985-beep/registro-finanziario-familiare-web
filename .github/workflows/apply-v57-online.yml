@@ -1,4 +1,4 @@
-name: Applica V62 stabile online
+name: Applica V66 stabile online
 on:
   push:
     paths:
@@ -20,6 +20,26 @@ jobs:
           polish=Path('v57-polish.js').read_text()
           red=Path('v58-red-button.js').read_text()
           longpress=Path('v61-longpress-toggle.js').read_text()
+
+          # V66: il ruolo deve dipendere dal ruolo del dispositivo, non solo dall'account.
+          old_role="familyRole=(device.status==='active'&&accountRole==='owner')?'owner':'viewer';if(familyRole==='viewer')$('#addEntry').textContent='Invia da confermare';else $('#addEntry').textContent='+ Aggiungi pagamento';"
+          new_role="familyRole=(device.status==='active'&&String(device.role||'')==='primary'&&accountRole==='owner')?'owner':'viewer';if(familyRole==='viewer')$('#addEntry').textContent='Invia pagamento';else $('#addEntry').textContent='+ Aggiungi pagamento';"
+          if old_role not in main: raise SystemExit('V66 role marker missing')
+          main=main.replace(old_role,new_role,1)
+
+          # Sul telefono sentinella la pagina Spese resta consultabile, ma le impostazioni non sono modificabili.
+          old_perm="const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;$('#sendForApproval').hidden=viewer;"
+          new_perm="const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;const dailySettings=$('#p2 .settingsDrop');if(dailySettings){dailySettings.hidden=viewer;if(viewer)dailySettings.open=false}$('#sendForApproval').hidden=viewer;if(viewer)$('#addEntry').textContent='Invia pagamento';"
+          if old_perm not in main: raise SystemExit('V66 permissions marker missing')
+          main=main.replace(old_perm,new_perm,1)
+
+          # Se nessuna app di pagamento è ancora selezionata sul telefono Android, abilita automaticamente
+          # le sorgenti di pagamento riconosciute; poi ritenta l'invio della coda locale ad ogni sincronizzazione.
+          send_marker="async function sendAndroidPayments(){\n if(!['owner','viewer'].includes(familyRole)||!familyId||!window.RegistroAndroid)return;"
+          send_repl="function ensurePaymentSourcesEnabled(){const bridge=window.RegistroAndroid;if(!bridge?.availablePaymentSources||!bridge?.setAllowedPaymentSources)return;try{const sources=JSON.parse(bridge.availablePaymentSources()||'[]');if(!Array.isArray(sources)||!sources.length)return;const enabled=sources.filter(s=>s&&s.enabled&&s.package).map(s=>s.package);if(enabled.length)return;const packages=sources.map(s=>s&&s.package).filter(Boolean);if(packages.length)bridge.setAllowedPaymentSources(JSON.stringify(packages))}catch(e){console.log('Sorgenti pagamenti:',e)}}\nasync function sendAndroidPayments(){\n if(!['owner','viewer'].includes(familyRole)||!familyId||!window.RegistroAndroid)return;ensurePaymentSourcesEnabled();"
+          if send_marker not in main: raise SystemExit('V66 payment marker missing')
+          main=main.replace(send_marker,send_repl,1)
+
           anchor='<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'
           start=html.index('<script>',html.index(anchor)+len(anchor))
           marker="<script>\nif ('serviceWorker' in navigator)"
@@ -31,14 +51,16 @@ jobs:
               'service-worker.js?v=20260929-v59-rate-full-date',
               'service-worker.js?v=20260929-v58-red-button',
               'service-worker.js?v=20260929-v57-calendar-board',
-              'service-worker.js?v=20260929-v52-calculator'
+              'service-worker.js?v=20260929-v52-calculator',
+              'service-worker.js?v=20260929-v62-stable'
           ]
           for oldv in versions:
-              html=html.replace(oldv,'service-worker.js?v=20260929-v62-stable')
+              html=html.replace(oldv,'service-worker.js?v=20260930-v66-sentinel-sync')
           required=[
               'rateDueDay','rateDueMonth','rateDueYear','calendarGrid','rffQuickNav',
               'V60_DIRECT_RED_BUTTON','RFF_LONGPRESS_V61','provisionalDot','lastVerticalScroll',
-              '✅ Permessi attivi','✅ Notifiche da app attive','service-worker.js?v=20260929-v62-stable'
+              '✅ Permessi attivi','✅ Notifiche da app attive','service-worker.js?v=20260930-v66-sentinel-sync',
+              "String(device.role||'')==='primary'",'Invia pagamento','ensurePaymentSourcesEnabled'
           ]
           for marker in required:
               if marker not in html: raise SystemExit('marker missing: '+marker)
@@ -57,12 +79,12 @@ jobs:
           test -s index.html
           test -s manifest.json
           test -s service-worker.js
-          grep -q '20260929-v62-stable' service-worker.js
+          grep -q '20260929-v65-varie-collapse' service-worker.js
           grep -q 'v61-longpress-toggle.js' service-worker.js
       - name: Commit versione stabile online
         run: |
           git config user.name "github-actions[bot]"
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'Publish stable Registro web build'
+          git diff --cached --quiet || git commit -m 'Publish V66 sentinel permissions and payment sync'
           git push
