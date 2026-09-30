@@ -1,5 +1,5 @@
-const CACHE='rff-20260930-v68-primary-visible';
-const SW_VERSION='20260930-v68-primary-visible';
+const CACHE='rff-20260930-v69-primary-enabled';
+const SW_VERSION='20260930-v69-primary-enabled';
 const ASSETS=[
   './','./index.html','./manifest.json','./icon-192.png','./icon-512.png',
   './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js','./v68-primary-visible.js'
