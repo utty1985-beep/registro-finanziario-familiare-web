@@ -719,34 +719,47 @@ function renderPending(){
   const sgn=noticeSign(n);
   x.innerHTML=`<div style="font-size:12px;font-weight:800;color:#0b5685;margin-bottom:6px">${escapeNotice(noticeOrigin(n))}</div><b>${sgn} € ${euro(n.amount)}</b> ${escapeNotice(cleanNoticeDesc(n.desc))}<br><select>${opts}</select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"><div class="pendingActions"><button type="button" class="confirmPay">Conferma</button><button type="button" class="rejectPay">Non confermare</button></div>`;
   const suggested=customCols().find(c=>(c.name||'').toLowerCase()===(n.category||'').toLowerCase());x.querySelector('select').value=suggested?colKey(suggested):(n.category==='Mangiare'?'food':(n.category==='Diesel'?'diesel-proposed':'varie'));if(n.day)x.querySelector('input').value=n.day;
-  x.querySelector('.confirmPay').onclick=async()=>{
-   const actionButtons=[...x.querySelectorAll('button')];actionButtons.forEach(btn=>btn.disabled=true);paymentActionBusy=true;
-   if(cloudDirty&&!await saveCloud()){alert('Salva prima le modifiche del registro.');return}
+  const confirmBtn=x.querySelector('.confirmPay'),rejectBtn=x.querySelector('.rejectPay');
+  const setPendingBusy=(busy,label='')=>{
+   [confirmBtn,rejectBtn].forEach(btn=>{btn.disabled=busy;btn.style.pointerEvents=busy?'none':'auto';btn.style.opacity=busy?'.65':'1'});
+   if(label)confirmBtn.textContent=label;else confirmBtn.textContent='Conferma';
+  };
+  confirmBtn.onclick=async(ev)=>{
+   ev.preventDefault();ev.stopPropagation();
+   if(paymentActionBusy)return;
    const [yy,mm]=ymParts(),day=Number(x.querySelector('input').value),amount=Number(n.amount);
-   if(!Number.isInteger(day)||day<1||day>new Date(yy,mm,0).getDate()||!Number.isFinite(amount)||amount<=0)return;
+   if(!Number.isInteger(day)||day<1||day>new Date(yy,mm,0).getDate()||!Number.isFinite(amount)||amount<=0){alert('Controlla giorno e importo.');return}
    let cat=x.querySelector('select').value||'varie';
-   if(cat==='diesel-proposed'){let col=customCols().find(c=>(c.name||'').toLowerCase()==='diesel');if(!col){col={id:'diesel',name:'Diesel',budget:0};customCols().push(col)}cat=colKey(col)}
-   const current=data();current.daily.entries||(current.daily.entries=[]);
-   const entry={id:'n_'+(n.id||crypto.randomUUID()),day,category:cat,amount:(sgn==='-'?-1:1)*amount,desc:cleanNoticeDesc(n.desc)||'Notifica'};
-   if(!n.inboxId){current.daily.entries.push(entry);p.splice(i,1);save();renderDaily();return}
-   paymentActionBusy=true;x.querySelectorAll('button').forEach(btn=>btn.disabled=true);
-   const proposed=JSON.parse(JSON.stringify(db));proposed[month].daily.entries.push(entry);
+   paymentActionBusy=true;setPendingBusy(true,'Confermo…');
    try{
-    const {error}=await sb.rpc('rff_confirm_payment_v2',{...deviceArgs(),p_inbox_id:n.inboxId,p_data:proposed});if(error)throw error;
-    await loadCloud();
-   }catch(e){console.log('Conferma:',e);alert('Conferma non completata: '+(e?.message||'errore')+'. Il pagamento non verrà duplicato.');x.querySelectorAll('button').forEach(btn=>btn.disabled=false)}
-   finally{paymentActionBusy=false;await fetchInbox()}
+    if(!n.inboxId){
+     const current=data();current.daily.entries||(current.daily.entries=[]);
+     if(cat==='diesel-proposed'){let col=customCols().find(c=>(c.name||'').toLowerCase()==='diesel');if(!col){col={id:'diesel',name:'Diesel',budget:0};customCols().push(col)}cat=colKey(col)}
+     current.daily.entries.push({id:'n_'+crypto.randomUUID(),day,category:cat,amount:(sgn==='-'?-1:1)*amount,desc:cleanNoticeDesc(n.desc)||'Notifica'});
+     p.splice(i,1);save();renderDaily();return
+    }
+    if(cloudDirty){const saved=await saveCloud();if(!saved)throw new Error('Salvataggio del registro non riuscito')}
+    const {data:ok,error}=await sb.rpc('rff_confirm_payment_v3',{...deviceArgs(),p_inbox_id:n.inboxId,p_month:month,p_day:day,p_category:cat});
+    if(error)throw error;if(ok!==true)throw new Error('Il server non ha confermato l’operazione');
+    await loadCloud();await fetchInbox();
+   }catch(e){console.log('Conferma V75:',e);alert('Conferma non riuscita: '+(e?.message||'errore'))}
+   finally{paymentActionBusy=false;setPendingBusy(false)}
   };
-  x.querySelector('.rejectPay').onclick=async()=>{
-   if(!confirm('Non confermare questa richiesta? Verrà eliminata senza inserirla nelle spese.'))return;const actionButtons=[...x.querySelectorAll('button')];actionButtons.forEach(btn=>btn.disabled=true);paymentActionBusy=true;
-   x.querySelectorAll('button').forEach(btn=>btn.disabled=true);
-   if(n.inboxId){
-    const {error}=await sb.rpc('rff_reject_payment_v2',{...deviceArgs(),p_inbox_id:n.inboxId});
-    if(error){paymentActionBusy=false;alert('Rifiuto non riuscito: '+(error?.message||'errore')+'. Riprova.');x.querySelectorAll('button').forEach(btn=>btn.disabled=false);return}
-    { const list=data().daily.pending;data().daily.pending=list.filter(v=>v.inboxId!==n.inboxId);localStorage.setItem('rff_verified',JSON.stringify(db)); }
-   }else{p.splice(i,1);save()}
-   paymentActionBusy=false;renderPending();
+  rejectBtn.onclick=async(ev)=>{
+   ev.preventDefault();ev.stopPropagation();
+   if(paymentActionBusy)return;
+   if(!confirm('Non confermare questa richiesta? Verrà eliminata senza inserirla nelle spese.'))return;
+   paymentActionBusy=true;setPendingBusy(true);rejectBtn.textContent='Elimino…';
+   try{
+    if(!n.inboxId){p.splice(i,1);save();renderPending();return}
+    if(cloudDirty){const saved=await saveCloud();if(!saved)throw new Error('Salvataggio del registro non riuscito')}
+    const {data:ok,error}=await sb.rpc('rff_reject_payment_v3',{...deviceArgs(),p_inbox_id:n.inboxId});
+    if(error)throw error;if(ok!==true)throw new Error('Il server non ha eliminato la richiesta');
+    await loadCloud();await fetchInbox();
+   }catch(e){console.log('Rifiuto V75:',e);alert('Non confermare non riuscito: '+(e?.message||'errore'))}
+   finally{paymentActionBusy=false;rejectBtn.textContent='Non confermare';setPendingBusy(false)}
   };
+  [confirmBtn,rejectBtn].forEach(btn=>{btn.type='button';btn.style.pointerEvents='auto';btn.style.touchAction='manipulation';btn.style.position='relative';btn.style.zIndex='20'});
   h.appendChild(x)
  });applyPermissions()
 }
@@ -1263,7 +1276,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260930-v74-direct-actions', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260930-v75-server-actions', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
