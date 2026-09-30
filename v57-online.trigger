@@ -1,1 +1,1 @@
-stable V67 primary confirmation build retry 2026-09-30
+stable V71 clean primary phone fix 2026-09-30
