@@ -1,1 +1,1 @@
-stable V77 reject without JS dialog build 2026-09-30
+stable V78 notification bar with Confirm / Non confermare build 2026-09-30
