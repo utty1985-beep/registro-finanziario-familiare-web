@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V77</title>
+<title>Registro Finanziario Familiare V78</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -78,7 +78,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 .varieAdjust{display:grid;grid-template-columns:75px minmax(0,1fr) auto;gap:8px;align-items:center;margin-top:8px}
 .varieAdjust select,.varieAdjust input{width:100%;font-size:18px;min-width:0}
 .varieResult{font-weight:900;color:#0b4f8a;margin-top:8px}
-.varieAdjustments{font-size:13px;color:#52606d;margin-top:5px}.pendingList{padding-top:24px}.notice{border:1px solid #ef9a9a;background:#fff4f4;border-radius:10px;padding:8px;margin:7px 0;color:#a31515}
+.varieAdjustments{font-size:13px;color:#52606d;margin-top:5px}.pendingBar{border:2px solid #ef9a9a;background:#fff7f7;box-shadow:0 4px 14px #b91c1c14}.pendingBarHead{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:900;color:#9f1239;padding:2px 0 8px}.pendingBar .badge{position:static;flex:0 0 auto}.pendingList{padding-top:4px}.notice{border:1px solid #ef9a9a;background:#fff4f4;border-radius:10px;padding:10px;margin:7px 0;color:#a31515}.pendingActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.pendingActions button{min-height:46px;font-size:16px;font-weight:900;touch-action:manipulation}.pendingActions .confirmPay{background:#15803d;color:#fff;border-color:#15803d}.pendingActions .rejectPay{background:#fff;color:#b4232b;border:2px solid #b4232b}
 .boardList{display:grid;gap:8px;margin-top:10px}.boardItem{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:10px;border:1px solid var(--bd);border-radius:10px;background:#fff}.boardItem button{background:#d9534f;color:#fff;border:0;border-radius:8px;padding:8px 10px}.boardAdd{display:grid;grid-template-columns:1fr auto;gap:8px}.boardAdd input{width:100%;padding:10px;border:1px solid var(--bd);border-radius:9px}.nav{display:flex;justify-content:space-between;margin-top:12px}.nav button{font-size:22px;min-width:54px}
 .hint{font-size:12px;color:#64748b;margin:5px 0 10px}
 .viewerBanner{background:#eaf4ff;color:#0b4f8a;padding:9px 12px;border-radius:10px;font-weight:700;margin-bottom:10px}
@@ -244,7 +244,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <label class="full">Giorno del pagamento<input id="entryDate" type="date"></label>
  <button id="addEntry" class="primary">+ Aggiungi pagamento</button><button id="sendForApproval" type="button">Invia da confermare</button><div class="full hint">“Invia da confermare” crea una richiesta rossa condivisa con gli altri telefoni, senza registrare ancora la spesa.</div></div>
  <details class="historyDrop"><summary>Pagamenti inseriti <span id="entryHistoryCount"></span></summary><div id="entryHistory"></div></details></div>
- <details class="card pending pendingDrop" id="pendingDrop"><summary><span>Pagamenti e richieste da confermare</span><span class="badge" id="badge" hidden>0</span></summary><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></details>
+ <div class="card pending pendingBar" id="pendingDrop"><div class="pendingBarHead"><span>🔔 Pagamenti e richieste da confermare</span><span class="badge" id="badge" hidden>0</span></div><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div>
  <div class="card"><label>Mostra dal giorno <input id="viewDate" type="date"></label></div>
  <div class="tableWrap"><table><thead><tr id="dailyHead"><th>Giorno</th><th>Mangiare</th></tr></thead><tbody id="dailyBody"></tbody></table></div>
  <div class="card"><h2>Varie</h2><div class="hint">Le voci selezionate dalla prima pagina e i pagamenti confermati in Varie compaiono qui.</div><div id="varieSingle"></div></div>
@@ -725,6 +725,7 @@ function renderPending(){
    if(label)confirmBtn.textContent=label;else confirmBtn.textContent='Conferma';
   };
   confirmBtn.onclick=async(ev)=>{
+   if(ev?.type==='click'&&Date.now()<Number(confirmBtn.dataset.rffSuppressClickUntil||0))return;
    ev.preventDefault();ev.stopPropagation();
    if(paymentActionBusy)return;
    const [yy,mm]=ymParts(),day=Number(x.querySelector('input').value),amount=Number(n.amount);
@@ -746,6 +747,7 @@ function renderPending(){
    finally{paymentActionBusy=false;setPendingBusy(false)}
   };
   rejectBtn.onclick=async(ev)=>{
+   if(ev?.type==='click'&&Date.now()<Number(rejectBtn.dataset.rffSuppressClickUntil||0))return;
    ev.preventDefault();ev.stopPropagation();
    if(paymentActionBusy)return;
    const rejectArmed=rejectBtn.dataset.rffRejectArmed==='1';
@@ -775,6 +777,7 @@ function renderPending(){
     if(!btn||!h.contains(btn))return;
     const now=Date.now(),last=Number(btn.dataset.rffLastTap||0);
     if(now-last<650)return;btn.dataset.rffLastTap=String(now);
+    btn.dataset.rffSuppressClickUntil=String(now+900);
     ev.preventDefault();ev.stopPropagation();
     const fn=btn.onclick;if(typeof fn==='function')fn.call(btn,ev);
    };
@@ -1297,7 +1300,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260930-v77-reject-no-dialog', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260930-v78-notification-bar', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
