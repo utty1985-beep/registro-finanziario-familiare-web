@@ -1,4 +1,4 @@
-name: Applica V67 stabile online
+name: Applica V71 stabile online
 on:
   push:
     paths:
@@ -14,6 +14,8 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
+
           html=Path('index.html').read_text()
           ui=Path('v56-ui.js').read_text()
           main=Path('v56-main.js').read_text()
@@ -21,24 +23,77 @@ jobs:
           red=Path('v58-red-button.js').read_text()
           longpress=Path('v61-longpress-toggle.js').read_text()
 
+          # 1) Il ruolo dipende dal dispositivo: un solo telefono principale, gli altri sentinelle.
           old_role="familyRole=(device.status==='active'&&accountRole==='owner')?'owner':'viewer';if(familyRole==='viewer')$('#addEntry').textContent='Invia da confermare';else $('#addEntry').textContent='+ Aggiungi pagamento';"
           new_role="familyRole=(device.status==='active'&&String(device.role||'')==='primary'&&accountRole==='owner')?'owner':'viewer';if(familyRole==='viewer')$('#addEntry').textContent='Invia pagamento';else $('#addEntry').textContent='+ Aggiungi pagamento';"
-          if old_role not in main: raise SystemExit('V67 role marker missing')
+          if old_role not in main: raise SystemExit('V71 role marker missing')
           main=main.replace(old_role,new_role,1)
 
+          # 2) La sentinella non modifica le impostazioni Spese e non vede i comandi di conferma.
           old_perm="const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;$('#sendForApproval').hidden=viewer;"
           new_perm="const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;const dailySettings=$('#p2 .settingsDrop');if(dailySettings){dailySettings.hidden=viewer;if(viewer)dailySettings.open=false}const pendingDrop=$('#pendingDrop');if(pendingDrop)pendingDrop.hidden=viewer;$('#sendForApproval').hidden=viewer;if(viewer)$('#addEntry').textContent='Invia pagamento';ensurePrimaryButton();"
-          if old_perm not in main: raise SystemExit('V67 permissions marker missing')
+          if old_perm not in main: raise SystemExit('V71 permissions marker missing')
           main=main.replace(old_perm,new_perm,1)
 
+          # 3) Il pulsante per rendere principale il telefono NON deve essere disabilitato da applyPermissions().
+          old_allow="if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','toBoard','toBoard2','authorizeNotices','sourcesButton','sendNotices'].includes(el.id))return;"
+          new_allow="if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','toBoard','toBoard2','authorizeNotices','sourcesButton','sendNotices','makePrimaryPhone'].includes(el.id))return;"
+          if old_allow not in main: raise SystemExit('V71 allow-list marker missing')
+          main=main.replace(old_allow,new_allow,1)
+
+          # 4) Se sul telefono Android non è ancora selezionata una sorgente, abilita quelle riconosciute.
           send_marker="async function sendAndroidPayments(){\n if(!['owner','viewer'].includes(familyRole)||!familyId||!window.RegistroAndroid)return;"
           send_repl="function ensurePaymentSourcesEnabled(){const bridge=window.RegistroAndroid;if(!bridge?.availablePaymentSources||!bridge?.setAllowedPaymentSources)return;try{const sources=JSON.parse(bridge.availablePaymentSources()||'[]');if(!Array.isArray(sources)||!sources.length)return;const enabled=sources.filter(s=>s&&s.enabled&&s.package).map(s=>s.package);if(enabled.length)return;const packages=sources.map(s=>s&&s.package).filter(Boolean);if(packages.length)bridge.setAllowedPaymentSources(JSON.stringify(packages))}catch(e){console.log('Sorgenti pagamenti:',e)}}\nasync function sendAndroidPayments(){\n if(!['owner','viewer'].includes(familyRole)||!familyId||!window.RegistroAndroid)return;ensurePaymentSourcesEnabled();"
-          if send_marker not in main: raise SystemExit('V67 payment marker missing')
+          if send_marker not in main: raise SystemExit('V71 payment marker missing')
           main=main.replace(send_marker,send_repl,1)
 
+          # 5) Un solo pulsante, in fondo alla prima pagina, con il client Supabase già attivo nell'app.
           primary_anchor="$('#sourcesButton').onclick=renderPaymentSources;\n$('#sendNotices').onclick=sendAndroidPayments;"
-          primary_code="$('#sourcesButton').onclick=renderPaymentSources;\n$('#sendNotices').onclick=sendAndroidPayments;\nfunction ensurePrimaryButton(){\n const host=$('#sentinelBar');if(!host)return;\n let btn=$('#makePrimaryPhone');\n if(!btn){btn=document.createElement('button');btn.id='makePrimaryPhone';btn.type='button';btn.textContent='📱 Rendi questo il telefono principale';btn.style.marginLeft='6px';host.appendChild(btn);const hint=document.createElement('div');hint.id='makePrimaryHint';hint.className='hint';hint.textContent='Usalo solo sul tuo telefono principale: abilita Conferma / Non confermare e lascia gli altri telefoni come sentinelle.';host.appendChild(hint);btn.onclick=async()=>{if(!confirm('Impostare questo come telefono principale? Gli altri telefoni resteranno sentinelle.'))return;btn.disabled=true;const old=btn.textContent;btn.textContent='Impostazione…';try{const {error}=await sb.rpc('rff_make_primary',deviceArgs());if(error)throw error;location.reload()}catch(e){console.log('Telefono principale:',e);alert('Impostazione non riuscita. Riprova con Internet attivo.');btn.disabled=false;btn.textContent=old}}}\n const show=familyRole==='viewer'&&accountRole==='owner';btn.hidden=!show;const hint=$('#makePrimaryHint');if(hint)hint.hidden=!show;\n}\n"
-          if primary_anchor not in main: raise SystemExit('V67 primary anchor missing')
+          primary_code="""$('#sourcesButton').onclick=renderPaymentSources;
+$('#sendNotices').onclick=sendAndroidPayments;
+function ensurePrimaryButton(){
+ const p1=$('#p1');if(!p1)return;
+ let card=$('#primaryRecoveryCard');
+ let btn=$('#makePrimaryPhone');
+ let hint=$('#makePrimaryHint');
+ if(!card){
+  card=document.createElement('div');card.id='primaryRecoveryCard';card.className='card';
+  card.style.cssText='border:2px solid #0b4f8a;background:#eef6ff;margin:16px 0;padding:14px';
+  const title=document.createElement('h2');title.textContent='📱 Telefono principale';card.appendChild(title);
+ }
+ if(!btn){
+  btn=document.createElement('button');btn.id='makePrimaryPhone';btn.type='button';btn.className='primary';
+  btn.textContent='📱 Rendi questo il telefono principale';
+  btn.onclick=async()=>{
+   if(!confirm('Impostare questo come telefono principale? Gli altri telefoni resteranno sentinelle.'))return;
+   const old=btn.textContent;btn.disabled=true;btn.textContent='Impostazione…';
+   try{
+    const {data,error}=await sb.rpc('rff_make_primary',deviceArgs());
+    if(error)throw error;
+    if(data!==true)throw new Error('Il server non ha confermato il cambio.');
+    familyRole='owner';
+    btn.textContent='✓ Telefono principale';
+    applyPermissions();
+    await fetchInbox();
+    renderDaily();
+    alert('Questo telefono ora è il principale. Puoi confermare o rifiutare i pagamenti.');
+   }catch(e){
+    console.log('Telefono principale:',e);
+    alert('Impostazione non riuscita: '+(e?.message||'errore')+'. Riprova con Internet attivo.');
+    btn.disabled=false;btn.textContent=old;
+   }
+  };
+ }
+ if(!hint){hint=document.createElement('div');hint.id='makePrimaryHint';hint.className='hint';hint.textContent='Premilo solo sul telefono che deve approvare o rifiutare i pagamenti.';}
+ if(btn.parentElement!==card)card.appendChild(btn);
+ if(hint.parentElement!==card)card.appendChild(hint);
+ if(card.parentElement!==p1)p1.appendChild(card);
+ const show=familyRole==='viewer'&&accountRole==='owner';
+ card.hidden=!show;btn.hidden=!show;hint.hidden=!show;
+ if(show){btn.disabled=false;btn.removeAttribute('disabled');btn.style.cssText='width:100%;margin-top:8px;font-size:18px;padding:14px;opacity:1;pointer-events:auto';}
+}
+"""
+          if primary_anchor not in main: raise SystemExit('V71 primary anchor missing')
           main=main.replace(primary_anchor,primary_code,1)
 
           anchor='<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'
@@ -46,23 +101,14 @@ jobs:
           marker="<script>\nif ('serviceWorker' in navigator)"
           end=html.index(marker,start)
           html=html[:start]+'<script>\n'+ui+'\n</script>\n<script>\n'+main+'\n</script>\n<script>\n'+polish+'\n</script>\n<script>\n'+red+'\n</script>\n<script>\n'+longpress+'\n</script>\n'+html[end:]
-          versions=[
-              'service-worker.js?v=20260929-v61-longpress-dot',
-              'service-worker.js?v=20260929-v60-direct-red',
-              'service-worker.js?v=20260929-v59-rate-full-date',
-              'service-worker.js?v=20260929-v58-red-button',
-              'service-worker.js?v=20260929-v57-calendar-board',
-              'service-worker.js?v=20260929-v52-calculator',
-              'service-worker.js?v=20260929-v62-stable',
-              'service-worker.js?v=20260930-v66-sentinel-sync'
-          ]
-          for oldv in versions:
-              html=html.replace(oldv,'service-worker.js?v=20260930-v67-primary-confirm')
+          html=re.sub(r"service-worker\.js\?v=[^'\" ]+",'service-worker.js?v=20260930-v71-primary-clean',html)
+
           required=[
               'rateDueDay','rateDueMonth','rateDueYear','calendarGrid','rffQuickNav',
               'V60_DIRECT_RED_BUTTON','RFF_LONGPRESS_V61','provisionalDot','lastVerticalScroll',
-              '✅ Permessi attivi','✅ Notifiche da app attive','service-worker.js?v=20260930-v67-primary-confirm',
-              "String(device.role||'')==='primary'",'Invia pagamento','ensurePaymentSourcesEnabled','makePrimaryPhone','rff_make_primary'
+              '✅ Permessi attivi','✅ Notifiche da app attive','service-worker.js?v=20260930-v71-primary-clean',
+              "String(device.role||'')==='primary'",'Invia pagamento','ensurePaymentSourcesEnabled',
+              "'makePrimaryPhone'].includes(el.id)",'primaryRecoveryCard','rff_make_primary'
           ]
           for marker in required:
               if marker not in html: raise SystemExit('marker missing: '+marker)
@@ -81,12 +127,14 @@ jobs:
           test -s index.html
           test -s manifest.json
           test -s service-worker.js
-          grep -q '20260929-v65-varie-collapse' service-worker.js
+          grep -q '20260930-v71-primary-clean' service-worker.js
           grep -q 'v61-longpress-toggle.js' service-worker.js
+          ! grep -q 'v68-primary-visible.js' service-worker.js
+          ! grep -q 'v69-primary-bottom.js' service-worker.js
       - name: Commit versione stabile online
         run: |
           git config user.name "github-actions[bot]"
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'Publish V67 primary phone confirmation recovery'
+          git diff --cached --quiet || git commit -m 'Publish V71 clean primary phone fix'
           git push
