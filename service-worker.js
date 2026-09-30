@@ -1,13 +1,12 @@
-const CACHE='rff-20260930-v70-primary-bottom';
-const SW_VERSION='20260930-v70-primary-bottom';
+const CACHE='rff-20260930-v71-primary-clean';
+const SW_VERSION='20260930-v71-primary-clean';
 const ASSETS=[
   './','./index.html','./manifest.json','./icon-192.png','./icon-512.png',
-  './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js','./v69-primary-bottom.js'
+  './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js'
 ];
 
 function patchHtml(html){
   let out=html.replace(/service-worker\.js\?v=[^'" ]+/g,'service-worker.js?v='+SW_VERSION);
-  out=out.replace(/<script[^>]+v68-primary-visible\.js[^>]*><\/script>\s*/g,'');
   if(!out.includes('v63-month-stability.js')){
     out=out.replace('</body>','<script src="./v63-month-stability.js?v='+SW_VERSION+'"></script>\n</body>');
   }
@@ -16,9 +15,6 @@ function patchHtml(html){
   }
   if(!out.includes('v65-varie-collapse.js')){
     out=out.replace('</body>','<script src="./v65-varie-collapse.js?v='+SW_VERSION+'"></script>\n</body>');
-  }
-  if(!out.includes('v69-primary-bottom.js')){
-    out=out.replace('</body>','<script src="./v69-primary-bottom.js?v='+SW_VERSION+'"></script>\n</body>');
   }
   return out;
 }
