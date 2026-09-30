@@ -1,8 +1,8 @@
-const CACHE='rff-20260929-v65-varie-collapse';
-const SW_VERSION='20260929-v65-varie-collapse';
+const CACHE='rff-20260930-v68-primary-visible';
+const SW_VERSION='20260930-v68-primary-visible';
 const ASSETS=[
   './','./index.html','./manifest.json','./icon-192.png','./icon-512.png',
-  './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js'
+  './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js','./v68-primary-visible.js'
 ];
 
 function patchHtml(html){
@@ -15,6 +15,9 @@ function patchHtml(html){
   }
   if(!out.includes('v65-varie-collapse.js')){
     out=out.replace('</body>','<script src="./v65-varie-collapse.js?v='+SW_VERSION+'"></script>\n</body>');
+  }
+  if(!out.includes('v68-primary-visible.js')){
+    out=out.replace('</body>','<script src="./v68-primary-visible.js?v='+SW_VERSION+'"></script>\n</body>');
   }
   return out;
 }
