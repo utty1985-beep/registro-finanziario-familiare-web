@@ -368,7 +368,7 @@ window.addEventListener('online',()=>{if(familyRole==='owner'&&familyId)saveClou
 function applyPermissions(){
  const viewer=familyRole==='viewer';$('#viewerBanner').hidden=!viewer;
  $('#pairingCard').hidden=true;$('#sentinelBar').hidden=!familyRole;const hasBridge=!!window.RegistroAndroid;['authorizeNotices','sourcesButton','sendNotices'].forEach(id=>$('#'+id).disabled=!hasBridge);
- const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;const dailySettings=$('#p2 .settingsDrop');if(dailySettings){dailySettings.hidden=viewer;if(viewer)dailySettings.open=false}$('#sendForApproval').hidden=viewer;if(viewer)$('#addEntry').textContent='Invia pagamento';
+ const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;const dailySettings=$('#p2 .settingsDrop');if(dailySettings){dailySettings.hidden=viewer;if(viewer)dailySettings.open=false}const pendingDrop=$('#pendingDrop');if(pendingDrop)pendingDrop.hidden=viewer;$('#sendForApproval').hidden=viewer;if(viewer)$('#addEntry').textContent='Invia pagamento';ensurePrimaryButton();
  document.querySelectorAll('#p1 input:not(#monthPick),#p2 input,#p1 button,#p2 button,#p2 select').forEach(el=>{
   if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','toBoard','toBoard2','authorizeNotices','sourcesButton','sendNotices'].includes(el.id))return;
   if(el.closest('.entryForm')){el.disabled=false;return}
@@ -822,6 +822,13 @@ function renderPaymentSources(){
 }
 $('#sourcesButton').onclick=renderPaymentSources;
 $('#sendNotices').onclick=sendAndroidPayments;
+function ensurePrimaryButton(){
+ const host=$('#sentinelBar');if(!host)return;
+ let btn=$('#makePrimaryPhone');
+ if(!btn){btn=document.createElement('button');btn.id='makePrimaryPhone';btn.type='button';btn.textContent='📱 Rendi questo il telefono principale';btn.style.marginLeft='6px';host.appendChild(btn);const hint=document.createElement('div');hint.id='makePrimaryHint';hint.className='hint';hint.textContent='Usalo solo sul tuo telefono principale: abilita Conferma / Non confermare e lascia gli altri telefoni come sentinelle.';host.appendChild(hint);btn.onclick=async()=>{if(!confirm('Impostare questo come telefono principale? Gli altri telefoni resteranno sentinelle.'))return;btn.disabled=true;const old=btn.textContent;btn.textContent='Impostazione…';try{const {error}=await sb.rpc('rff_make_primary',deviceArgs());if(error)throw error;location.reload()}catch(e){console.log('Telefono principale:',e);alert('Impostazione non riuscita. Riprova con Internet attivo.');btn.disabled=false;btn.textContent=old}}}
+ const show=familyRole==='viewer'&&accountRole==='owner';btn.hidden=!show;const hint=$('#makePrimaryHint');if(hint)hint.hidden=!show;
+}
+
 async function showPairingRequests(){
  if(familyRole!=='owner'){ $('#pairingCard').hidden=true; return; }
  const {data:requests,error}=await sb.rpc('rff_pending_devices',deviceArgs());
@@ -1247,7 +1254,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260930-v66-sentinel-sync', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260930-v67-primary-confirm', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
