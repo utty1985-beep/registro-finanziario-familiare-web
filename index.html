@@ -708,17 +708,19 @@ function renderEntryHistory(){
 }
 function escapeNotice(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function noticeSign(n){if((n&&n.sign==='+')||(n&&n.sign==='-'))return n.sign;const d=String(n?.desc||'');return d.startsWith('__RFF_SIGN_POS__')?'+':'-'}
-function cleanNoticeDesc(s){return String(s||'').replace(/^__RFF_SIGN_(?:NEG|POS)__\s*/,'')}
+function noticeAppName(s){const t=String(s||'').replace(/^__RFF_SIGN_(?:NEG|POS)__\s*/,'');const m=t.match(/^__RFF_APP__(.*?)__\s*/);return m?String(m[1]||'').trim():''}
+function cleanNoticeDesc(s){return String(s||'').replace(/^__RFF_SIGN_(?:NEG|POS)__\s*/,'').replace(/^__RFF_APP__(.*?)__\s*/,'')}
+function noticeOrigin(n){const who=n?.sourceDeviceRole==='primary'?'Tuo telefono (principale)':(n?.sourceDeviceRole==='sentinel'?'Telefono sentinella':'Telefono');const label=String(n?.sourceDeviceLabel||'').trim();const app=noticeAppName(n?.desc||'');return who+(label?' · '+label:'')+(app?' · App: '+app:' · App: non disponibile')}
 function renderPending(){
  let p=data().daily.pending,b=$('#badge'),h=$('#pendingList');b.hidden=!p.length;b.textContent=p.length;h.innerHTML=p.length?'':'<div class="hint">Nessuna notifica da confermare.</div>';
  p.forEach((n,i)=>{
   let x=document.createElement('div');x.className='notice';
   const opts=[['Mangiare','food'],...((n.category||'').toLowerCase()==='diesel'&&!customCols().some(c=>(c.name||'').toLowerCase()==='diesel')?[['Diesel','diesel-proposed']]:[]),...customCols().filter(c=>(c.name||'').trim()).map(c=>[c.name.trim(),colKey(c)]),['Varie','varie']].map(([name,key])=>`<option value="${escapeNotice(key)}">${escapeNotice(name)}</option>`).join('');
   const sgn=noticeSign(n);
-  x.innerHTML=`<b>${sgn} € ${euro(n.amount)}</b> ${escapeNotice(cleanNoticeDesc(n.desc))}<br><select>${opts}</select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"><div class="pendingActions"><button class="confirmPay">Conferma</button><button class="rejectPay">Non confermare</button></div>`;
+  x.innerHTML=`<div style="font-size:12px;font-weight:800;color:#0b5685;margin-bottom:6px">${escapeNotice(noticeOrigin(n))}</div><b>${sgn} € ${euro(n.amount)}</b> ${escapeNotice(cleanNoticeDesc(n.desc))}<br><select>${opts}</select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"><div class="pendingActions"><button class="confirmPay">Conferma</button><button class="rejectPay">Non confermare</button></div>`;
   const suggested=customCols().find(c=>(c.name||'').toLowerCase()===(n.category||'').toLowerCase());x.querySelector('select').value=suggested?colKey(suggested):(n.category==='Mangiare'?'food':(n.category==='Diesel'?'diesel-proposed':'varie'));if(n.day)x.querySelector('input').value=n.day;
   x.querySelector('.confirmPay').onclick=async()=>{
-   if(familyRole!=='owner'||paymentActionBusy)return;
+   if(paymentActionBusy)return;await refreshDeviceRole(true);if(familyRole!=='owner'){alert('Solo il telefono principale può confermare i pagamenti.');return;}
    if(cloudDirty&&!await saveCloud()){alert('Salva prima le modifiche del registro.');return}
    const [yy,mm]=ymParts(),day=Number(x.querySelector('input').value),amount=Number(n.amount);
    if(!Number.isInteger(day)||day<1||day>new Date(yy,mm,0).getDate()||!Number.isFinite(amount)||amount<=0)return;
@@ -730,17 +732,17 @@ function renderPending(){
    paymentActionBusy=true;x.querySelectorAll('button').forEach(btn=>btn.disabled=true);
    const proposed=JSON.parse(JSON.stringify(db));proposed[month].daily.entries.push(entry);
    try{
-    const {error}=await sb.rpc('rff_confirm_payment',{...deviceArgs(),p_inbox_id:n.inboxId,p_data:proposed});if(error)throw error;
+    const {error}=await sb.rpc('rff_confirm_payment_v2',{...deviceArgs(),p_inbox_id:n.inboxId,p_data:proposed});if(error)throw error;
     await loadCloud();
-   }catch(e){console.log('Conferma:',e);alert('Conferma non completata. Riprova: il pagamento non verrà duplicato.');x.querySelectorAll('button').forEach(btn=>btn.disabled=false)}
+   }catch(e){console.log('Conferma:',e);alert('Conferma non completata: '+(e?.message||'errore')+'. Il pagamento non verrà duplicato.');x.querySelectorAll('button').forEach(btn=>btn.disabled=false)}
    finally{paymentActionBusy=false;await fetchInbox()}
   };
   x.querySelector('.rejectPay').onclick=async()=>{
-   if(familyRole!=='owner'||paymentActionBusy)return;if(!confirm('Non confermare questa richiesta? Verrà eliminata senza inserirla nelle spese.'))return;
+   if(paymentActionBusy)return;await refreshDeviceRole(true);if(familyRole!=='owner'){alert('Solo il telefono principale può eliminare una richiesta.');return;}if(!confirm('Non confermare questa richiesta? Verrà eliminata senza inserirla nelle spese.'))return;
    x.querySelectorAll('button').forEach(btn=>btn.disabled=true);
    if(n.inboxId){
-    const {error}=await sb.rpc('rff_reject_payment',{...deviceArgs(),p_inbox_id:n.inboxId});
-    if(error){alert('Rifiuto non riuscito. Riprova.');x.querySelectorAll('button').forEach(btn=>btn.disabled=false);return}
+    const {error}=await sb.rpc('rff_reject_payment_v2',{...deviceArgs(),p_inbox_id:n.inboxId});
+    if(error){alert('Rifiuto non riuscito: '+(error?.message||'errore')+'. Riprova.');x.querySelectorAll('button').forEach(btn=>btn.disabled=false);return}
     { const list=data().daily.pending;data().daily.pending=list.filter(v=>v.inboxId!==n.inboxId);localStorage.setItem('rff_verified',JSON.stringify(db)); }
    }else{p.splice(i,1);save()}
    renderPending();
@@ -759,12 +761,12 @@ function guessCategory(s){s=String(s||'').toLowerCase();if(/\b(q8|eni|esso|tamoi
 async function fetchInbox(){
  if(inboxBusy||!['owner','viewer'].includes(familyRole)||!familyId||paymentActionBusy||$('#pendingList').contains(document.activeElement))return;inboxBusy=true;
  try{
-  const {data:rows,error}=await sb.rpc('rff_pending_payments',deviceArgs());if(error)throw error;
+  const {data:rows,error}=await sb.rpc('rff_pending_payments_v2',deviceArgs());if(error)throw error;
   lastInboxSync=Date.now();const byMonth={};
   for(const row of rows||[]){
    const dt=new Date(row.occurred_at);if(!Number.isFinite(dt.getTime()))continue;
    const key=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'),rawDesc=String(row.description||'');
-   (byMonth[key]||(byMonth[key]=[])).push({inboxId:row.id,id:'i_'+row.id,amount:Number(row.amount),desc:rawDesc,sign:rawDesc.startsWith('__RFF_SIGN_POS__')?'+':'-',category:row.suggested_category,day:dt.getDate()});
+   (byMonth[key]||(byMonth[key]=[])).push({inboxId:row.id,id:'i_'+row.id,amount:Number(row.amount),desc:rawDesc,sign:rawDesc.startsWith('__RFF_SIGN_POS__')?'+':'-',category:row.suggested_category,day:dt.getDate(),sourceDeviceId:row.source_device_id,sourceDeviceLabel:row.source_device_label,sourceDeviceRole:row.source_device_role});
   }
   let changed=false;
   for(const key of new Set([...Object.keys(db).filter(k=>/^\d{4}-\d{2}$/.test(k)),...Object.keys(byMonth)])){
@@ -784,7 +786,7 @@ async function sendAndroidPayments(){
  for(const x of items){
   const amount=Number(x.amount),dt=new Date(Number(x.timestamp));
   if(!x.id||!Number.isFinite(amount)||amount<=0||!Number.isFinite(dt.getTime()))continue;
-  const desc=String(((x.title||'')+' '+(x.text||'')).trim()||'Pagamento rilevato').slice(0,180);
+  let sourceLabel=String(x.package||'');try{const srcs=JSON.parse(RegistroAndroid.availablePaymentSources?.()||'[]');const hit=srcs.find(s=>s&&s.package===x.package);if(hit?.label)sourceLabel=String(hit.label)}catch(_){ }sourceLabel=sourceLabel.replace(/__/g,' ');const body=String(((x.title||'')+' '+(x.text||'')).trim()||'Pagamento rilevato').slice(0,140);const desc=(sourceLabel?'__RFF_APP__'+sourceLabel+'__ ':'')+body;
   const {error}=await sb.rpc('rff_send_payment',{...deviceArgs(),p_notification_id:String(x.id),p_amount:amount,p_description:desc,p_occurred_at:dt.toISOString(),p_category:guessCategory(desc)});
   if(error){console.log('Invio pagamento:',error);$('#sendStatus').textContent='Importazione non riuscita. I pagamenti restano sul telefono per riprovare.';continue}
   RegistroAndroid.acknowledgePendingPayments(JSON.stringify([x.id]));sent++;
@@ -1261,7 +1263,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260930-v72-confirm-refresh', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260930-v73-origin-actions', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
