@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V46</title>
+<title>Registro Finanziario Familiare V76</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -759,7 +759,20 @@ function renderPending(){
    }catch(e){console.log('Rifiuto V75:',e);alert('Non confermare non riuscito: '+(e?.message||'errore'))}
    finally{paymentActionBusy=false;rejectBtn.textContent='Non confermare';setPendingBusy(false)}
   };
-  [confirmBtn,rejectBtn].forEach(btn=>{btn.type='button';btn.style.pointerEvents='auto';btn.style.touchAction='manipulation';btn.style.position='relative';btn.style.zIndex='20'});
+  [confirmBtn,rejectBtn].forEach(btn=>{btn.type='button';btn.disabled=false;btn.style.pointerEvents='auto';btn.style.touchAction='manipulation';btn.style.position='relative';btn.style.zIndex='50'});
+  if(!h.dataset.rffDirectTouch){
+   h.dataset.rffDirectTouch='1';
+   const directFire=ev=>{
+    const btn=ev.target&&ev.target.closest?ev.target.closest('.confirmPay,.rejectPay'):null;
+    if(!btn||!h.contains(btn))return;
+    const now=Date.now(),last=Number(btn.dataset.rffLastTap||0);
+    if(now-last<650)return;btn.dataset.rffLastTap=String(now);
+    ev.preventDefault();ev.stopPropagation();
+    const fn=btn.onclick;if(typeof fn==='function')fn.call(btn,ev);
+   };
+   h.addEventListener('pointerup',directFire,true);
+   h.addEventListener('touchend',directFire,{capture:true,passive:false});
+  }
   h.appendChild(x)
  });applyPermissions()
 }
@@ -1276,7 +1289,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260930-v75-server-actions', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260930-v76-direct-touch', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
