@@ -1,1 +1,1 @@
-stable V75 server payment actions build retry 2026-09-30
+stable V76 direct Android touch actions build 2026-09-30
