@@ -1,4 +1,4 @@
-name: Applica V77 non confermare pagamenti
+name: Applica V78 barra notifiche e azioni stabili
 on:
   push:
     paths:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Correggi Non confermare su Android
+      - name: Ripristina barra notifiche e correggi tocchi Android
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -19,36 +19,62 @@ jobs:
           html=Path('index.html').read_text()
           sw=Path('service-worker.js').read_text()
 
-          old="""   if(!confirm('Non confermare questa richiesta? Verrà eliminata senza inserirla nelle spese.'))return;\n   paymentActionBusy=true;setPendingBusy(true);rejectBtn.textContent='Elimino…';"""
-          new="""   const rejectArmed=rejectBtn.dataset.rffRejectArmed==='1';\n   if(!rejectArmed){\n    rejectBtn.dataset.rffRejectArmed='1';\n    rejectBtn.textContent='Tocca ancora per eliminare';\n    rejectBtn.style.fontSize='13px';\n    setTimeout(()=>{if(rejectBtn.dataset.rffRejectArmed==='1'){delete rejectBtn.dataset.rffRejectArmed;rejectBtn.textContent='Non confermare';rejectBtn.style.fontSize=''}},4000);\n    return;\n   }\n   delete rejectBtn.dataset.rffRejectArmed;rejectBtn.style.fontSize='';\n   paymentActionBusy=true;setPendingBusy(true);rejectBtn.textContent='Elimino…';"""
-          if old not in html:
-            raise SystemExit('Handler Non confermare V76 non trovato')
-          html=html.replace(old,new,1)
+          old_markup='''<details class="card pending pendingDrop" id="pendingDrop"><summary><span>Pagamenti e richieste da confermare</span><span class="badge" id="badge" hidden>0</span></summary><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></details>'''
+          new_markup='''<div class="card pending pendingBar" id="pendingDrop"><div class="pendingBarHead"><span>🔔 Pagamenti e richieste da confermare</span><span class="badge" id="badge" hidden>0</span></div><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div>'''
+          if old_markup not in html:
+            raise SystemExit('Barra notifiche V77 non trovata')
+          html=html.replace(old_markup,new_markup,1)
 
-          html=html.replace('<title>Registro Finanziario Familiare V76</title>','<title>Registro Finanziario Familiare V77</title>',1)
-          html=re.sub(r"service-worker\.js\?v=[^'\" ]+",'service-worker.js?v=20260930-v77-reject-no-dialog',html)
-          sw=re.sub(r"const CACHE='[^']+';","const CACHE='rff-20260930-v77-reject-no-dialog';",sw,count=1)
-          sw=re.sub(r"const SW_VERSION='[^']+';","const SW_VERSION='20260930-v77-reject-no-dialog';",sw,count=1)
+          css_marker='.pendingList{padding-top:24px}.notice{border:1px solid #ef9a9a;background:#fff4f4;border-radius:10px;padding:8px;margin:7px 0;color:#a31515}'
+          css_new='''.pendingBar{border:2px solid #ef9a9a;background:#fff7f7;box-shadow:0 4px 14px #b91c1c14}.pendingBarHead{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:900;color:#9f1239;padding:2px 0 8px}.pendingBar .badge{position:static;flex:0 0 auto}.pendingList{padding-top:4px}.notice{border:1px solid #ef9a9a;background:#fff4f4;border-radius:10px;padding:10px;margin:7px 0;color:#a31515}.pendingActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.pendingActions button{min-height:46px;font-size:16px;font-weight:900;touch-action:manipulation}.pendingActions .confirmPay{background:#15803d;color:#fff;border-color:#15803d}.pendingActions .rejectPay{background:#fff;color:#b4232b;border:2px solid #b4232b}'''
+          if css_marker not in html:
+            raise SystemExit('CSS notifiche V77 non trovato')
+          html=html.replace(css_marker,css_new,1)
 
-          for marker in ['rff_reject_payment_v3','Tocca ancora per eliminare','rffRejectArmed','Registro Finanziario Familiare V77']:
-            if marker not in html: raise SystemExit('Marker V77 mancante: '+marker)
-          if "confirm('Non confermare questa richiesta?" in html:
-            raise SystemExit('Dialog conferma vecchio ancora presente')
-          if '20260930-v77-reject-no-dialog' not in sw:
-            raise SystemExit('Cache V77 mancante')
+          old_confirm="""  confirmBtn.onclick=async(ev)=>{\n   ev.preventDefault();ev.stopPropagation();\n   if(paymentActionBusy)return;"""
+          new_confirm="""  confirmBtn.onclick=async(ev)=>{\n   if(ev?.type==='click'&&Date.now()<Number(confirmBtn.dataset.rffSuppressClickUntil||0))return;\n   ev.preventDefault();ev.stopPropagation();\n   if(paymentActionBusy)return;"""
+          if old_confirm not in html:
+            raise SystemExit('Handler Conferma V77 non trovato')
+          html=html.replace(old_confirm,new_confirm,1)
+
+          old_reject="""  rejectBtn.onclick=async(ev)=>{\n   ev.preventDefault();ev.stopPropagation();\n   if(paymentActionBusy)return;"""
+          new_reject="""  rejectBtn.onclick=async(ev)=>{\n   if(ev?.type==='click'&&Date.now()<Number(rejectBtn.dataset.rffSuppressClickUntil||0))return;\n   ev.preventDefault();ev.stopPropagation();\n   if(paymentActionBusy)return;"""
+          if old_reject not in html:
+            raise SystemExit('Handler Non confermare V77 non trovato')
+          html=html.replace(old_reject,new_reject,1)
+
+          old_touch="""    const now=Date.now(),last=Number(btn.dataset.rffLastTap||0);\n    if(now-last<650)return;btn.dataset.rffLastTap=String(now);\n    ev.preventDefault();ev.stopPropagation();"""
+          new_touch="""    const now=Date.now(),last=Number(btn.dataset.rffLastTap||0);\n    if(now-last<650)return;btn.dataset.rffLastTap=String(now);\n    btn.dataset.rffSuppressClickUntil=String(now+900);\n    ev.preventDefault();ev.stopPropagation();"""
+          if old_touch not in html:
+            raise SystemExit('Tocco diretto V77 non trovato')
+          html=html.replace(old_touch,new_touch,1)
+
+          html=html.replace('<title>Registro Finanziario Familiare V77</title>','<title>Registro Finanziario Familiare V78</title>',1)
+          html=re.sub(r"service-worker\.js\?v=[^'\" ]+",'service-worker.js?v=20260930-v78-notification-bar',html)
+          sw=re.sub(r"const CACHE='[^']+';","const CACHE='rff-20260930-v78-notification-bar';",sw,count=1)
+          sw=re.sub(r"const SW_VERSION='[^']+';","const SW_VERSION='20260930-v78-notification-bar';",sw,count=1)
+
+          for marker in ['pendingBarHead','confirmPay','rejectPay','rffSuppressClickUntil','rff_confirm_payment_v3','rff_reject_payment_v3','Registro Finanziario Familiare V78']:
+            if marker not in html: raise SystemExit('Marker V78 mancante: '+marker)
+          if '<details class="card pending pendingDrop" id="pendingDrop">' in html:
+            raise SystemExit('Vecchia barra richiudibile ancora presente')
+          if '20260930-v78-notification-bar' not in sw:
+            raise SystemExit('Cache V78 mancante')
 
           Path('index.html').write_text(html)
           Path('service-worker.js').write_text(sw)
           PY
-      - name: Verifica V77
+      - name: Verifica V78
         run: |
-          grep -q 'Tocca ancora per eliminare' index.html
-          grep -q 'rffRejectArmed' index.html
-          grep -q '20260930-v77-reject-no-dialog' service-worker.js
-      - name: Pubblica V77
+          grep -q 'pendingBarHead' index.html
+          grep -q 'rffSuppressClickUntil' index.html
+          grep -q 'rff_confirm_payment_v3' index.html
+          grep -q 'rff_reject_payment_v3' index.html
+          grep -q '20260930-v78-notification-bar' service-worker.js
+      - name: Pubblica V78
         run: |
           git config user.name "github-actions[bot]"
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html service-worker.js
-          git diff --cached --quiet || git commit -m 'Publish V77 reject action without JS dialog'
+          git diff --cached --quiet || git commit -m 'Publish V78 restored notification bar and stable actions'
           git push
