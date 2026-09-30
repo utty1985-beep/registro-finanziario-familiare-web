@@ -1,1 +1,1 @@
-stable full validation build 2026-09-29
+stable V66 sentinel sync build 2026-09-30
