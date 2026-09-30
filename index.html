@@ -368,7 +368,7 @@ window.addEventListener('online',()=>{if(familyRole==='owner'&&familyId)saveClou
 function applyPermissions(){
  const viewer=familyRole==='viewer';$('#viewerBanner').hidden=!viewer;
  $('#pairingCard').hidden=true;$('#sentinelBar').hidden=!familyRole;const hasBridge=!!window.RegistroAndroid;['authorizeNotices','sourcesButton','sendNotices'].forEach(id=>$('#'+id).disabled=!hasBridge);
- const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;$('#sendForApproval').hidden=viewer;
+ const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;const dailySettings=$('#p2 .settingsDrop');if(dailySettings){dailySettings.hidden=viewer;if(viewer)dailySettings.open=false}$('#sendForApproval').hidden=viewer;if(viewer)$('#addEntry').textContent='Invia pagamento';
  document.querySelectorAll('#p1 input:not(#monthPick),#p2 input,#p1 button,#p2 button,#p2 select').forEach(el=>{
   if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','toBoard','toBoard2','authorizeNotices','sourcesButton','sendNotices'].includes(el.id))return;
   if(el.closest('.entryForm')){el.disabled=false;return}
@@ -771,8 +771,9 @@ async function fetchInbox(){
   if(changed){localStorage.setItem('rff_verified',JSON.stringify(db));renderPending()}
  }catch(e){console.log('Pagamenti in attesa:',e);syncStatus('Pagamenti da confermare non sincronizzati · riprovo',true)}finally{inboxBusy=false}
 }
+function ensurePaymentSourcesEnabled(){const bridge=window.RegistroAndroid;if(!bridge?.availablePaymentSources||!bridge?.setAllowedPaymentSources)return;try{const sources=JSON.parse(bridge.availablePaymentSources()||'[]');if(!Array.isArray(sources)||!sources.length)return;const enabled=sources.filter(s=>s&&s.enabled&&s.package).map(s=>s.package);if(enabled.length)return;const packages=sources.map(s=>s&&s.package).filter(Boolean);if(packages.length)bridge.setAllowedPaymentSources(JSON.stringify(packages))}catch(e){console.log('Sorgenti pagamenti:',e)}}
 async function sendAndroidPayments(){
- if(!['owner','viewer'].includes(familyRole)||!familyId||!window.RegistroAndroid)return;
+ if(!['owner','viewer'].includes(familyRole)||!familyId||!window.RegistroAndroid)return;ensurePaymentSourcesEnabled();
  let items=[];try{items=JSON.parse(RegistroAndroid.peekPendingPayments()||'[]')}catch(e){return}
  if(!items.length)return;
  let sent=0;
@@ -954,7 +955,7 @@ async function enter(session){
   if(!await resolveFamily())throw new Error('Account non collegato alla famiglia.');
   const {data:device,error:pairError}=await sb.rpc('rff_register_device',{...deviceArgs(),p_label:'Telefono '+deviceId.slice(-6)});
   if(pairError)throw pairError;
-  familyRole=(device.status==='active'&&accountRole==='owner')?'owner':'viewer';if(familyRole==='viewer')$('#addEntry').textContent='Invia da confermare';else $('#addEntry').textContent='+ Aggiungi pagamento';
+  familyRole=(device.status==='active'&&String(device.role||'')==='primary'&&accountRole==='owner')?'owner':'viewer';if(familyRole==='viewer')$('#addEntry').textContent='Invia pagamento';else $('#addEntry').textContent='+ Aggiungi pagamento';
   if(device.status==='pending'){
    say('Questo telefono è in attesa. Sul principale autorizza il codice '+deviceId.slice(-6)+'.',true);
    pendingTimer=setInterval(async()=>{
@@ -1246,7 +1247,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260929-v62-stable', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20260930-v66-sentinel-sync', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
