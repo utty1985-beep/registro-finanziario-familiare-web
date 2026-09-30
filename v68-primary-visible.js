@@ -20,14 +20,21 @@
     }
     if(btn.parentElement!==card)card.appendChild(btn);
     btn.classList.add('primary');
-    btn.style.cssText='width:100%;margin-top:8px;font-size:17px;padding:12px';
+    btn.disabled=false;
+    btn.removeAttribute('disabled');
+    btn.style.cssText='width:100%;margin-top:8px;font-size:17px;padding:12px;opacity:1;pointer-events:auto';
     const hint=document.getElementById('makePrimaryHint');
     if(hint&&hint.parentElement!==card)card.appendChild(hint);
   }
-  setTimeout(placePrimaryRecovery,400);
+  const keepEnabled=()=>{
+    const btn=document.getElementById('makePrimaryPhone');
+    if(btn&&!btn.hidden){btn.disabled=false;btn.removeAttribute('disabled');btn.style.opacity='1';btn.style.pointerEvents='auto'}
+  };
+  setTimeout(placePrimaryRecovery,200);
+  setTimeout(placePrimaryRecovery,600);
   setTimeout(placePrimaryRecovery,1200);
   setTimeout(placePrimaryRecovery,3000);
-  setInterval(placePrimaryRecovery,5000);
-  window.addEventListener('focus',()=>setTimeout(placePrimaryRecovery,100));
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(placePrimaryRecovery,100)});
+  setInterval(()=>{placePrimaryRecovery();keepEnabled()},2000);
+  window.addEventListener('focus',()=>setTimeout(()=>{placePrimaryRecovery();keepEnabled()},100));
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>{placePrimaryRecovery();keepEnabled()},100)});
 })();
