@@ -1,1 +1,1 @@
-stable V76 direct Android touch actions build 2026-09-30
+stable V77 reject without JS dialog build 2026-09-30
