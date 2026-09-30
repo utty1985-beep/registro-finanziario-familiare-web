@@ -1,4 +1,4 @@
-name: Applica V73 stabile online
+name: Applica V74 stabile online
 on:
   push:
     paths:
@@ -25,7 +25,7 @@ jobs:
 
           def repl(old,new,label):
               global main
-              if old not in main: raise SystemExit('V73 marker missing: '+label)
+              if old not in main: raise SystemExit('V74 marker missing: '+label)
               main=main.replace(old,new,1)
 
           repl("familyRole=(device.status==='active'&&accountRole==='owner')?'owner':'viewer';if(familyRole==='viewer')$('#addEntry').textContent='Invia da confermare';else $('#addEntry').textContent='+ Aggiungi pagamento';",
@@ -76,20 +76,22 @@ jobs:
           repl(old_clean,new_clean,'notice metadata helpers')
 
           old_html="x.innerHTML=`<b>${sgn} € ${euro(n.amount)}</b> ${escapeNotice(cleanNoticeDesc(n.desc))}<br><select>${opts}</select> <input type=\"number\" min=\"1\" max=\"31\" value=\"${validStart()}\" style=\"width:65px\"><div class=\"pendingActions\"><button class=\"confirmPay\">Conferma</button><button class=\"rejectPay\">Non confermare</button></div>`;"
-          new_html="x.innerHTML=`<div style=\"font-size:12px;font-weight:800;color:#0b5685;margin-bottom:6px\">${escapeNotice(noticeOrigin(n))}</div><b>${sgn} € ${euro(n.amount)}</b> ${escapeNotice(cleanNoticeDesc(n.desc))}<br><select>${opts}</select> <input type=\"number\" min=\"1\" max=\"31\" value=\"${validStart()}\" style=\"width:65px\"><div class=\"pendingActions\"><button class=\"confirmPay\">Conferma</button><button class=\"rejectPay\">Non confermare</button></div>`;"
+          new_html="x.innerHTML=`<div style=\"font-size:12px;font-weight:800;color:#0b5685;margin-bottom:6px\">${escapeNotice(noticeOrigin(n))}</div><b>${sgn} € ${euro(n.amount)}</b> ${escapeNotice(cleanNoticeDesc(n.desc))}<br><select>${opts}</select> <input type=\"number\" min=\"1\" max=\"31\" value=\"${validStart()}\" style=\"width:65px\"><div class=\"pendingActions\"><button type=\"button\" class=\"confirmPay\">Conferma</button><button type=\"button\" class=\"rejectPay\">Non confermare</button></div>`;"
           repl(old_html,new_html,'pending origin ui')
 
           old_confirm="x.querySelector('.confirmPay').onclick=async()=>{\n   if(familyRole!=='owner'||paymentActionBusy)return;"
-          new_confirm="x.querySelector('.confirmPay').onclick=async()=>{\n   if(paymentActionBusy)return;await refreshDeviceRole(true);if(familyRole!=='owner'){alert('Solo il telefono principale può confermare i pagamenti.');return;}"
-          repl(old_confirm,new_confirm,'confirm guard')
+          new_confirm="x.querySelector('.confirmPay').onclick=async()=>{\n   const actionButtons=[...x.querySelectorAll('button')];actionButtons.forEach(btn=>btn.disabled=true);paymentActionBusy=true;"
+          repl(old_confirm,new_confirm,'confirm start')
           repl("sb.rpc('rff_confirm_payment',","sb.rpc('rff_confirm_payment_v2',",'confirm rpc')
           main=main.replace("alert('Conferma non completata. Riprova: il pagamento non verrà duplicato.');","alert('Conferma non completata: '+(e?.message||'errore')+'. Il pagamento non verrà duplicato.');",1)
 
           old_reject="x.querySelector('.rejectPay').onclick=async()=>{\n   if(familyRole!=='owner'||paymentActionBusy)return;if(!confirm('Non confermare questa richiesta? Verrà eliminata senza inserirla nelle spese.'))return;"
-          new_reject="x.querySelector('.rejectPay').onclick=async()=>{\n   if(paymentActionBusy)return;await refreshDeviceRole(true);if(familyRole!=='owner'){alert('Solo il telefono principale può eliminare una richiesta.');return;}if(!confirm('Non confermare questa richiesta? Verrà eliminata senza inserirla nelle spese.'))return;"
-          repl(old_reject,new_reject,'reject guard')
+          new_reject="x.querySelector('.rejectPay').onclick=async()=>{\n   if(!confirm('Non confermare questa richiesta? Verrà eliminata senza inserirla nelle spese.'))return;const actionButtons=[...x.querySelectorAll('button')];actionButtons.forEach(btn=>btn.disabled=true);paymentActionBusy=true;"
+          repl(old_reject,new_reject,'reject start')
           repl("sb.rpc('rff_reject_payment',","sb.rpc('rff_reject_payment_v2',",'reject rpc')
           main=main.replace("alert('Rifiuto non riuscito. Riprova.');","alert('Rifiuto non riuscito: '+(error?.message||'errore')+'. Riprova.');",1)
+          main=main.replace("if(error){alert('Rifiuto non riuscito: '+(error?.message||'errore')+'. Riprova.');x.querySelectorAll('button').forEach(btn=>btn.disabled=false);return}","if(error){paymentActionBusy=false;alert('Rifiuto non riuscito: '+(error?.message||'errore')+'. Riprova.');x.querySelectorAll('button').forEach(btn=>btn.disabled=false);return}",1)
+          main=main.replace("renderPending();\n  };","paymentActionBusy=false;renderPending();\n  };",1)
 
           old_desc="const desc=String(((x.title||'')+' '+(x.text||'')).trim()||'Pagamento rilevato').slice(0,180);"
           new_desc="let sourceLabel=String(x.package||'');try{const srcs=JSON.parse(RegistroAndroid.availablePaymentSources?.()||'[]');const hit=srcs.find(s=>s&&s.package===x.package);if(hit?.label)sourceLabel=String(hit.label)}catch(_){ }sourceLabel=sourceLabel.replace(/__/g,' ');const body=String(((x.title||'')+' '+(x.text||'')).trim()||'Pagamento rilevato').slice(0,140);const desc=(sourceLabel?'__RFF_APP__'+sourceLabel+'__ ':'')+body;"
@@ -100,9 +102,9 @@ jobs:
           marker="<script>\nif ('serviceWorker' in navigator)"
           end=html.index(marker,start)
           html=html[:start]+'<script>\n'+ui+'\n</script>\n<script>\n'+main+'\n</script>\n<script>\n'+polish+'\n</script>\n<script>\n'+red+'\n</script>\n<script>\n'+longpress+'\n</script>\n'+html[end:]
-          html=re.sub(r"service-worker\.js\?v=[^'\" ]+",'service-worker.js?v=20260930-v73-origin-actions',html)
+          html=re.sub(r"service-worker\.js\?v=[^'\" ]+",'service-worker.js?v=20260930-v74-direct-actions',html)
 
-          required=['service-worker.js?v=20260930-v73-origin-actions',"String(device.role||'')==='primary'",'Invia pagamento','ensurePaymentSourcesEnabled','refreshDeviceRole','importBtn.hidden=true','rff_pending_payments_v2','rff_confirm_payment_v2','rff_reject_payment_v2','noticeOrigin','__RFF_APP__']
+          required=['service-worker.js?v=20260930-v74-direct-actions',"String(device.role||'')==='primary'",'Invia pagamento','ensurePaymentSourcesEnabled','refreshDeviceRole','importBtn.hidden=true','rff_pending_payments_v2','rff_confirm_payment_v2','rff_reject_payment_v2','noticeOrigin','__RFF_APP__','type=\"button\" class=\"confirmPay\"','paymentActionBusy=true']
           for marker in required:
               if marker not in html: raise SystemExit('marker missing: '+marker)
           Path('index.html').write_text(html)
@@ -120,11 +122,11 @@ jobs:
           test -s index.html
           test -s manifest.json
           test -s service-worker.js
-          grep -q '20260930-v73-origin-actions' service-worker.js
+          grep -q '20260930-v74-direct-actions' service-worker.js
       - name: Commit versione stabile online
         run: |
           git config user.name "github-actions[bot]"
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'Publish V73 payment origin and actions fix'
+          git diff --cached --quiet || git commit -m 'Publish V74 direct payment actions'
           git push
