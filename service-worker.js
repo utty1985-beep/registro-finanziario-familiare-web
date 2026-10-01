@@ -1,5 +1,5 @@
-const CACHE='rff-20261001-v83-residuo-budget';
-const SW_VERSION='20261001-v83-residuo-budget';
+const CACHE='rff-20261001-v84-all-residuals';
+const SW_VERSION='20261001-v84-all-residuals';
 const ASSETS=[
   './','./index.html','./manifest.json','./icon-192.png?v=80-icon','./icon-512.png?v=80-icon',
   './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js'
@@ -53,10 +53,15 @@ function patchHtml(html){
     "del.onclick=()=>{if(familyRole!=='owner')return;if(kind==='rates'){const meta=rateMeta(r,true);meta.varie=false}else r[2]=false;save();renderVarieSingle()}"
   );
 
-  // V83: nella riga rossa di oggi mostra il residuo come valore principale e sotto il budget giornaliero.
+  // V84: nella riga rossa di oggi mostra il residuo come valore principale
+  // sia per Mangiare sia per Diesel/Metano/Benzina e tutte le colonne personalizzate.
+  out=out.replace(
+    "  let cells=activeCols.map(c=>{const k=colKey(c);spent[k]+=(+sp[k]||0)-entriesFor(day,k);return cell(day,k,entriesFor(day,k)-(+sp[k]||0),(+c.budget||0)-spent[k],'residuo')}).join('');",
+    "  const isToday=y===now.getFullYear()&&m===now.getMonth()+1&&day===now.getDate();\n  let cells=activeCols.map(c=>{const k=colKey(c);spent[k]+=(+sp[k]||0)-entriesFor(day,k);const monthlyResidual=(+c.budget||0)-spent[k];return isToday ? `<td class=\"moneyCell\"><strong>€ ${euro(monthlyResidual)}</strong><span class=\"res\">Budget mensile: <strong>€ ${euro(+c.budget||0)}</strong></span></td>` : cell(day,k,entriesFor(day,k)-(+sp[k]||0),monthlyResidual,'residuo')}).join('');"
+  );
   out=out.replace(
     "  let tr=document.createElement('tr');if(y===now.getFullYear()&&m===now.getMonth()+1&&day===now.getDate())tr.className='today';",
-    "  const isToday=y===now.getFullYear()&&m===now.getMonth()+1&&day===now.getDate();\n  const todayFoodBudget=(+d.food||0)+(isSat?(+d.sat||0):0);\n  const foodHtml=isToday ? `<td class=\"moneyCell\"><strong>€ ${euro(foodCarry)}</strong><span class=\"res\">Budget giornaliero: <strong>€ ${euro(todayFoodBudget)}</strong></span></td>` : cell(day,'food',entriesFor(day,'food')-(+sp.food||0),foodCarry,'residuo');\n  let tr=document.createElement('tr');if(isToday)tr.className='today';"
+    "  const todayFoodBudget=(+d.food||0)+(isSat?(+d.sat||0):0);\n  const foodHtml=isToday ? `<td class=\"moneyCell\"><strong>€ ${euro(foodCarry)}</strong><span class=\"res\">Budget giornaliero: <strong>€ ${euro(todayFoodBudget)}</strong></span></td>` : cell(day,'food',entriesFor(day,'food')-(+sp.food||0),foodCarry,'residuo');\n  let tr=document.createElement('tr');if(isToday)tr.className='today';"
   );
   out=out.replace(
     "  tr.innerHTML=`<td class=\"day\">${dt.toLocaleDateString('it-IT',{weekday:'short'})} ${day}</td>${cell(day,'food',entriesFor(day,'food')-(+sp.food||0),foodCarry,'residuo')}${cells}`;if(day>=displayStart)body.appendChild(tr)",
