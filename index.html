@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V78</title>
+<title>Registro Finanziario Familiare V79</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -188,6 +188,24 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 </style>
 <link rel="manifest" href="./manifest.json?v=20260924-abbinamento-2">
 <meta name="theme-color" content="#0b4f8a">
+
+<style id="rff-v79-compact-bars">
+.paymentDrop{padding:0!important;overflow:hidden!important;border-color:#8fb8dc!important}
+.paymentDrop>summary{list-style:none!important;cursor:pointer!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;background:#0b4f8a!important;color:#fff!important;padding:11px 14px!important;font-weight:900!important;min-height:44px!important}
+.paymentDrop>summary::-webkit-details-marker{display:none!important}.paymentDrop>summary::marker{content:''}
+.paymentDrop>summary::after{content:'▼';font-size:12px;transition:transform .2s}.paymentDrop[open]>summary::after{transform:rotate(180deg)}
+.paymentDrop>.entryForm{padding:7px 10px 0!important;margin:0!important}.paymentDrop>.historyDrop{margin:8px 10px 10px!important}
+.pendingBar.pendingDropCompact{padding:0!important;overflow:hidden!important;border:1px solid #cbd5e1!important;background:#fff!important;box-shadow:0 3px 12px #0f172a10!important}
+.pendingDropCompact>summary.pendingBarHead{list-style:none!important;cursor:pointer!important;display:flex!important;align-items:center!important;gap:10px!important;background:#fff!important;color:#334155!important;padding:11px 14px!important;font-weight:900!important;min-height:44px!important}
+.pendingDropCompact>summary::-webkit-details-marker{display:none!important}.pendingDropCompact>summary::marker{content:''}
+.pendingDropCompact>summary::after{content:'▼'!important;font-size:12px!important;color:#64748b!important;margin-left:4px!important;transition:transform .2s!important}.pendingDropCompact[open]>summary::after{transform:rotate(180deg)!important}
+.pendingDropCompact .pendingCompactBody{padding:0 10px 10px!important}.pendingDropCompact .pendingList{padding-top:6px!important}
+.pendingDropCompact .badge{position:static!important;margin-left:auto!important;flex:0 0 auto!important;background:#c62828!important;color:#fff!important;min-width:25px!important;height:25px!important;border-radius:999px!important;font-weight:900!important}
+.pendingDropCompact .badge:not([hidden]){animation:rffV79BadgePulse 1.05s ease-in-out infinite}
+@keyframes rffV79BadgePulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 #c6282840}50%{transform:scale(1.12);box-shadow:0 0 0 6px #c6282800}}
+@media(max-width:650px){.paymentDrop>summary,.pendingDropCompact>summary.pendingBarHead{padding:10px 12px!important;min-height:42px!important;font-size:15px!important}}
+@media print{.paymentDrop,.pendingDropCompact{display:none!important}}
+</style>
 </head>
 <body>
 <div id="authGate" class="authGate"><div class="authCard">
@@ -237,14 +255,14 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
    <button type="button" id="addCustomColumn" class="full primary">+ Crea colonna</button>
   </div>
  </details>
- <div class="card"><h2>Aggiungi un pagamento</h2><div class="entryForm">
+ <details class="card paymentDrop" id="paymentDrop"><summary><span>➕ Aggiungi pagamento</span></summary><div class="entryForm">
  <div class="full"><b>Segno</b> <span class="signs"><label><input type="radio" name="entrySign" value="+" checked>+</label><label><input type="radio" name="entrySign" value="-">−</label></span></div>
  <label>Importo (€)<input id="entryAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></label>
  <label>Categoria<select id="entryCategory"></select></label>
  <label class="full">Giorno del pagamento<input id="entryDate" type="date"></label>
  <button id="addEntry" class="primary">+ Aggiungi pagamento</button><button id="sendForApproval" type="button">Invia da confermare</button><div class="full hint">“Invia da confermare” crea una richiesta rossa condivisa con gli altri telefoni, senza registrare ancora la spesa.</div></div>
- <details class="historyDrop"><summary>Pagamenti inseriti <span id="entryHistoryCount"></span></summary><div id="entryHistory"></div></details></div>
- <div class="card pending pendingBar" id="pendingDrop"><div class="pendingBarHead"><span>🔔 Pagamenti e richieste da confermare</span><span class="badge" id="badge" hidden>0</span></div><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div>
+ <details class="historyDrop"><summary>Pagamenti inseriti <span id="entryHistoryCount"></span></summary><div id="entryHistory"></div></details></details>
+ <details class="card pending pendingBar pendingDrop pendingDropCompact" id="pendingDrop"><summary class="pendingBarHead"><span>🔔 Modifiche ricevute</span><span class="badge" id="badge" hidden>0</span></summary><div class="pendingCompactBody"><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div></details>
  <div class="card"><label>Mostra dal giorno <input id="viewDate" type="date"></label></div>
  <div class="tableWrap"><table><thead><tr id="dailyHead"><th>Giorno</th><th>Mangiare</th></tr></thead><tbody id="dailyBody"></tbody></table></div>
  <div class="card"><h2>Varie</h2><div class="hint">Le voci selezionate dalla prima pagina e i pagamenti confermati in Varie compaiono qui.</div><div id="varieSingle"></div></div>
@@ -1300,7 +1318,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20260930-v78-notification-bar', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20261001-v79-compact-bars', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }

@@ -1,5 +1,5 @@
-const CACHE='rff-20260930-v78-notification-bar';
-const SW_VERSION='20260930-v78-notification-bar';
+const CACHE='rff-20261001-v79-compact-bars';
+const SW_VERSION='20261001-v79-compact-bars';
 const ASSETS=[
   './','./index.html','./manifest.json','./icon-192.png','./icon-512.png',
   './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js'
