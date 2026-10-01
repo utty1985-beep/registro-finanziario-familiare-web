@@ -1,5 +1,5 @@
-const CACHE='rff-20261001-v81-varie-spunta';
-const SW_VERSION='20261001-v81-varie-spunta';
+const CACHE='rff-20261001-v82-rates-varie';
+const SW_VERSION='20261001-v82-rates-varie';
 const ASSETS=[
   './','./index.html','./manifest.json','./icon-192.png?v=80-icon','./icon-512.png?v=80-icon',
   './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js'
@@ -8,21 +8,64 @@ const ASSETS=[
 function patchHtml(html){
   let out=html.replace(/service-worker\.js\?v=[^'" ]+/g,'service-worker.js?v='+SW_VERSION);
 
-  // V81: la presenza in "Varie" dipende soltanto dalla spunta della voce preventivata.
+  // V82: le spese preventivate entrano in Varie soltanto con la spunta.
+  // Le rate possono essere aggiunte a Varie con una spunta dedicata salvata nel metadata della rata.
   out=out.replace(
     "const selected=arr.map((r,i)=>({r,i})).filter(x=>x.r[2]&&!x.r[4]&&!hidden[x.i]);",
-    "const selected=arr.map((r,i)=>({r,i})).filter(x=>!!x.r[2]);"
+    "const selected=[...arr.map((r,i)=>({r,i,kind:'planned'})),...data().rates.map((r,i)=>({r,i,kind:'rates'}))].filter(x=>x.kind==='planned'?!!x.r[2]:!!(x.r[5]&&x.r[5].varie));"
   );
-  // Quando si riattiva la spunta, cancella anche un eventuale vecchio stato 'nascosto'.
+  out=out.replace(
+    "selected.forEach(({r,i})=>{",
+    "selected.forEach(({r,i,kind})=>{"
+  );
+  out=out.replace(
+    "const matching=adjustments.filter(x=>x.row===i);",
+    "const match=x=>x.row===i&&(x.kind||'planned')===kind;const matching=adjustments.filter(match);"
+  );
+  out=out.replace(
+    "const total=()=>Number(r[1]||0)+adjustments.filter(x=>x.row===i).reduce((n,x)=>n+Number(x.amount||0),0);",
+    "const total=()=>Number(r[1]||0)+adjustments.filter(match).reduce((n,x)=>n+Number(x.amount||0),0);"
+  );
+  out=out.replace(
+    "adjustments.push({id:Date.now()+'-'+Math.random().toString(36).slice(2),row:i,amount:(sign.value==='-'?-1:1)*n});",
+    "adjustments.push({id:Date.now()+'-'+Math.random().toString(36).slice(2),row:i,kind,amount:(sign.value==='-'?-1:1)*n});"
+  );
+
+  // Checkbox nella riga Rate: usa meta.varie, così le rate esistenti non vengono selezionate automaticamente.
+  out=out.replace(
+    "${kind==='planned'?`<input class=\"keep\" type=\"checkbox\" title=\"Mostra in Varie\" aria-label=\"Mostra in Varie\" ${r[2]?'checked':''}>`:''}",
+    "${kind==='planned'?`<input class=\"keep\" type=\"checkbox\" title=\"Mostra in Varie\" aria-label=\"Mostra in Varie\" ${r[2]?'checked':''}>`:kind==='rates'?`<input class=\"keep\" type=\"checkbox\" title=\"Mostra questa rata in Varie\" aria-label=\"Mostra questa rata in Varie\" ${(r[5]&&r[5].varie)?'checked':''}>`:''}"
+  );
+  out=out.replace(
+    "d.className='row'+(kind==='planned'?' plannedRow':kind==='income'?'':' signedRow')+(r[4]?' pendingCarry':'');",
+    "d.className='row'+(kind==='planned'?' plannedRow':kind==='rates'?' signedRow rateVarieRow':kind==='income'?'':' signedRow')+(r[4]?' pendingCarry':'');"
+  );
+
+  // La spunta delle preventivate continua a comandare Varie; per le rate salviamo meta.varie.
   out=out.replace(
     "if(kind==='planned')ins[2].onchange=e=>{r[2]=e.target.checked;save();renderDaily()}",
-    "if(kind==='planned')ins[2].onchange=e=>{r[2]=e.target.checked;const hidden=data().daily.varieHidden||(data().daily.varieHidden={});delete hidden[i];save();renderDaily()}"
+    "if(kind==='planned')ins[2].onchange=e=>{r[2]=e.target.checked;const hidden=data().daily.varieHidden||(data().daily.varieHidden={});delete hidden[i];save();renderDaily()};if(kind==='rates')ins[2].onchange=e=>{const meta=rateMeta(r,true);meta.varie=e.target.checked;save();renderDaily()}"
   );
-  // Cancellare da Varie equivale a togliere la spunta nella prima pagina.
+
+  // Cancellare da Varie toglie la relativa spunta nella sezione di origine.
   out=out.replace(
     "del.onclick=()=>{if(familyRole!=='owner')return;hidden[i]=true;save();renderVarieSingle()}",
-    "del.onclick=()=>{if(familyRole!=='owner')return;r[2]=false;delete hidden[i];save();renderVarieSingle()}"
+    "del.onclick=()=>{if(familyRole!=='owner')return;if(kind==='rates'){const meta=rateMeta(r,true);meta.varie=false}else r[2]=false;save();renderVarieSingle()}"
   );
+
+  if(!out.includes('rff-v82-rates-varie-style')){
+    out=out.replace('</head>',`<style id="rff-v82-rates-varie-style">
+.row.rateVarieRow{grid-template-columns:minmax(90px,1fr) 42px 100px 42px 42px}
+@media(max-width:650px){
+ .row.rateVarieRow{grid-template-columns:30px minmax(0,1fr) 25px 30px 30px}
+ .row.rateVarieRow>input[type="text"]{grid-column:1/-1}
+ .row.rateVarieRow>input[type="number"]{grid-column:2/4}
+ .row.rateVarieRow>.keep{grid-column:4;width:20px;height:20px;margin:auto}
+ .row.rateVarieRow>.del{grid-column:5}
+ .row.rateVarieRow>.rateReminder{grid-column:1/-1}
+}
+</style></head>`);
+  }
 
   if(!out.includes('v63-month-stability.js')){
     out=out.replace('</body>','<script src="./v63-month-stability.js?v='+SW_VERSION+'"></script>\n</body>');
