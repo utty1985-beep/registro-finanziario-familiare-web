@@ -15,74 +15,61 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import re
-
           html=Path('index.html').read_text()
           sw=Path('service-worker.js').read_text()
-
           if 'Registro Finanziario Familiare V78' not in html:
-            raise SystemExit('Base V78 non trovata: stop per non sovrascrivere una versione diversa')
+              raise SystemExit('Base V78 non trovata: stop per non sovrascrivere una versione diversa')
           for marker in ['id="addEntry"','id="sendForApproval"','id="pendingList"','id="badge"','rff_confirm_payment_v3','rff_reject_payment_v3','rffSuppressClickUntil']:
-            if marker not in html:
-              raise SystemExit('Funzione critica mancante prima della modifica: '+marker)
-
+              if marker not in html:
+                  raise SystemExit('Funzione critica mancante prima della modifica: '+marker)
           old_open='<div class="card"><h2>Aggiungi un pagamento</h2><div class="entryForm">'
           new_open='<details class="card paymentDrop" id="paymentDrop"><summary><span>➕ Aggiungi pagamento</span></summary><div class="entryForm">'
           if old_open not in html:
-            raise SystemExit('Apertura Aggiungi pagamento non trovata')
+              raise SystemExit('Apertura Aggiungi pagamento non trovata')
           html=html.replace(old_open,new_open,1)
-
           old_close='<details class="historyDrop"><summary>Pagamenti inseriti <span id="entryHistoryCount"></span></summary><div id="entryHistory"></div></details></div>'
           new_close='<details class="historyDrop"><summary>Pagamenti inseriti <span id="entryHistoryCount"></span></summary><div id="entryHistory"></div></details></details>'
           if old_close not in html:
-            raise SystemExit('Chiusura Aggiungi pagamento non trovata')
+              raise SystemExit('Chiusura Aggiungi pagamento non trovata')
           html=html.replace(old_close,new_close,1)
-
           old_pending='<div class="card pending pendingBar" id="pendingDrop"><div class="pendingBarHead"><span>🔔 Pagamenti e richieste da confermare</span><span class="badge" id="badge" hidden>0</span></div><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div>'
           new_pending='<details class="card pending pendingBar pendingDrop pendingDropCompact" id="pendingDrop"><summary class="pendingBarHead"><span>🔔 Modifiche ricevute</span><span class="badge" id="badge" hidden>0</span></summary><div class="pendingCompactBody"><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div></details>'
           if old_pending not in html:
-            raise SystemExit('Barra notifiche V78 non trovata')
+              raise SystemExit('Barra notifiche V78 non trovata')
           html=html.replace(old_pending,new_pending,1)
-
           css='''
-<style id="rff-v79-compact-bars">
-/* V79: solo presentazione. Gli ID e gli handler esistenti restano invariati. */
-.paymentDrop{padding:0!important;overflow:hidden!important;border-color:#8fb8dc!important}
-.paymentDrop>summary{list-style:none!important;cursor:pointer!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;background:#0b4f8a!important;color:#fff!important;padding:11px 14px!important;font-weight:900!important;min-height:44px!important}
-.paymentDrop>summary::-webkit-details-marker{display:none!important}.paymentDrop>summary::marker{content:''}
-.paymentDrop>summary::after{content:'▼';font-size:12px;transition:transform .2s}.paymentDrop[open]>summary::after{transform:rotate(180deg)}
-.paymentDrop>.entryForm{padding:7px 10px 0!important;margin:0!important}.paymentDrop>.historyDrop{margin:8px 10px 10px!important}
-.pendingBar.pendingDropCompact{padding:0!important;overflow:hidden!important;border:1px solid #cbd5e1!important;background:#fff!important;box-shadow:0 3px 12px #0f172a10!important}
-.pendingDropCompact>summary.pendingBarHead{list-style:none!important;cursor:pointer!important;display:flex!important;align-items:center!important;gap:10px!important;background:#fff!important;color:#334155!important;padding:11px 14px!important;font-weight:900!important;min-height:44px!important}
-.pendingDropCompact>summary::-webkit-details-marker{display:none!important}.pendingDropCompact>summary::marker{content:''}
-.pendingDropCompact>summary::after{content:'▼'!important;font-size:12px!important;color:#64748b!important;margin-left:4px!important;transition:transform .2s!important}.pendingDropCompact[open]>summary::after{transform:rotate(180deg)!important}
-.pendingDropCompact .pendingCompactBody{padding:0 10px 10px!important}.pendingDropCompact .pendingList{padding-top:6px!important}
-.pendingDropCompact .badge{position:static!important;margin-left:auto!important;flex:0 0 auto!important;background:#c62828!important;color:#fff!important;min-width:25px!important;height:25px!important;border-radius:999px!important;font-weight:900!important}
-.pendingDropCompact .badge:not([hidden]){animation:rffV79BadgePulse 1.05s ease-in-out infinite}
-@keyframes rffV79BadgePulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 #c6282840}50%{transform:scale(1.12);box-shadow:0 0 0 6px #c6282800}}
-@media(max-width:650px){.paymentDrop>summary,.pendingDropCompact>summary.pendingBarHead{padding:10px 12px!important;min-height:42px!important;font-size:15px!important}}
-@media print{.paymentDrop,.pendingDropCompact{display:none!important}}
-</style>
-'''
+          <style id="rff-v79-compact-bars">
+          .paymentDrop{padding:0!important;overflow:hidden!important;border-color:#8fb8dc!important}
+          .paymentDrop>summary{list-style:none!important;cursor:pointer!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;background:#0b4f8a!important;color:#fff!important;padding:11px 14px!important;font-weight:900!important;min-height:44px!important}
+          .paymentDrop>summary::-webkit-details-marker{display:none!important}.paymentDrop>summary::marker{content:''}
+          .paymentDrop>summary::after{content:'▼';font-size:12px;transition:transform .2s}.paymentDrop[open]>summary::after{transform:rotate(180deg)}
+          .paymentDrop>.entryForm{padding:7px 10px 0!important;margin:0!important}.paymentDrop>.historyDrop{margin:8px 10px 10px!important}
+          .pendingBar.pendingDropCompact{padding:0!important;overflow:hidden!important;border:1px solid #cbd5e1!important;background:#fff!important;box-shadow:0 3px 12px #0f172a10!important}
+          .pendingDropCompact>summary.pendingBarHead{list-style:none!important;cursor:pointer!important;display:flex!important;align-items:center!important;gap:10px!important;background:#fff!important;color:#334155!important;padding:11px 14px!important;font-weight:900!important;min-height:44px!important}
+          .pendingDropCompact>summary::-webkit-details-marker{display:none!important}.pendingDropCompact>summary::marker{content:''}
+          .pendingDropCompact>summary::after{content:'▼'!important;font-size:12px!important;color:#64748b!important;margin-left:4px!important;transition:transform .2s!important}.pendingDropCompact[open]>summary::after{transform:rotate(180deg)!important}
+          .pendingDropCompact .pendingCompactBody{padding:0 10px 10px!important}.pendingDropCompact .pendingList{padding-top:6px!important}
+          .pendingDropCompact .badge{position:static!important;margin-left:auto!important;flex:0 0 auto!important;background:#c62828!important;color:#fff!important;min-width:25px!important;height:25px!important;border-radius:999px!important;font-weight:900!important}
+          .pendingDropCompact .badge:not([hidden]){animation:rffV79BadgePulse 1.05s ease-in-out infinite}
+          @keyframes rffV79BadgePulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 #c6282840}50%{transform:scale(1.12);box-shadow:0 0 0 6px #c6282800}}
+          @media(max-width:650px){.paymentDrop>summary,.pendingDropCompact>summary.pendingBarHead{padding:10px 12px!important;min-height:42px!important;font-size:15px!important}}
+          @media print{.paymentDrop,.pendingDropCompact{display:none!important}}
+          </style>
+          '''
           if 'id="rff-v79-compact-bars"' in html:
-            raise SystemExit('CSS V79 già presente')
+              raise SystemExit('CSS V79 già presente')
           html=html.replace('</head>',css+'</head>',1)
-
           html=html.replace('<title>Registro Finanziario Familiare V78</title>','<title>Registro Finanziario Familiare V79</title>',1)
           html=re.sub(r"service-worker\.js\?v=[^'\" ]+",'service-worker.js?v=20261001-v79-compact-bars',html)
           sw=re.sub(r"const CACHE='[^']+';","const CACHE='rff-20261001-v79-compact-bars';",sw,count=1)
           sw=re.sub(r"const SW_VERSION='[^']+';","const SW_VERSION='20261001-v79-compact-bars';",sw,count=1)
-
-          # Verifica che la modifica sia solo strutturale/grafica e che le funzioni critiche siano rimaste.
           for marker in ['id="paymentDrop"','➕ Aggiungi pagamento','🔔 Modifiche ricevute','id="addEntry"','id="sendForApproval"','id="pendingList"','id="badge"','rff_confirm_payment_v3','rff_reject_payment_v3','rffSuppressClickUntil','Registro Finanziario Familiare V79']:
-            if marker not in html:
-              raise SystemExit('Marker V79 mancante: '+marker)
-          if 'background:#fff!important;color:#334155!important' not in html:
-            raise SystemExit('Barra Modifiche ricevute non bianca')
+              if marker not in html:
+                  raise SystemExit('Marker V79 mancante: '+marker)
           if 'rffV79BadgePulse' not in html:
-            raise SystemExit('Pallino rosso notifiche non configurato')
+              raise SystemExit('Pallino rosso notifiche non configurato')
           if '20261001-v79-compact-bars' not in sw:
-            raise SystemExit('Cache V79 mancante')
-
+              raise SystemExit('Cache V79 mancante')
           Path('index.html').write_text(html)
           Path('service-worker.js').write_text(sw)
           PY
