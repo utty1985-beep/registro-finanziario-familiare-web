@@ -1,5 +1,5 @@
-const CACHE='rff-20261001-v82-rates-varie';
-const SW_VERSION='20261001-v82-rates-varie';
+const CACHE='rff-20261001-v83-residuo-budget';
+const SW_VERSION='20261001-v83-residuo-budget';
 const ASSETS=[
   './','./index.html','./manifest.json','./icon-192.png?v=80-icon','./icon-512.png?v=80-icon',
   './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js'
@@ -51,6 +51,16 @@ function patchHtml(html){
   out=out.replace(
     "del.onclick=()=>{if(familyRole!=='owner')return;hidden[i]=true;save();renderVarieSingle()}",
     "del.onclick=()=>{if(familyRole!=='owner')return;if(kind==='rates'){const meta=rateMeta(r,true);meta.varie=false}else r[2]=false;save();renderVarieSingle()}"
+  );
+
+  // V83: nella riga rossa di oggi mostra il residuo come valore principale e sotto il budget giornaliero.
+  out=out.replace(
+    "  let tr=document.createElement('tr');if(y===now.getFullYear()&&m===now.getMonth()+1&&day===now.getDate())tr.className='today';",
+    "  const isToday=y===now.getFullYear()&&m===now.getMonth()+1&&day===now.getDate();\n  const todayFoodBudget=(+d.food||0)+(isSat?(+d.sat||0):0);\n  const foodHtml=isToday ? `<td class=\"moneyCell\"><strong>€ ${euro(foodCarry)}</strong><span class=\"res\">Budget giornaliero: <strong>€ ${euro(todayFoodBudget)}</strong></span></td>` : cell(day,'food',entriesFor(day,'food')-(+sp.food||0),foodCarry,'residuo');\n  let tr=document.createElement('tr');if(isToday)tr.className='today';"
+  );
+  out=out.replace(
+    "  tr.innerHTML=`<td class=\"day\">${dt.toLocaleDateString('it-IT',{weekday:'short'})} ${day}</td>${cell(day,'food',entriesFor(day,'food')-(+sp.food||0),foodCarry,'residuo')}${cells}`;if(day>=displayStart)body.appendChild(tr)",
+    "  tr.innerHTML=`<td class=\"day\">${dt.toLocaleDateString('it-IT',{weekday:'short'})} ${day}</td>${foodHtml}${cells}`;if(day>=displayStart)body.appendChild(tr)"
   );
 
   if(!out.includes('rff-v82-rates-varie-style')){
