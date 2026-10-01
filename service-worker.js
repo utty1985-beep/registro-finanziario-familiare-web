@@ -1,5 +1,5 @@
-const CACHE='rff-20261001-v80-new-icon';
-const SW_VERSION='20261001-v80-new-icon';
+const CACHE='rff-20261001-v81-varie-spunta';
+const SW_VERSION='20261001-v81-varie-spunta';
 const ASSETS=[
   './','./index.html','./manifest.json','./icon-192.png?v=80-icon','./icon-512.png?v=80-icon',
   './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js'
@@ -7,6 +7,23 @@ const ASSETS=[
 
 function patchHtml(html){
   let out=html.replace(/service-worker\.js\?v=[^'" ]+/g,'service-worker.js?v='+SW_VERSION);
+
+  // V81: la presenza in "Varie" dipende soltanto dalla spunta della voce preventivata.
+  out=out.replace(
+    "const selected=arr.map((r,i)=>({r,i})).filter(x=>x.r[2]&&!x.r[4]&&!hidden[x.i]);",
+    "const selected=arr.map((r,i)=>({r,i})).filter(x=>!!x.r[2]);"
+  );
+  // Quando si riattiva la spunta, cancella anche un eventuale vecchio stato 'nascosto'.
+  out=out.replace(
+    "if(kind==='planned')ins[2].onchange=e=>{r[2]=e.target.checked;save();renderDaily()}",
+    "if(kind==='planned')ins[2].onchange=e=>{r[2]=e.target.checked;const hidden=data().daily.varieHidden||(data().daily.varieHidden={});delete hidden[i];save();renderDaily()}"
+  );
+  // Cancellare da Varie equivale a togliere la spunta nella prima pagina.
+  out=out.replace(
+    "del.onclick=()=>{if(familyRole!=='owner')return;hidden[i]=true;save();renderVarieSingle()}",
+    "del.onclick=()=>{if(familyRole!=='owner')return;r[2]=false;delete hidden[i];save();renderVarieSingle()}"
+  );
+
   if(!out.includes('v63-month-stability.js')){
     out=out.replace('</body>','<script src="./v63-month-stability.js?v='+SW_VERSION+'"></script>\n</body>');
   }
