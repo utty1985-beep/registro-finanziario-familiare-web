@@ -1,4 +1,4 @@
-name: Applica V78 barra notifiche e azioni stabili
+name: Applica V79 barre compatte senza toccare notifiche
 on:
   push:
     paths:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Ripristina barra notifiche e correggi tocchi Android
+      - name: Rendi compatte le due sezioni mantenendo ID e logica
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -19,62 +19,89 @@ jobs:
           html=Path('index.html').read_text()
           sw=Path('service-worker.js').read_text()
 
-          old_markup='''<details class="card pending pendingDrop" id="pendingDrop"><summary><span>Pagamenti e richieste da confermare</span><span class="badge" id="badge" hidden>0</span></summary><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></details>'''
-          new_markup='''<div class="card pending pendingBar" id="pendingDrop"><div class="pendingBarHead"><span>🔔 Pagamenti e richieste da confermare</span><span class="badge" id="badge" hidden>0</span></div><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div>'''
-          if old_markup not in html:
-            raise SystemExit('Barra notifiche V77 non trovata')
-          html=html.replace(old_markup,new_markup,1)
+          if 'Registro Finanziario Familiare V78' not in html:
+            raise SystemExit('Base V78 non trovata: stop per non sovrascrivere una versione diversa')
+          for marker in ['id="addEntry"','id="sendForApproval"','id="pendingList"','id="badge"','rff_confirm_payment_v3','rff_reject_payment_v3','rffSuppressClickUntil']:
+            if marker not in html:
+              raise SystemExit('Funzione critica mancante prima della modifica: '+marker)
 
-          css_marker='.pendingList{padding-top:24px}.notice{border:1px solid #ef9a9a;background:#fff4f4;border-radius:10px;padding:8px;margin:7px 0;color:#a31515}'
-          css_new='''.pendingBar{border:2px solid #ef9a9a;background:#fff7f7;box-shadow:0 4px 14px #b91c1c14}.pendingBarHead{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:900;color:#9f1239;padding:2px 0 8px}.pendingBar .badge{position:static;flex:0 0 auto}.pendingList{padding-top:4px}.notice{border:1px solid #ef9a9a;background:#fff4f4;border-radius:10px;padding:10px;margin:7px 0;color:#a31515}.pendingActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.pendingActions button{min-height:46px;font-size:16px;font-weight:900;touch-action:manipulation}.pendingActions .confirmPay{background:#15803d;color:#fff;border-color:#15803d}.pendingActions .rejectPay{background:#fff;color:#b4232b;border:2px solid #b4232b}'''
-          if css_marker not in html:
-            raise SystemExit('CSS notifiche V77 non trovato')
-          html=html.replace(css_marker,css_new,1)
+          old_open='<div class="card"><h2>Aggiungi un pagamento</h2><div class="entryForm">'
+          new_open='<details class="card paymentDrop" id="paymentDrop"><summary><span>➕ Aggiungi pagamento</span></summary><div class="entryForm">'
+          if old_open not in html:
+            raise SystemExit('Apertura Aggiungi pagamento non trovata')
+          html=html.replace(old_open,new_open,1)
 
-          old_confirm="""  confirmBtn.onclick=async(ev)=>{\n   ev.preventDefault();ev.stopPropagation();\n   if(paymentActionBusy)return;"""
-          new_confirm="""  confirmBtn.onclick=async(ev)=>{\n   if(ev?.type==='click'&&Date.now()<Number(confirmBtn.dataset.rffSuppressClickUntil||0))return;\n   ev.preventDefault();ev.stopPropagation();\n   if(paymentActionBusy)return;"""
-          if old_confirm not in html:
-            raise SystemExit('Handler Conferma V77 non trovato')
-          html=html.replace(old_confirm,new_confirm,1)
+          old_close='<details class="historyDrop"><summary>Pagamenti inseriti <span id="entryHistoryCount"></span></summary><div id="entryHistory"></div></details></div>'
+          new_close='<details class="historyDrop"><summary>Pagamenti inseriti <span id="entryHistoryCount"></span></summary><div id="entryHistory"></div></details></details>'
+          if old_close not in html:
+            raise SystemExit('Chiusura Aggiungi pagamento non trovata')
+          html=html.replace(old_close,new_close,1)
 
-          old_reject="""  rejectBtn.onclick=async(ev)=>{\n   ev.preventDefault();ev.stopPropagation();\n   if(paymentActionBusy)return;"""
-          new_reject="""  rejectBtn.onclick=async(ev)=>{\n   if(ev?.type==='click'&&Date.now()<Number(rejectBtn.dataset.rffSuppressClickUntil||0))return;\n   ev.preventDefault();ev.stopPropagation();\n   if(paymentActionBusy)return;"""
-          if old_reject not in html:
-            raise SystemExit('Handler Non confermare V77 non trovato')
-          html=html.replace(old_reject,new_reject,1)
+          old_pending='<div class="card pending pendingBar" id="pendingDrop"><div class="pendingBarHead"><span>🔔 Pagamenti e richieste da confermare</span><span class="badge" id="badge" hidden>0</span></div><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div>'
+          new_pending='<details class="card pending pendingBar pendingDrop pendingDropCompact" id="pendingDrop"><summary class="pendingBarHead"><span>🔔 Modifiche ricevute</span><span class="badge" id="badge" hidden>0</span></summary><div class="pendingCompactBody"><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div></details>'
+          if old_pending not in html:
+            raise SystemExit('Barra notifiche V78 non trovata')
+          html=html.replace(old_pending,new_pending,1)
 
-          old_touch="""    const now=Date.now(),last=Number(btn.dataset.rffLastTap||0);\n    if(now-last<650)return;btn.dataset.rffLastTap=String(now);\n    ev.preventDefault();ev.stopPropagation();"""
-          new_touch="""    const now=Date.now(),last=Number(btn.dataset.rffLastTap||0);\n    if(now-last<650)return;btn.dataset.rffLastTap=String(now);\n    btn.dataset.rffSuppressClickUntil=String(now+900);\n    ev.preventDefault();ev.stopPropagation();"""
-          if old_touch not in html:
-            raise SystemExit('Tocco diretto V77 non trovato')
-          html=html.replace(old_touch,new_touch,1)
+          css='''
+<style id="rff-v79-compact-bars">
+/* V79: solo presentazione. Gli ID e gli handler esistenti restano invariati. */
+.paymentDrop{padding:0!important;overflow:hidden!important;border-color:#8fb8dc!important}
+.paymentDrop>summary{list-style:none!important;cursor:pointer!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;background:#0b4f8a!important;color:#fff!important;padding:11px 14px!important;font-weight:900!important;min-height:44px!important}
+.paymentDrop>summary::-webkit-details-marker{display:none!important}.paymentDrop>summary::marker{content:''}
+.paymentDrop>summary::after{content:'▼';font-size:12px;transition:transform .2s}.paymentDrop[open]>summary::after{transform:rotate(180deg)}
+.paymentDrop>.entryForm{padding:7px 10px 0!important;margin:0!important}.paymentDrop>.historyDrop{margin:8px 10px 10px!important}
+.pendingBar.pendingDropCompact{padding:0!important;overflow:hidden!important;border:1px solid #cbd5e1!important;background:#fff!important;box-shadow:0 3px 12px #0f172a10!important}
+.pendingDropCompact>summary.pendingBarHead{list-style:none!important;cursor:pointer!important;display:flex!important;align-items:center!important;gap:10px!important;background:#fff!important;color:#334155!important;padding:11px 14px!important;font-weight:900!important;min-height:44px!important}
+.pendingDropCompact>summary::-webkit-details-marker{display:none!important}.pendingDropCompact>summary::marker{content:''}
+.pendingDropCompact>summary::after{content:'▼'!important;font-size:12px!important;color:#64748b!important;margin-left:4px!important;transition:transform .2s!important}.pendingDropCompact[open]>summary::after{transform:rotate(180deg)!important}
+.pendingDropCompact .pendingCompactBody{padding:0 10px 10px!important}.pendingDropCompact .pendingList{padding-top:6px!important}
+.pendingDropCompact .badge{position:static!important;margin-left:auto!important;flex:0 0 auto!important;background:#c62828!important;color:#fff!important;min-width:25px!important;height:25px!important;border-radius:999px!important;font-weight:900!important}
+.pendingDropCompact .badge:not([hidden]){animation:rffV79BadgePulse 1.05s ease-in-out infinite}
+@keyframes rffV79BadgePulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 #c6282840}50%{transform:scale(1.12);box-shadow:0 0 0 6px #c6282800}}
+@media(max-width:650px){.paymentDrop>summary,.pendingDropCompact>summary.pendingBarHead{padding:10px 12px!important;min-height:42px!important;font-size:15px!important}}
+@media print{.paymentDrop,.pendingDropCompact{display:none!important}}
+</style>
+'''
+          if 'id="rff-v79-compact-bars"' in html:
+            raise SystemExit('CSS V79 già presente')
+          html=html.replace('</head>',css+'</head>',1)
 
-          html=html.replace('<title>Registro Finanziario Familiare V77</title>','<title>Registro Finanziario Familiare V78</title>',1)
-          html=re.sub(r"service-worker\.js\?v=[^'\" ]+",'service-worker.js?v=20260930-v78-notification-bar',html)
-          sw=re.sub(r"const CACHE='[^']+';","const CACHE='rff-20260930-v78-notification-bar';",sw,count=1)
-          sw=re.sub(r"const SW_VERSION='[^']+';","const SW_VERSION='20260930-v78-notification-bar';",sw,count=1)
+          html=html.replace('<title>Registro Finanziario Familiare V78</title>','<title>Registro Finanziario Familiare V79</title>',1)
+          html=re.sub(r"service-worker\.js\?v=[^'\" ]+",'service-worker.js?v=20261001-v79-compact-bars',html)
+          sw=re.sub(r"const CACHE='[^']+';","const CACHE='rff-20261001-v79-compact-bars';",sw,count=1)
+          sw=re.sub(r"const SW_VERSION='[^']+';","const SW_VERSION='20261001-v79-compact-bars';",sw,count=1)
 
-          for marker in ['pendingBarHead','confirmPay','rejectPay','rffSuppressClickUntil','rff_confirm_payment_v3','rff_reject_payment_v3','Registro Finanziario Familiare V78']:
-            if marker not in html: raise SystemExit('Marker V78 mancante: '+marker)
-          if '<details class="card pending pendingDrop" id="pendingDrop">' in html:
-            raise SystemExit('Vecchia barra richiudibile ancora presente')
-          if '20260930-v78-notification-bar' not in sw:
-            raise SystemExit('Cache V78 mancante')
+          # Verifica che la modifica sia solo strutturale/grafica e che le funzioni critiche siano rimaste.
+          for marker in ['id="paymentDrop"','➕ Aggiungi pagamento','🔔 Modifiche ricevute','id="addEntry"','id="sendForApproval"','id="pendingList"','id="badge"','rff_confirm_payment_v3','rff_reject_payment_v3','rffSuppressClickUntil','Registro Finanziario Familiare V79']:
+            if marker not in html:
+              raise SystemExit('Marker V79 mancante: '+marker)
+          if 'background:#fff!important;color:#334155!important' not in html:
+            raise SystemExit('Barra Modifiche ricevute non bianca')
+          if 'rffV79BadgePulse' not in html:
+            raise SystemExit('Pallino rosso notifiche non configurato')
+          if '20261001-v79-compact-bars' not in sw:
+            raise SystemExit('Cache V79 mancante')
 
           Path('index.html').write_text(html)
           Path('service-worker.js').write_text(sw)
           PY
-      - name: Verifica V78
+      - name: Verifica funzioni critiche V79
         run: |
-          grep -q 'pendingBarHead' index.html
-          grep -q 'rffSuppressClickUntil' index.html
+          grep -q 'id="addEntry"' index.html
+          grep -q 'id="sendForApproval"' index.html
+          grep -q 'id="pendingList"' index.html
+          grep -q 'id="badge"' index.html
           grep -q 'rff_confirm_payment_v3' index.html
           grep -q 'rff_reject_payment_v3' index.html
-          grep -q '20260930-v78-notification-bar' service-worker.js
-      - name: Pubblica V78
+          grep -q 'rffSuppressClickUntil' index.html
+          grep -q 'Modifiche ricevute' index.html
+          grep -q 'rffV79BadgePulse' index.html
+          grep -q '20261001-v79-compact-bars' service-worker.js
+      - name: Pubblica V79
         run: |
           git config user.name "github-actions[bot]"
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html service-worker.js
-          git diff --cached --quiet || git commit -m 'Publish V78 restored notification bar and stable actions'
+          git diff --cached --quiet || git commit -m 'Publish V79 compact payment and received changes bars'
           git push
