@@ -1,8 +1,8 @@
-const CACHE='rff-20261001-v84-all-residuals';
-const SW_VERSION='20261001-v84-all-residuals';
+const CACHE='rff-20261001-v85-calendar-cleanup';
+const SW_VERSION='20261001-v85-calendar-cleanup';
 const ASSETS=[
   './','./index.html','./manifest.json','./icon-192.png?v=80-icon','./icon-512.png?v=80-icon',
-  './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js'
+  './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js','./v85-calendar-fix.js'
 ];
 
 function patchHtml(html){
@@ -90,6 +90,9 @@ function patchHtml(html){
   }
   if(!out.includes('v65-varie-collapse.js')){
     out=out.replace('</body>','<script src="./v65-varie-collapse.js?v='+SW_VERSION+'"></script>\n</body>');
+  }
+  if(!out.includes('v85-calendar-fix.js')){
+    out=out.replace('</body>','<script src="./v85-calendar-fix.js?v='+SW_VERSION+'"></script>\n</body>');
   }
   return out;
 }
