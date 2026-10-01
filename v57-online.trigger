@@ -1,1 +1,1 @@
-stable V78 notification bar with Confirm / Non confermare build 2026-09-30
+V79 compact payment bar + white received-changes bar; preserve notification logic 2026-10-01
