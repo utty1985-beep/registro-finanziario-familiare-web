@@ -63,7 +63,6 @@
   async function deleteCalendarEventV87(it,button){
     const id=String(it?.id||'');
     if(!id||it?.source==='rate')return;
-    if(!confirm('Eliminare questo appuntamento?'))return;
 
     const oldText=button.textContent;
     button.disabled=true;
