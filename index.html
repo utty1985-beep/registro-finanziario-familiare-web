@@ -216,7 +216,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 02/10 · Calendario V88</small><div class="userBar"><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 02/10 · V89</small><div class="userBar"><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><span class="syncStatus" id="syncStatus" role="status">Connessione…</span></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Profilo familiare in sola lettura. I dispositivi approvati dello stesso account proprietario hanno accesso completo al registro.</div>
@@ -631,7 +631,9 @@ function renderDaily(){
  let d=data().daily,start=validStart(),[y,m]=ymParts(),last=new Date(y,m,0).getDate();
  if(!d.viewStart || !d.viewStart.startsWith(month)) d.viewStart=d.start;
  const liveToday=new Date(),liveMonth=liveToday.getFullYear()+'-'+String(liveToday.getMonth()+1).padStart(2,'0');
- if(month===liveMonth){const todayDay=liveToday.getDate(),currentView=Number(d.viewStart.slice(-2))||start;if(currentView<todayDay)d.viewStart=month+'-'+String(todayDay).padStart(2,'0')}
+ // V89: "Mostra dal giorno" è solo un filtro di visualizzazione.
+ // L'utente può tornare anche a un giorno precedente per controllare spese e residui.
+ // La riga evidenziata resta comunque soltanto sul giorno corrente.
  const displayStart=Math.max(start,Number(d.viewStart.slice(-2))||start);
  if(!Array.isArray(d.columns)){d.columns=[];[['diesel','Diesel'],['benzina','Benzina'],['metano','Metano']].forEach(([k,n])=>{if(Number(d[k]||0)!==0)d.columns.push({id:k,name:n,budget:Number(d[k])||0})})}
  const todayKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
@@ -1318,7 +1320,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20261002-v88-direct-delete', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20261002-v89-view-history', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
