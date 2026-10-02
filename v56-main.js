@@ -294,7 +294,7 @@ function renderDaily(){
  let d=data().daily,start=validStart(),[y,m]=ymParts(),last=new Date(y,m,0).getDate();
  if(!d.viewStart || !d.viewStart.startsWith(month)) d.viewStart=d.start;
  const liveToday=new Date(),liveMonth=liveToday.getFullYear()+'-'+String(liveToday.getMonth()+1).padStart(2,'0');
- if(month===liveMonth){const todayDay=liveToday.getDate(),currentView=Number(d.viewStart.slice(-2))||start;if(currentView<todayDay)d.viewStart=month+'-'+String(todayDay).padStart(2,'0')}
+ // V89/V90: il filtro di visualizzazione può tornare ai giorni precedenti senza cambiare i conteggi.
  const displayStart=Math.max(start,Number(d.viewStart.slice(-2))||start);
  if(!Array.isArray(d.columns)){d.columns=[];[['diesel','Diesel'],['benzina','Benzina'],['metano','Metano']].forEach(([k,n])=>{if(Number(d[k]||0)!==0)d.columns.push({id:k,name:n,budget:Number(d[k])||0})})}
  const todayKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
@@ -594,7 +594,7 @@ function renderCalendar(){
   content.innerHTML='<b>'+escapeNotice(it.title||'Appuntamento')+'</b><div class="when">'+escapeNotice(start.toLocaleString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}))+'</div><div class="meta">'+escapeNotice(it.note||'')+' <span class="targetChip">'+escapeNotice(targetLabel(it))+'</span>'+(it.googleSync?' <span class="targetChip">Google</span>':'')+(it.source==='rate'?' <span class="targetChip">Rata</span>':'')+'</div>';
   const del=document.createElement('button');del.type='button';
   if(it.source==='rate'){del.textContent='Apri rata';del.style.background='#0b4f8a';del.style.borderColor='#0b4f8a';del.onclick=()=>{month=it.sourceMonth;ensureMonth(month);showPage('#p1');render();setTimeout(()=>document.getElementById('rateRows')?.scrollIntoView({behavior:'smooth',block:'center'}),50)}}
-  else{del.textContent='Elimina';del.onclick=async()=>{if(!confirm('Eliminare questo appuntamento?'))return;del.disabled=true;const {error}=await sb.rpc('rff_calendar_delete',{...deviceArgs(),p_event_id:String(it.id)});if(error){alert('Eliminazione non riuscita.');del.disabled=false;return}await syncCalendar(true);syncNativeFamilyTools()}};
+  else{del.textContent='Elimina';del.onclick=async()=>{const eventId=String(it.id||'');if(!eventId)return;del.disabled=true;del.textContent='Elimino…';const items=calendarData(),index=items.findIndex(x=>String(x?.id||'')===eventId),backup=index>=0?JSON.parse(JSON.stringify(items[index])):null;if(index>=0){items.splice(index,1);try{localStorage.setItem('rff_verified',JSON.stringify(db))}catch(_){}renderCalendar()}try{if(!sb||!familyId)throw new Error('sincronizzazione non disponibile');const {data:ok,error}=await sb.rpc('rff_calendar_delete',{...deviceArgs(),p_event_id:eventId});if(error)throw error;await syncCalendar(false);if(calendarData().some(x=>String(x?.id||'')===eventId))throw new Error('la voce risulta ancora presente sul server');try{window.FamilyAndroid?.cancelReminder?.('calendar:'+eventId)}catch(_){}syncNativeFamilyTools();renderCalendar()}catch(e){if(backup&&!calendarData().some(x=>String(x?.id||'')===eventId))calendarData().push(backup);try{localStorage.setItem('rff_verified',JSON.stringify(db))}catch(_){}renderCalendar();syncNativeFamilyTools();alert('Eliminazione non riuscita: '+(e?.message||'errore'))}}};
   row.append(content,del);list.appendChild(row)
  });
  renderCalendarNativeSettings()
