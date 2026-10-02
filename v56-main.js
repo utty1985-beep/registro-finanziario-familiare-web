@@ -49,7 +49,7 @@ function save(){
  localStorage.setItem('rff_verified',JSON.stringify(db));
  if(sb && familyId && familyRole==='owner' && !cloudLoading){syncStatus('Salvataggio…');clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>{cloudTimer=null;saveCloud()},500)}
 }
-window.addEventListener('online',()=>{if(familyRole==='owner'&&familyId)saveCloud()});
+window.addEventListener('online',async()=>{if(familyRole==='owner'&&familyId)await saveCloud();await syncFamily()});
 function applyPermissions(){
  const viewer=familyRole==='viewer';$('#viewerBanner').hidden=!viewer;
  $('#pairingCard').hidden=true;$('#sentinelBar').hidden=!familyRole;const hasBridge=!!window.RegistroAndroid;['authorizeNotices','sourcesButton','sendNotices'].forEach(id=>$('#'+id).disabled=!hasBridge);
@@ -120,6 +120,7 @@ async function syncFamily(){
  try{updateNotificationState();await refreshRemote();await sendAndroidPayments();await fetchInbox();if(familyRole==='owner')await showPairingRequests();await syncBoard(false);await syncCalendar(false);syncNativeFamilyTools();if($('#p3').classList.contains('active')){renderBoard();renderCalendar()}}
  catch(e){console.log('Sincronizzazione famiglia:',e)}finally{familySyncBusy=false}
 }
+window.rffForceSync=syncFamily;
 function ymParts(){let [y,m]=month.split('-').map(Number);return [y,m]}
 function title(){let [y,m]=ymParts();return new Date(y,m-1,1).toLocaleDateString('it-IT',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase())}
 function ensureMonth(nm){
@@ -650,7 +651,7 @@ async function enter(session){
   }
   if(window.RegistroAndroid?.configureBackgroundSync)RegistroAndroid.configureBackgroundSync(String(familyId),String(deviceId),String(deviceSecret));
   await loadCloud();await syncBoard(false);await syncCalendar(false);syncNativeFamilyTools();gate.classList.add('hidden');say('');updateNotificationState();
-  if(familyRole==='owner'){await sendAndroidPayments();await fetchInbox(true);await showPairingRequests()}else await sendAndroidPayments();
+  await sendAndroidPayments();await fetchInbox(true);if(familyRole==='owner')await showPairingRequests();
   roleTimer=setInterval(syncFamily,4000);
 
  }
