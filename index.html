@@ -216,7 +216,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 02/10 · V89</small><div class="userBar"><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 02/10 · V90</small><div class="userBar"><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><span class="syncStatus" id="syncStatus" role="status">Connessione…</span></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Profilo familiare in sola lettura. I dispositivi approvati dello stesso account proprietario hanno accesso completo al registro.</div>
@@ -983,7 +983,7 @@ function renderCalendar(){
   content.innerHTML='<b>'+escapeNotice(it.title||'Appuntamento')+'</b><div class="when">'+escapeNotice(start.toLocaleString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}))+'</div><div class="meta">'+escapeNotice(it.note||'')+' <span class="targetChip">'+escapeNotice(targetLabel(it))+'</span>'+(it.googleSync?' <span class="targetChip">Google</span>':'')+(it.source==='rate'?' <span class="targetChip">Rata</span>':'')+'</div>';
   const del=document.createElement('button');del.type='button';
   if(it.source==='rate'){del.textContent='Apri rata';del.style.background='#0b4f8a';del.style.borderColor='#0b4f8a';del.onclick=()=>{month=it.sourceMonth;ensureMonth(month);showPage('#p1');render();setTimeout(()=>document.getElementById('rateRows')?.scrollIntoView({behavior:'smooth',block:'center'}),50)}}
-  else{del.textContent='Elimina';del.onclick=async()=>{if(!confirm('Eliminare questo appuntamento?'))return;del.disabled=true;const {error}=await sb.rpc('rff_calendar_delete',{...deviceArgs(),p_event_id:String(it.id)});if(error){alert('Eliminazione non riuscita.');del.disabled=false;return}await syncCalendar(true);syncNativeFamilyTools()}};
+  else{del.textContent='Elimina';del.onclick=async()=>{const eventId=String(it.id||'');if(!eventId)return;del.disabled=true;del.textContent='Elimino…';const items=calendarData(),index=items.findIndex(x=>String(x?.id||'')===eventId),backup=index>=0?JSON.parse(JSON.stringify(items[index])):null;if(index>=0){items.splice(index,1);try{localStorage.setItem('rff_verified',JSON.stringify(db))}catch(_){}renderCalendar()}try{if(!sb||!familyId)throw new Error('sincronizzazione non disponibile');const {data:ok,error}=await sb.rpc('rff_calendar_delete',{...deviceArgs(),p_event_id:eventId});if(error)throw error;await syncCalendar(false);if(calendarData().some(x=>String(x?.id||'')===eventId))throw new Error('la voce risulta ancora presente sul server');try{window.FamilyAndroid?.cancelReminder?.('calendar:'+eventId)}catch(_){}syncNativeFamilyTools();renderCalendar()}catch(e){if(backup&&!calendarData().some(x=>String(x?.id||'')===eventId))calendarData().push(backup);try{localStorage.setItem('rff_verified',JSON.stringify(db))}catch(_){}renderCalendar();syncNativeFamilyTools();alert('Eliminazione non riuscita: '+(e?.message||'errore'))}}};
   row.append(content,del);list.appendChild(row)
  });
  renderCalendarNativeSettings()
@@ -1320,7 +1320,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20261002-v89-view-history', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20261002-v90-calendar-delete-core', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
