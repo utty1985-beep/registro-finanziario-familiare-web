@@ -1242,7 +1242,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20261003-v93-balance-trend', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20261003-v94-stability', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
@@ -1362,8 +1362,15 @@ if ('serviceWorker' in navigator) {
     return carry;
   }
   function remainingItems(d){
-    const planned=Array.isArray(d?.planned)?d.planned:[],daily=d?.daily||{},hiddenRows=daily.varieHidden||{},adj=Array.isArray(daily.varieAdjustments)?d.daily?.varieAdjustments||[]:[];
-    return planned.map((r,i)=>{const adjustment=adj.filter(x=>Number(x.row)===i).reduce((s,x)=>s+Number(x.amount||0),0);return {name:String(r?.[0]||'Varie'),amount:Number(r?.[1]||0)+adjustment,show:!!r?.[2]&&!r?.[4]&&!hiddenRows[i]}}).filter(x=>x.show&&Math.abs(x.amount)>0.004);
+    const planned=Array.isArray(d?.planned)?d.planned:[],rates=Array.isArray(d?.rates)?d.rates:[],daily=d?.daily||{},hiddenRows=daily.varieHidden||{},adj=Array.isArray(daily.varieAdjustments)?daily.varieAdjustments:[];
+    const rows=[
+      ...planned.map((r,i)=>({r,i,kind:'planned',show:!!r?.[2]&&!hiddenRows[i]})),
+      ...rates.map((r,i)=>({r,i,kind:'rates',show:!!(r?.[5]&&r[5].varie)}))
+    ];
+    return rows.map(({r,i,kind,show})=>{
+      const adjustment=adj.filter(x=>Number(x.row)===i&&(x.kind||'planned')===kind).reduce((sum,x)=>sum+Number(x.amount||0),0);
+      return {name:String(r?.[0]||'Varie'),amount:Number(r?.[1]||0)+adjustment,show};
+    }).filter(x=>x.show&&Math.abs(x.amount)>0.004);
   }
   function prevMonthKey(key){const [y,m]=key.split('-').map(Number),dt=new Date(y,m-2,1);return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')}
   function monthBalance(d){
@@ -1402,11 +1409,54 @@ if ('serviceWorker' in navigator) {
   const nav=qs('#rffQuickNav');
   if(nav){nav.classList.add('rffV92Nav');nav.innerHTML=`<button type="button" data-v92="home">🏠 Home</button><button type="button" data-v92="register">📊 Registro</button><button type="button" data-v92="daily">💳 Spese</button><button type="button" data-v92="board">📝 Lavagna</button><button type="button" data-v92="calendar">📅 Calendario</button>`;nav.querySelector('[data-v92="home"]').onclick=()=>show('#p0');nav.querySelector('[data-v92="register"]').onclick=openRegister;nav.querySelector('[data-v92="daily"]').onclick=openDaily;nav.querySelector('[data-v92="board"]').onclick=()=>openBoard('board');nav.querySelector('[data-v92="calendar"]').onclick=()=>openBoard('calendar')}
 
-  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 03/10 · V93';document.title='Registro Finanziario Familiare V93';
+  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 03/10 · V94';document.title='Registro Finanziario Familiare V94';
   if(p1)p1.classList.remove('active');page.classList.add('active');
   const obs=new MutationObserver(()=>refresh());['#incomeTotal','#plannedTotal','#balance','#viewerBanner','#badge'].forEach(s=>{const el=qs(s);if(el)obs.observe(el,{childList:true,subtree:true,attributes:true})});
   const gate=qs('#authGate');if(gate)new MutationObserver(()=>{if(gate.classList.contains('hidden')){show('#p0');setTimeout(refresh,80)}}).observe(gate,{attributes:true,attributeFilter:['class']});
   qs('#monthPick')?.addEventListener('change',()=>setTimeout(refresh,50));window.addEventListener('storage',refresh);window.addEventListener('focus',refresh);setInterval(refresh,1500);refresh();
+})();
+</script>
+
+
+<style id="rff-v94-state-dots-style">
+.rffStateDot{position:absolute!important;right:4px!important;top:4px!important;z-index:8!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;padding:0!important;border-radius:999px!important;background:#fff!important;display:grid!important;place-items:center!important;font-size:17px!important;line-height:1!important;box-shadow:0 1px 4px #0002!important}
+.rffStateDot.stateBlack{border:1px solid #334155!important}
+.rffStateDot.stateRed{border:1px solid #fca5a5!important}
+.rffStateDot:disabled{opacity:.8!important;cursor:default!important}
+@media print{.rffStateDot{display:none!important}}
+</style>
+<script id="rff-v94-state-dots-script">
+(()=>{
+  const hosts=['incomeRows','plannedRows','moveRows','rateRows'];
+  const isViewer=()=>{const b=document.getElementById('viewerBanner');return !!b&&!b.hidden};
+  function syncRow(row){
+    const pending=row.classList.contains('pendingCarry')||!!row.querySelector('.confirmCarry');
+    const confirm=row.querySelector('.confirmCarry');
+    const mark=row.querySelector('.markProvisional');
+    if(pending&&confirm){
+      if(confirm.textContent!=='🔴')confirm.textContent='🔴';
+      confirm.title='Voce provvisoria · premi per renderla confermata';
+      confirm.setAttribute('aria-label','Voce provvisoria rossa. Premi per renderla confermata');
+      confirm.classList.add('rffStateDot','stateRed');
+      confirm.disabled=isViewer();
+      if(mark)mark.remove();
+      row.classList.remove('hasMarkProvisional');
+    }else if(mark){
+      if(mark.textContent!=='⚫')mark.textContent='⚫';
+      mark.title='Voce confermata · premi per renderla provvisoria';
+      mark.setAttribute('aria-label','Voce confermata nera. Premi per renderla provvisoria rossa');
+      mark.classList.add('rffStateDot','stateBlack');
+      mark.classList.remove('stateRed');
+      mark.disabled=isViewer();
+      row.classList.add('hasMarkProvisional');
+    }
+  }
+  function syncAll(){for(const id of hosts){const h=document.getElementById(id);if(h)h.querySelectorAll(':scope > .row').forEach(syncRow)}}
+  const observer=new MutationObserver(()=>queueMicrotask(syncAll));
+  for(const id of hosts){const h=document.getElementById(id);if(h)observer.observe(h,{childList:true,subtree:true})}
+  const viewer=document.getElementById('viewerBanner');if(viewer)observer.observe(viewer,{attributes:true,attributeFilter:['hidden']});
+  window.addEventListener('focus',syncAll);document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncAll()});
+  setInterval(syncAll,1500);syncAll();
 })();
 </script>
 
