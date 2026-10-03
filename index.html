@@ -208,6 +208,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 </style>
 </head>
 <body>
+<!-- RFF V91: recupero pagamenti Wallet dopo ritorno rete/riapertura -->
 <div id="authGate" class="authGate"><div class="authCard">
  <h2>🏠 Registro Finanziario Familiare</h2><p>Accedi con email e password.</p>
  <input id="authEmail" type="email" autocomplete="email" placeholder="Email">
@@ -216,7 +217,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 02/10 · V90</small><div class="userBar"><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 02/10 · V91</small><div class="userBar"><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><span class="syncStatus" id="syncStatus" role="status">Connessione…</span></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Profilo familiare in sola lettura. I dispositivi approvati dello stesso account proprietario hanno accesso completo al registro.</div>
@@ -369,7 +370,7 @@ const SUPABASE_URL='https://dqtqwfvszrtndwipyluh.supabase.co';
 const SUPABASE_KEY='sb_publishable_Qsbu5wHMUJ6ZJGuMNb16vA_gBx74NsB';
 const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 let localRevision=0,cloudDirty=false,cloudSaving=null,cloudRefreshing=false,lastRemoteSnapshot="",familySyncBusy=false,paymentActionBusy=false;
-let familyId=null, familyRole=null, accountRole=null, cloudTimer=null, cloudLoading=false, roleTimer=null, inboxBusy=false, pendingTimer=null, lastInboxSync=0;
+let familyId=null, familyRole=null, accountRole=null, cloudTimer=null, cloudLoading=false, roleTimer=null, inboxBusy=false, pendingTimer=null, lastInboxSync=0, reconnectTimers=[];
 function syncStatus(message,error=false){const el=$('#syncStatus');el.textContent=message;el.classList.toggle('error',error);const mirror=$('#syncMirror');if(mirror){mirror.textContent=message;mirror.classList.toggle('error',error)}}
 const deviceId=localStorage.getItem('rff_device_id')||crypto.randomUUID();
 const deviceSecret=localStorage.getItem('rff_device_secret')||Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -382,13 +383,13 @@ function save(){
  localStorage.setItem('rff_verified',JSON.stringify(db));
  if(sb && familyId && familyRole==='owner' && !cloudLoading){syncStatus('Salvataggio…');clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>{cloudTimer=null;saveCloud()},500)}
 }
-window.addEventListener('online',async()=>{if(familyRole==='owner'&&familyId)await saveCloud();await syncFamily()});
+window.addEventListener('online',()=>{if(familyRole==='owner'&&familyId)saveCloud()});
 function applyPermissions(){
  const viewer=familyRole==='viewer';$('#viewerBanner').hidden=!viewer;
  $('#pairingCard').hidden=true;$('#sentinelBar').hidden=!familyRole;const hasBridge=!!window.RegistroAndroid;['authorizeNotices','sourcesButton','sendNotices'].forEach(id=>$('#'+id).disabled=!hasBridge);
- const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;const dailySettings=$('#p2 .settingsDrop');if(dailySettings){dailySettings.hidden=viewer;if(viewer)dailySettings.open=false}const pendingDrop=$('#pendingDrop');if(pendingDrop)pendingDrop.hidden=viewer;const importBtn=$('#sendNotices');if(importBtn)importBtn.hidden=true;$('#sendForApproval').hidden=viewer;if(viewer)$('#addEntry').textContent='Invia pagamento';else $('#addEntry').textContent='+ Aggiungi pagamento';ensurePrimaryButton();
+ const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;$('#sendForApproval').hidden=viewer;
  document.querySelectorAll('#p1 input:not(#monthPick),#p2 input,#p1 button,#p2 button,#p2 select').forEach(el=>{
-  if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','toBoard','toBoard2','authorizeNotices','sourcesButton','sendNotices','makePrimaryPhone'].includes(el.id))return;
+  if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','toBoard','toBoard2','authorizeNotices','sourcesButton','sendNotices'].includes(el.id))return;
   if(el.closest('.entryForm')){el.disabled=false;return}
   el.disabled=viewer;
  });
@@ -448,16 +449,27 @@ async function refreshRemote(){
   syncStatus('Registro sincronizzato');
  }catch(e){console.log('Aggiornamento registro:',e);syncStatus('Sincronizzazione non riuscita · riprovo',true)}finally{cloudRefreshing=false}
 }
-async function refreshDeviceRole(forceRender=false){
- if(!sb||!familyId)return false;
- try{const {data:status,error}=await sb.rpc('rff_device_status',deviceArgs());if(error||!status)return false;const next=(status.status==='active'&&String(status.role||'')==='primary'&&accountRole==='owner')?'owner':'viewer';const changed=next!==familyRole;familyRole=next;if(familyRole==='viewer')$('#addEntry').textContent='Invia pagamento';else $('#addEntry').textContent='+ Aggiungi pagamento';if(changed||forceRender){applyPermissions();renderDaily()}return changed}catch(e){console.log('Aggiornamento ruolo dispositivo:',e);return false}
-}
 async function syncFamily(){
  if(familySyncBusy||paymentActionBusy||document.hidden||!familyId||!familyRole)return;familySyncBusy=true;
- try{await refreshDeviceRole();updateNotificationState();await refreshRemote();await sendAndroidPayments();await fetchInbox();if(familyRole==='owner')await showPairingRequests();await syncBoard(false);await syncCalendar(false);syncNativeFamilyTools();if($('#p3').classList.contains('active')){renderBoard();renderCalendar()}}
+ try{updateNotificationState();await refreshRemote();await sendAndroidPayments();await fetchInbox();if(familyRole==='owner')await showPairingRequests();await syncBoard(false);await syncCalendar(false);syncNativeFamilyTools();if($('#p3').classList.contains('active')){renderBoard();renderCalendar()}}
  catch(e){console.log('Sincronizzazione famiglia:',e)}finally{familySyncBusy=false}
 }
-window.rffForceSync=syncFamily;
+function cancelReconnectTimers(){for(const t of reconnectTimers)clearTimeout(t);reconnectTimers=[]}
+function queueReconnectSync(reason='rete'){
+ cancelReconnectTimers();
+ const run=async()=>{
+  if(document.hidden||!familyId||!familyRole)return;
+  try{
+   if(window.RegistroAndroid?.configureBackgroundSync)RegistroAndroid.configureBackgroundSync(String(familyId),String(deviceId),String(deviceSecret));
+   await sendAndroidPayments();
+   await fetchInbox(true);
+   await refreshRemote();
+   updateNotificationState();
+   syncStatus('Riconnesso · pagamenti recuperati');
+  }catch(e){console.log('Recupero dopo riconnessione '+reason+':',e);syncStatus('Riconnesso · recupero pagamenti in corso',true)}
+ };
+ [0,2500,8000,20000].forEach(ms=>reconnectTimers.push(setTimeout(run,ms)));
+}
 function ymParts(){let [y,m]=month.split('-').map(Number);return [y,m]}
 function title(){let [y,m]=ymParts();return new Date(y,m-1,1).toLocaleDateString('it-IT',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase())}
 function ensureMonth(nm){
@@ -632,9 +644,7 @@ function renderDaily(){
  let d=data().daily,start=validStart(),[y,m]=ymParts(),last=new Date(y,m,0).getDate();
  if(!d.viewStart || !d.viewStart.startsWith(month)) d.viewStart=d.start;
  const liveToday=new Date(),liveMonth=liveToday.getFullYear()+'-'+String(liveToday.getMonth()+1).padStart(2,'0');
- // V89: "Mostra dal giorno" è solo un filtro di visualizzazione.
- // L'utente può tornare anche a un giorno precedente per controllare spese e residui.
- // La riga evidenziata resta comunque soltanto sul giorno corrente.
+ // V89/V90: il filtro di visualizzazione può tornare ai giorni precedenti senza cambiare i conteggi.
  const displayStart=Math.max(start,Number(d.viewStart.slice(-2))||start);
  if(!Array.isArray(d.columns)){d.columns=[];[['diesel','Diesel'],['benzina','Benzina'],['metano','Metano']].forEach(([k,n])=>{if(Number(d[k]||0)!==0)d.columns.push({id:k,name:n,budget:Number(d[k])||0})})}
  const todayKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
@@ -729,82 +739,43 @@ function renderEntryHistory(){
 }
 function escapeNotice(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function noticeSign(n){if((n&&n.sign==='+')||(n&&n.sign==='-'))return n.sign;const d=String(n?.desc||'');return d.startsWith('__RFF_SIGN_POS__')?'+':'-'}
-function noticeAppName(s){const t=String(s||'').replace(/^__RFF_SIGN_(?:NEG|POS)__\s*/,'');const m=t.match(/^__RFF_APP__(.*?)__\s*/);return m?String(m[1]||'').trim():''}
-function cleanNoticeDesc(s){return String(s||'').replace(/^__RFF_SIGN_(?:NEG|POS)__\s*/,'').replace(/^__RFF_APP__(.*?)__\s*/,'')}
-function noticeOrigin(n){const who=n?.sourceDeviceRole==='primary'?'Tuo telefono (principale)':(n?.sourceDeviceRole==='sentinel'?'Telefono sentinella':'Telefono');const label=String(n?.sourceDeviceLabel||'').trim();const app=noticeAppName(n?.desc||'');return who+(label?' · '+label:'')+(app?' · App: '+app:' · App: non disponibile')}
+function cleanNoticeDesc(s){return String(s||'').replace(/^__RFF_SIGN_(?:NEG|POS)__\s*/,'')}
 function renderPending(){
  let p=data().daily.pending,b=$('#badge'),h=$('#pendingList');b.hidden=!p.length;b.textContent=p.length;h.innerHTML=p.length?'':'<div class="hint">Nessuna notifica da confermare.</div>';
  p.forEach((n,i)=>{
   let x=document.createElement('div');x.className='notice';
   const opts=[['Mangiare','food'],...((n.category||'').toLowerCase()==='diesel'&&!customCols().some(c=>(c.name||'').toLowerCase()==='diesel')?[['Diesel','diesel-proposed']]:[]),...customCols().filter(c=>(c.name||'').trim()).map(c=>[c.name.trim(),colKey(c)]),['Varie','varie']].map(([name,key])=>`<option value="${escapeNotice(key)}">${escapeNotice(name)}</option>`).join('');
   const sgn=noticeSign(n);
-  x.innerHTML=`<div style="font-size:12px;font-weight:800;color:#0b5685;margin-bottom:6px">${escapeNotice(noticeOrigin(n))}</div><b>${sgn} € ${euro(n.amount)}</b> ${escapeNotice(cleanNoticeDesc(n.desc))}<br><select>${opts}</select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"><div class="pendingActions"><button type="button" class="confirmPay">Conferma</button><button type="button" class="rejectPay">Non confermare</button></div>`;
+  x.innerHTML=`<b>${sgn} € ${euro(n.amount)}</b> ${escapeNotice(cleanNoticeDesc(n.desc))}<br><select>${opts}</select> <input type="number" min="1" max="31" value="${validStart()}" style="width:65px"><div class="pendingActions"><button class="confirmPay">Conferma</button><button class="rejectPay">Non confermare</button></div>`;
   const suggested=customCols().find(c=>(c.name||'').toLowerCase()===(n.category||'').toLowerCase());x.querySelector('select').value=suggested?colKey(suggested):(n.category==='Mangiare'?'food':(n.category==='Diesel'?'diesel-proposed':'varie'));if(n.day)x.querySelector('input').value=n.day;
-  const confirmBtn=x.querySelector('.confirmPay'),rejectBtn=x.querySelector('.rejectPay');
-  const setPendingBusy=(busy,label='')=>{
-   [confirmBtn,rejectBtn].forEach(btn=>{btn.disabled=busy;btn.style.pointerEvents=busy?'none':'auto';btn.style.opacity=busy?'.65':'1'});
-   if(label)confirmBtn.textContent=label;else confirmBtn.textContent='Conferma';
-  };
-  confirmBtn.onclick=async(ev)=>{
-   if(ev?.type==='click'&&Date.now()<Number(confirmBtn.dataset.rffSuppressClickUntil||0))return;
-   ev.preventDefault();ev.stopPropagation();
-   if(paymentActionBusy)return;
+  x.querySelector('.confirmPay').onclick=async()=>{
+   if(familyRole!=='owner'||paymentActionBusy)return;
+   if(cloudDirty&&!await saveCloud()){alert('Salva prima le modifiche del registro.');return}
    const [yy,mm]=ymParts(),day=Number(x.querySelector('input').value),amount=Number(n.amount);
-   if(!Number.isInteger(day)||day<1||day>new Date(yy,mm,0).getDate()||!Number.isFinite(amount)||amount<=0){alert('Controlla giorno e importo.');return}
+   if(!Number.isInteger(day)||day<1||day>new Date(yy,mm,0).getDate()||!Number.isFinite(amount)||amount<=0)return;
    let cat=x.querySelector('select').value||'varie';
-   paymentActionBusy=true;setPendingBusy(true,'Confermo…');
+   if(cat==='diesel-proposed'){let col=customCols().find(c=>(c.name||'').toLowerCase()==='diesel');if(!col){col={id:'diesel',name:'Diesel',budget:0};customCols().push(col)}cat=colKey(col)}
+   const current=data();current.daily.entries||(current.daily.entries=[]);
+   const entry={id:'n_'+(n.id||crypto.randomUUID()),day,category:cat,amount:(sgn==='-'?-1:1)*amount,desc:cleanNoticeDesc(n.desc)||'Notifica'};
+   if(!n.inboxId){current.daily.entries.push(entry);p.splice(i,1);save();renderDaily();return}
+   paymentActionBusy=true;x.querySelectorAll('button').forEach(btn=>btn.disabled=true);
+   const proposed=JSON.parse(JSON.stringify(db));proposed[month].daily.entries.push(entry);
    try{
-    if(!n.inboxId){
-     const current=data();current.daily.entries||(current.daily.entries=[]);
-     if(cat==='diesel-proposed'){let col=customCols().find(c=>(c.name||'').toLowerCase()==='diesel');if(!col){col={id:'diesel',name:'Diesel',budget:0};customCols().push(col)}cat=colKey(col)}
-     current.daily.entries.push({id:'n_'+crypto.randomUUID(),day,category:cat,amount:(sgn==='-'?-1:1)*amount,desc:cleanNoticeDesc(n.desc)||'Notifica'});
-     p.splice(i,1);save();renderDaily();return
-    }
-    if(cloudDirty){const saved=await saveCloud();if(!saved)throw new Error('Salvataggio del registro non riuscito')}
-    const {data:ok,error}=await sb.rpc('rff_confirm_payment_v3',{...deviceArgs(),p_inbox_id:n.inboxId,p_month:month,p_day:day,p_category:cat});
-    if(error)throw error;if(ok!==true)throw new Error('Il server non ha confermato l’operazione');
-    await loadCloud();await fetchInbox();
-   }catch(e){console.log('Conferma V75:',e);alert('Conferma non riuscita: '+(e?.message||'errore'))}
-   finally{paymentActionBusy=false;setPendingBusy(false)}
+    const {error}=await sb.rpc('rff_confirm_payment',{...deviceArgs(),p_inbox_id:n.inboxId,p_data:proposed});if(error)throw error;
+    await loadCloud();
+   }catch(e){console.log('Conferma:',e);alert('Conferma non completata. Riprova: il pagamento non verrà duplicato.');x.querySelectorAll('button').forEach(btn=>btn.disabled=false)}
+   finally{paymentActionBusy=false;await fetchInbox()}
   };
-  rejectBtn.onclick=async(ev)=>{
-   if(ev?.type==='click'&&Date.now()<Number(rejectBtn.dataset.rffSuppressClickUntil||0))return;
-   ev.preventDefault();ev.stopPropagation();
-   if(paymentActionBusy)return;
-   const rejectArmed=rejectBtn.dataset.rffRejectArmed==='1';
-   if(!rejectArmed){
-    rejectBtn.dataset.rffRejectArmed='1';
-    rejectBtn.textContent='Tocca ancora per eliminare';
-    rejectBtn.style.fontSize='13px';
-    setTimeout(()=>{if(rejectBtn.dataset.rffRejectArmed==='1'){delete rejectBtn.dataset.rffRejectArmed;rejectBtn.textContent='Non confermare';rejectBtn.style.fontSize=''}},4000);
-    return;
-   }
-   delete rejectBtn.dataset.rffRejectArmed;rejectBtn.style.fontSize='';
-   paymentActionBusy=true;setPendingBusy(true);rejectBtn.textContent='Elimino…';
-   try{
-    if(!n.inboxId){p.splice(i,1);save();renderPending();return}
-    if(cloudDirty){const saved=await saveCloud();if(!saved)throw new Error('Salvataggio del registro non riuscito')}
-    const {data:ok,error}=await sb.rpc('rff_reject_payment_v3',{...deviceArgs(),p_inbox_id:n.inboxId});
-    if(error)throw error;if(ok!==true)throw new Error('Il server non ha eliminato la richiesta');
-    await loadCloud();await fetchInbox();
-   }catch(e){console.log('Rifiuto V75:',e);alert('Non confermare non riuscito: '+(e?.message||'errore'))}
-   finally{paymentActionBusy=false;rejectBtn.textContent='Non confermare';setPendingBusy(false)}
+  x.querySelector('.rejectPay').onclick=async()=>{
+   if(familyRole!=='owner'||paymentActionBusy)return;if(!confirm('Non confermare questa richiesta? Verrà eliminata senza inserirla nelle spese.'))return;
+   x.querySelectorAll('button').forEach(btn=>btn.disabled=true);
+   if(n.inboxId){
+    const {error}=await sb.rpc('rff_reject_payment',{...deviceArgs(),p_inbox_id:n.inboxId});
+    if(error){alert('Rifiuto non riuscito. Riprova.');x.querySelectorAll('button').forEach(btn=>btn.disabled=false);return}
+    { const list=data().daily.pending;data().daily.pending=list.filter(v=>v.inboxId!==n.inboxId);localStorage.setItem('rff_verified',JSON.stringify(db)); }
+   }else{p.splice(i,1);save()}
+   renderPending();
   };
-  [confirmBtn,rejectBtn].forEach(btn=>{btn.type='button';btn.disabled=false;btn.style.pointerEvents='auto';btn.style.touchAction='manipulation';btn.style.position='relative';btn.style.zIndex='50'});
-  if(!h.dataset.rffDirectTouch){
-   h.dataset.rffDirectTouch='1';
-   const directFire=ev=>{
-    const btn=ev.target&&ev.target.closest?ev.target.closest('.confirmPay,.rejectPay'):null;
-    if(!btn||!h.contains(btn))return;
-    const now=Date.now(),last=Number(btn.dataset.rffLastTap||0);
-    if(now-last<650)return;btn.dataset.rffLastTap=String(now);
-    btn.dataset.rffSuppressClickUntil=String(now+900);
-    ev.preventDefault();ev.stopPropagation();
-    const fn=btn.onclick;if(typeof fn==='function')fn.call(btn,ev);
-   };
-   h.addEventListener('pointerup',directFire,true);
-   h.addEventListener('touchend',directFire,{capture:true,passive:false});
-  }
   h.appendChild(x)
  });applyPermissions()
 }
@@ -819,12 +790,12 @@ function guessCategory(s){s=String(s||'').toLowerCase();if(/\b(q8|eni|esso|tamoi
 async function fetchInbox(){
  if(inboxBusy||!['owner','viewer'].includes(familyRole)||!familyId||paymentActionBusy||$('#pendingList').contains(document.activeElement))return;inboxBusy=true;
  try{
-  const {data:rows,error}=await sb.rpc('rff_pending_payments_v2',deviceArgs());if(error)throw error;
+  const {data:rows,error}=await sb.rpc('rff_pending_payments',deviceArgs());if(error)throw error;
   lastInboxSync=Date.now();const byMonth={};
   for(const row of rows||[]){
    const dt=new Date(row.occurred_at);if(!Number.isFinite(dt.getTime()))continue;
    const key=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'),rawDesc=String(row.description||'');
-   (byMonth[key]||(byMonth[key]=[])).push({inboxId:row.id,id:'i_'+row.id,amount:Number(row.amount),desc:rawDesc,sign:rawDesc.startsWith('__RFF_SIGN_POS__')?'+':'-',category:row.suggested_category,day:dt.getDate(),sourceDeviceId:row.source_device_id,sourceDeviceLabel:row.source_device_label,sourceDeviceRole:row.source_device_role});
+   (byMonth[key]||(byMonth[key]=[])).push({inboxId:row.id,id:'i_'+row.id,amount:Number(row.amount),desc:rawDesc,sign:rawDesc.startsWith('__RFF_SIGN_POS__')?'+':'-',category:row.suggested_category,day:dt.getDate()});
   }
   let changed=false;
   for(const key of new Set([...Object.keys(db).filter(k=>/^\d{4}-\d{2}$/.test(k)),...Object.keys(byMonth)])){
@@ -835,16 +806,15 @@ async function fetchInbox(){
   if(changed){localStorage.setItem('rff_verified',JSON.stringify(db));renderPending()}
  }catch(e){console.log('Pagamenti in attesa:',e);syncStatus('Pagamenti da confermare non sincronizzati · riprovo',true)}finally{inboxBusy=false}
 }
-function ensurePaymentSourcesEnabled(){const bridge=window.RegistroAndroid;if(!bridge?.availablePaymentSources||!bridge?.setAllowedPaymentSources)return;try{const sources=JSON.parse(bridge.availablePaymentSources()||'[]');if(!Array.isArray(sources)||!sources.length)return;const enabled=sources.filter(s=>s&&s.enabled&&s.package).map(s=>s.package);if(enabled.length)return;const packages=sources.map(s=>s&&s.package).filter(Boolean);if(packages.length)bridge.setAllowedPaymentSources(JSON.stringify(packages))}catch(e){console.log('Sorgenti pagamenti:',e)}}
 async function sendAndroidPayments(){
- if(!['owner','viewer'].includes(familyRole)||!familyId||!window.RegistroAndroid)return;ensurePaymentSourcesEnabled();
+ if(!['owner','viewer'].includes(familyRole)||!familyId||!window.RegistroAndroid)return;
  let items=[];try{items=JSON.parse(RegistroAndroid.peekPendingPayments()||'[]')}catch(e){return}
  if(!items.length)return;
  let sent=0;
  for(const x of items){
   const amount=Number(x.amount),dt=new Date(Number(x.timestamp));
   if(!x.id||!Number.isFinite(amount)||amount<=0||!Number.isFinite(dt.getTime()))continue;
-  let sourceLabel=String(x.package||'');try{const srcs=JSON.parse(RegistroAndroid.availablePaymentSources?.()||'[]');const hit=srcs.find(s=>s&&s.package===x.package);if(hit?.label)sourceLabel=String(hit.label)}catch(_){ }sourceLabel=sourceLabel.replace(/__/g,' ');const body=String(((x.title||'')+' '+(x.text||'')).trim()||'Pagamento rilevato').slice(0,140);const desc=(sourceLabel?'__RFF_APP__'+sourceLabel+'__ ':'')+body;
+  const desc=String(((x.title||'')+' '+(x.text||'')).trim()||'Pagamento rilevato').slice(0,180);
   const {error}=await sb.rpc('rff_send_payment',{...deviceArgs(),p_notification_id:String(x.id),p_amount:amount,p_description:desc,p_occurred_at:dt.toISOString(),p_category:guessCategory(desc)});
   if(error){console.log('Invio pagamento:',error);$('#sendStatus').textContent='Importazione non riuscita. I pagamenti restano sul telefono per riprovare.';continue}
   RegistroAndroid.acknowledgePendingPayments(JSON.stringify([x.id]));sent++;
@@ -886,16 +856,6 @@ function renderPaymentSources(){
 }
 $('#sourcesButton').onclick=renderPaymentSources;
 $('#sendNotices').onclick=sendAndroidPayments;
-function ensurePrimaryButton(){
- const p1=$('#p1');if(!p1)return;
- let card=$('#primaryRecoveryCard'),btn=$('#makePrimaryPhone'),hint=$('#makePrimaryHint');
- if(!card){card=document.createElement('div');card.id='primaryRecoveryCard';card.className='card';card.style.cssText='border:2px solid #0b4f8a;background:#eef6ff;margin:16px 0;padding:14px';const title=document.createElement('h2');title.textContent='📱 Telefono principale';card.appendChild(title)}
- if(!btn){btn=document.createElement('button');btn.id='makePrimaryPhone';btn.type='button';btn.className='primary';btn.textContent='📱 Rendi questo il telefono principale';btn.onclick=async()=>{if(!confirm('Impostare questo come telefono principale? Gli altri telefoni resteranno sentinelle.'))return;const old=btn.textContent;btn.disabled=true;btn.textContent='Impostazione…';try{const {data,error}=await sb.rpc('rff_make_primary',deviceArgs());if(error)throw error;if(data!==true)throw new Error('Il server non ha confermato il cambio.');await refreshDeviceRole(true);await fetchInbox();renderDaily();alert('Questo telefono ora è il principale. Puoi confermare o rifiutare i pagamenti.')}catch(e){console.log('Telefono principale:',e);alert('Impostazione non riuscita: '+(e?.message||'errore')+'. Riprova con Internet attivo.');btn.disabled=false;btn.textContent=old}}}
- if(!hint){hint=document.createElement('div');hint.id='makePrimaryHint';hint.className='hint';hint.textContent='Premilo solo sul telefono che deve approvare o rifiutare i pagamenti.'}
- if(btn.parentElement!==card)card.appendChild(btn);if(hint.parentElement!==card)card.appendChild(hint);if(card.parentElement!==p1)p1.appendChild(card);
- const show=familyRole==='viewer'&&accountRole==='owner';card.hidden=!show;btn.hidden=!show;hint.hidden=!show;
- if(show){btn.disabled=false;btn.removeAttribute('disabled');btn.style.cssText='width:100%;margin-top:8px;font-size:18px;padding:14px;opacity:1;pointer-events:auto'}
-}
 async function showPairingRequests(){
  if(familyRole!=='owner'){ $('#pairingCard').hidden=true; return; }
  const {data:requests,error}=await sb.rpc('rff_pending_devices',deviceArgs());
@@ -1029,7 +989,7 @@ async function enter(session){
   if(!await resolveFamily())throw new Error('Account non collegato alla famiglia.');
   const {data:device,error:pairError}=await sb.rpc('rff_register_device',{...deviceArgs(),p_label:'Telefono '+deviceId.slice(-6)});
   if(pairError)throw pairError;
-  familyRole=(device.status==='active'&&String(device.role||'')==='primary'&&accountRole==='owner')?'owner':'viewer';if(familyRole==='viewer')$('#addEntry').textContent='Invia pagamento';else $('#addEntry').textContent='+ Aggiungi pagamento';
+  familyRole=(device.status==='active'&&accountRole==='owner')?'owner':'viewer';if(familyRole==='viewer')$('#addEntry').textContent='Invia da confermare';else $('#addEntry').textContent='+ Aggiungi pagamento';
   if(device.status==='pending'){
    say('Questo telefono è in attesa. Sul principale autorizza il codice '+deviceId.slice(-6)+'.',true);
    pendingTimer=setInterval(async()=>{
@@ -1037,17 +997,20 @@ async function enter(session){
     if(!error&&status?.status==='active'){clearInterval(pendingTimer);await enter(session)}
    },15000);
    return;
-  }
-  if(window.RegistroAndroid?.configureBackgroundSync)RegistroAndroid.configureBackgroundSync(String(familyId),String(deviceId),String(deviceSecret));
+  }  if(window.RegistroAndroid?.configureBackgroundSync)RegistroAndroid.configureBackgroundSync(String(familyId),String(deviceId),String(deviceSecret));
   await loadCloud();await syncBoard(false);await syncCalendar(false);syncNativeFamilyTools();gate.classList.add('hidden');say('');updateNotificationState();
-  await sendAndroidPayments();await fetchInbox(true);if(familyRole==='owner')await showPairingRequests();
+  if(familyRole==='owner'){await sendAndroidPayments();await fetchInbox(true);await showPairingRequests()}else await sendAndroidPayments();
+  queueReconnectSync('apertura app');
   roleTimer=setInterval(syncFamily,4000);
 
  }
  catch(e){gate.classList.remove('hidden');say('Accesso al registro: '+(e?.message||'errore di connessione'))}
 }
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncFamily()});
-window.addEventListener('focus',syncFamily);window.addEventListener('pageshow',syncFamily);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncFamily();queueReconnectSync('ritorno in primo piano')}});
+window.addEventListener('focus',()=>{syncFamily();queueReconnectSync('focus')});
+window.addEventListener('pageshow',()=>{syncFamily();queueReconnectSync('riapertura')});
+window.addEventListener('online',()=>{syncStatus('Internet tornato · recupero pagamenti…');queueReconnectSync('internet tornato')});
+window.addEventListener('offline',()=>syncStatus('Senza Internet · i pagamenti restano salvati sul telefono',true));
 $('#loginBtn').onclick=async()=>{
  if(!sb)return say('Connessione non disponibile. Riprova con Internet attivo.');
  say('Accesso…',true);
@@ -1077,7 +1040,7 @@ $('#setPasswordBtn').onclick=async()=>{
  const {data}=await sb.auth.getSession();await enter(data.session);
 };
 $('#logoutBtn').onclick=async()=>{
- clearTimeout(cloudTimer);clearInterval(roleTimer);clearInterval(pendingTimer);familyId=null;familyRole=null;gate.classList.remove('hidden');$('#userEmail').textContent='';
+ clearTimeout(cloudTimer);clearInterval(roleTimer);clearInterval(pendingTimer);cancelReconnectTimers();familyId=null;familyRole=null;gate.classList.remove('hidden');$('#userEmail').textContent='';
  const {error}=await sb.auth.signOut();if(error)return say(error.message);say('Disconnesso.',true);
 };
 // Aggiornamento automatico del giorno: mantiene anche valori negativi.
@@ -1096,7 +1059,7 @@ setInterval(()=>{
 if(sb){
  sb.auth.onAuthStateChange((event)=>{
   if(event==='PASSWORD_RECOVERY'){gate.classList.remove('hidden');passwordMode(true);say('Inserisci la nuova password.',true)}
-  else if(event==='SIGNED_OUT'){clearTimeout(cloudTimer);clearInterval(roleTimer);clearInterval(pendingTimer);familyId=null;familyRole=null;gate.classList.remove('hidden')}
+  else if(event==='SIGNED_OUT'){clearTimeout(cloudTimer);clearInterval(roleTimer);clearInterval(pendingTimer);cancelReconnectTimers();familyId=null;familyRole=null;gate.classList.remove('hidden')}
  });
  (async()=>{try{const {data,error}=await sb.auth.getSession();if(error)throw error;await enter(data.session)}catch(e){say('Accesso non disponibile: '+(e?.message||'errore'))}})();
 }else say('Connessione non disponibile. Riprova con Internet attivo.');
@@ -1232,86 +1195,44 @@ if(sb){
 </script>
 <script>
 (()=>{
-  const style=document.createElement('style');
-  style.id='rff-v61-longpress-style';
-  style.textContent=`
-#incomeRows .markProvisional,#plannedRows .markProvisional,#moveRows .markProvisional,#rateRows .markProvisional,
-#incomeRows .confirmCarry,#plannedRows .confirmCarry,#moveRows .confirmCarry,#rateRows .confirmCarry{display:none!important}
-#incomeRows .row,#plannedRows .row,#moveRows .row,#rateRows .row{position:relative!important}
-.provisionalDot{position:absolute;right:7px;top:7px;width:18px;height:18px;min-width:18px;min-height:18px;padding:0!important;border:2px solid #fff;border-radius:50%;background:#111;box-shadow:0 0 0 1px #111,0 1px 4px #0003;z-index:9;cursor:pointer}
-.provisionalDot.pending{background:#dc2626;box-shadow:0 0 0 1px #dc2626,0 1px 4px #0003}
-.provisionalDot:active{transform:scale(.9)}
-.provisionalDot:disabled{opacity:.75;cursor:default}
-@media print{.provisionalDot{display:none!important}}
-`;
-  document.head.appendChild(style);
+  if(window.RFF_V90_CALENDAR_REMINDERS)return;
+  window.RFF_V90_CALENDAR_REMINDERS=true;
 
-  const hosts=['incomeRows','plannedRows','moveRows','rateRows'];
-  const monthButtons='#prevM,#nextM,#prevM2,#nextM2';
-  let lastVerticalScroll=0;
-  let touchStart=null;
-
-  const markVerticalScroll=()=>{lastVerticalScroll=Date.now()};
-  window.addEventListener('scroll',markVerticalScroll,{passive:true});
-  document.addEventListener('touchstart',e=>{
-    if(e.touches.length!==1){touchStart=null;return}
-    const t=e.touches[0];touchStart={x:t.clientX,y:t.clientY,vertical:false};
-  },{capture:true,passive:true});
-  document.addEventListener('touchmove',e=>{
-    if(!touchStart||e.touches.length!==1)return;
-    const t=e.touches[0],dx=t.clientX-touchStart.x,dy=t.clientY-touchStart.y;
-    if(Math.abs(dy)>12&&Math.abs(dy)>Math.abs(dx)*1.15){touchStart.vertical=true;markVerticalScroll()}
-  },{capture:true,passive:true});
-  document.addEventListener('touchend',()=>{
-    if(touchStart?.vertical)markVerticalScroll();
-    touchStart=null;
-  },{capture:true,passive:true});
-  document.addEventListener('touchcancel',()=>{touchStart=null},{capture:true,passive:true});
-
-  // Un cambio mese deve essere un tocco volontario sulle frecce, non la coda di uno scroll verticale.
-  document.addEventListener('click',e=>{
-    const btn=e.target?.closest?.(monthButtons);
-    if(btn&&Date.now()-lastVerticalScroll<350){
-      e.preventDefault();
-      e.stopImmediatePropagation();
+  // V90: la cancellazione è gestita direttamente dal codice principale.
+  // Qui resta soltanto la sincronizzazione robusta dei promemoria Android/Google Calendar.
+  syncNativeFamilyTools=function(){
+    const bridge=window.FamilyAndroid;if(!bridge)return;
+    const nowMs=Date.now();
+    const reminders=[];
+    for(const it of boardData()){
+      if(!it||typeof it!=='object'||!it.dueAt||!targetApplies(it))continue;
+      const at=Date.parse(it.dueAt);
+      if(Number.isFinite(at)&&at>nowMs-60000)reminders.push({id:'board:'+it.id,title:'Lavagna familiare',text:String(it.text||'Promemoria'),atMillis:at});
     }
-  },true);
-
-  function decorateRow(row){
-    const pending=row.classList.contains('pendingCarry')||!!row.querySelector('.confirmCarry');
-    let dot=row.querySelector('.provisionalDot');
-    if(!dot){
-      dot=document.createElement('button');
-      dot.type='button';
-      dot.className='provisionalDot';
-      row.appendChild(dot);
+    const google=[];
+    for(const it of allCalendarEvents()){
+      if(!it||!targetApplies(it))continue;
+      const start=Date.parse(it.startAt),end=Date.parse(it.endAt);
+      if(!Number.isFinite(start))continue;
+      const mins=Math.max(0,Number(it.reminderMinutes)||0);
+      const expiresAt=Number.isFinite(end)?end:start+3600000;
+      const reminderId='calendar:'+it.id;
+      if(expiresAt>nowMs){
+        reminders.push({id:reminderId,title:String(it.title||'Appuntamento'),text:String(it.note||'Calendario familiare'),atMillis:start-mins*60000,expiresAtMillis:expiresAt});
+      }else{
+        try{bridge.cancelReminder?.(reminderId)}catch(_){ }
+      }
+      if(it.googleSync&&Number.isFinite(end))google.push({id:String(it.id),title:String(it.title||'Appuntamento'),description:String(it.note||'Calendario familiare'),startMillis:start,endMillis:end,reminderMinutes:mins});
     }
-    dot.classList.toggle('pending',pending);
-    dot.title=pending?'Da confermare · tocca per confermare':'Confermata · tocca per segnare da confermare';
-    dot.setAttribute('aria-label',dot.title);
-    const action=pending?row.querySelector('.confirmCarry'):row.querySelector('.markProvisional');
-    dot.disabled=!action;
-    dot.onclick=e=>{
-      e.preventDefault();
-      e.stopPropagation();
-      if(Date.now()-lastVerticalScroll<300)return;
-      const isPending=row.classList.contains('pendingCarry')||!!row.querySelector('.confirmCarry');
-      const currentAction=isPending?row.querySelector('.confirmCarry'):row.querySelector('.markProvisional');
-      if(currentAction)currentAction.click();
-    };
-  }
+    try{bridge.syncFamilyReminders?.(JSON.stringify(reminders))}catch(e){console.log('Promemoria Android V90:',e)}
+    try{bridge.syncGoogleCalendarEvents?.(JSON.stringify(google))}catch(e){console.log('Google Calendar V90:',e)}
+  };
 
-  function refresh(){
-    for(const id of hosts){
-      const host=document.getElementById(id);if(!host)continue;
-      host.querySelectorAll(':scope > .row').forEach(decorateRow);
-    }
-  }
-
-  const observer=new MutationObserver(()=>queueMicrotask(refresh));
-  hosts.forEach(id=>{const host=document.getElementById(id);if(host)observer.observe(host,{childList:true,subtree:true})});
+  const refresh=()=>{try{syncNativeFamilyTools()}catch(_){}};
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
+  window.addEventListener('focus',refresh);
+  setInterval(()=>{if(!document.hidden)refresh()},30000);
   refresh();
-  window.RFF_LONGPRESS_V61=true;
 })();
 
 </script>
@@ -1321,7 +1242,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20261002-v90-calendar-delete-core', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20261003-v92-dashboard', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
@@ -1369,4 +1290,105 @@ if ('serviceWorker' in navigator) {
  show();
 })();
 </script>
+<style id="rff-v92-dashboard-style">
+#p0.rffDashboardPage{max-width:720px;margin:0 auto;padding:2px 0 12px}
+.rffDashHero{display:flex;align-items:center;gap:10px;padding:12px 4px 14px}
+.rffDashFlower{font-size:38px;line-height:1}
+.rffDashHello{min-width:0;flex:1}.rffDashHelloRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rffDashHello h2{margin:0;color:#102a78;font-size:27px;line-height:1.1}.rffReadOnlyPill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;background:#e8f1ff;color:#1749d1;padding:6px 10px;font-size:13px;font-weight:800}.rffDashHello p{margin:4px 0 0;color:#64748b;font-weight:650}
+.rffPhonePending{border:0;background:transparent;padding:4px;min-width:56px;position:relative;color:#102a78}.rffPhonePending .bell{font-size:29px}.rffPhonePending small{display:block;font-size:10px;line-height:1.05}.rffPhonePending .count{position:absolute;right:2px;top:0;background:#ff3b30;color:#fff;border-radius:999px;min-width:22px;height:22px;display:grid;place-items:center;font-size:11px;font-weight:900;border:2px solid #fff}
+.rffDashCard{background:#fff;border:1px solid #e5eaf1;border-radius:20px;box-shadow:0 8px 26px #0f172a0e;margin-bottom:12px}.rffBalanceCard{padding:18px 18px 16px}.rffBalanceTop{display:flex;align-items:center;justify-content:space-between;gap:8px}.rffBalanceLabel{font-size:17px;color:#173778;font-weight:800}.rffEye{border:0;background:transparent;font-size:25px;padding:4px 8px;color:#657b99}.rffBalanceValue{font-size:42px;line-height:1.1;font-weight:900;color:#09a879;margin-top:6px;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.rffDashTwo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}.rffMini{padding:15px 16px}.rffMini .label{font-size:14px;color:#6b7e9e;font-weight:750}.rffMini .value{font-size:25px;font-weight:900;margin-top:4px;font-variant-numeric:tabular-nums}.rffMini.in .value{color:#08a36f}.rffMini.out .value{color:#ef3e2f}
+.rffFoodCard{padding:16px;display:grid;grid-template-columns:58px minmax(0,1fr) auto;gap:12px;align-items:center}.rffFoodIcon{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:#ffe3b4;font-size:30px}.rffFoodText .label{font-size:18px;color:#132b75;font-weight:850}.rffFoodValue{font-size:30px;font-weight:950;color:#0cab78;font-variant-numeric:tabular-nums}.rffFoodValue.neg{color:#d62929}.rffFoodSub{font-size:12px;color:#70809a;margin-top:2px}.rffFoodArrow{font-size:31px;color:#7e90aa;border:0;background:transparent;padding:8px}
+.rffDashActions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.rffAction{border:0!important;border-radius:18px!important;color:white!important;min-height:132px;padding:14px 8px!important;box-shadow:0 7px 18px #0f172a1a;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:5px}.rffAction .ico{font-size:33px}.rffAction b{font-size:18px;line-height:1.05}.rffAction small{font-weight:650;opacity:.94;line-height:1.15}.rffAction.board{background:linear-gradient(145deg,#0878ff,#0961e8)!important}.rffAction.amount{background:linear-gradient(145deg,#6942ff,#8339e8)!important}.rffAction.calendar{background:linear-gradient(145deg,#02ae82,#08a469)!important}
+.rffRemaining{overflow:hidden}.rffRemainingHead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:15px 16px 10px;border-bottom:1px solid #e8edf3}.rffRemainingHead h3{margin:0;color:#102a78;font-size:18px}.rffRemainingHead button{border:0;background:transparent;color:#0878ff;padding:4px;font-weight:850}.rffRemainingList{padding:0 16px}.rffRemainingItem{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:9px;align-items:center;padding:12px 0;border-bottom:1px solid #edf0f4}.rffRemainingItem:last-child{border-bottom:0}.rffRemainingItem .dot{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#fff1cf}.rffRemainingItem .name{font-weight:800;color:#132b75;overflow-wrap:anywhere}.rffRemainingItem .amount{font-weight:900;color:#ee3e2f;font-variant-numeric:tabular-nums}.rffRemainingEmpty{padding:18px 0;color:#6b7280;text-align:center;font-weight:650}
+.rffDashMask .rffMasked{letter-spacing:3px!important;font-family:system-ui!important}
+#rffQuickNav.rffV92Nav{grid-template-columns:repeat(5,minmax(0,1fr))}.rffV92Nav button{font-size:11px!important;padding:8px 3px!important}
+@media(max-width:460px){.rffDashHello h2{font-size:23px}.rffReadOnlyPill{font-size:11px;padding:5px 8px}.rffBalanceValue{font-size:36px}.rffMini .value{font-size:21px}.rffDashActions{gap:7px}.rffAction{min-height:116px;padding:10px 5px!important}.rffAction b{font-size:15px}.rffAction small{font-size:10px}.rffAction .ico{font-size:28px}}
+@media print{#p0,.rffV92Nav{display:none!important}}
+</style>
+<script id="rff-v92-dashboard-script">
+(()=>{
+  const qs=(s,r=document)=>r.querySelector(s);
+  const qsa=(s,r=document)=>[...r.querySelectorAll(s)];
+  const euro=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const monthKey=()=>qs('#monthPick')?.value||(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')})();
+  const readDb=()=>{try{return JSON.parse(localStorage.getItem('rff_verified')||'{}')}catch(_){return {}}};
+  const roleIsViewer=()=>{const b=qs('#viewerBanner');return !!b&&!b.hidden};
+  const page=document.createElement('section');
+  page.id='p0';page.className='page rffDashboardPage';
+  page.innerHTML=`
+    <div class="rffDashHero">
+      <div class="rffDashFlower" aria-hidden="true">🌼</div>
+      <div class="rffDashHello"><div class="rffDashHelloRow"><h2 id="rffDashGreeting">Ciao Mario</h2><span class="rffReadOnlyPill">👁 Solo lettura</span></div><p>Ecco la situazione di oggi</p></div>
+      <button id="rffDashPhonePending" class="rffPhonePending" type="button" title="Pagamenti ricevuti dal telefono"><span class="bell">🔔</span><span id="rffDashPendingCount" class="count" hidden>0</span><small>Pagamenti<br>telefono</small></button>
+    </div>
+    <div class="rffDashCard rffBalanceCard"><div class="rffBalanceTop"><div class="rffBalanceLabel">Saldo finale del mese</div><button id="rffDashEye" class="rffEye" type="button" aria-label="Oscura o mostra gli importi" title="Oscura o mostra gli importi">👁</button></div><div id="rffDashBalance" class="rffBalanceValue rffMoney">€ 0,00</div></div>
+    <div class="rffDashTwo"><div class="rffDashCard rffMini in"><div class="label">Totale ingressi</div><div id="rffDashIncome" class="value rffMoney">€ 0,00</div></div><div class="rffDashCard rffMini out"><div class="label">Spese preventivate oggi</div><div id="rffDashPlanned" class="value rffMoney">€ 0,00</div></div></div>
+    <div class="rffDashCard rffFoodCard"><div class="rffFoodIcon">🍴</div><div class="rffFoodText"><div class="label">Mangiare oggi</div><div id="rffDashFood" class="rffFoodValue rffMoney">€ 0,00</div><div id="rffDashFoodSub" class="rffFoodSub"></div></div><button id="rffDashFoodOpen" class="rffFoodArrow" type="button" aria-label="Apri spese giornaliere">›</button></div>
+    <div class="rffDashActions"><button id="rffDashBoard" class="rffAction board" type="button"><span class="ico">📝</span><b>Lavagna</b><small>Appunti e cose da comprare</small></button><button id="rffDashAmount" class="rffAction amount" type="button"><span class="ico">⊕</span><b>Segna importi</b><small>Aggiungi entrate o uscite</small></button><button id="rffDashCalendar" class="rffAction calendar" type="button"><span class="ico">📅</span><b>Calendario</b><small>Appuntamenti familiari</small></button></div>
+    <div class="rffDashCard rffRemaining"><div class="rffRemainingHead"><h3>Pagamenti rimasti del mese</h3><button id="rffDashSeeAll" type="button">Vedi tutti ›</button></div><div id="rffDashRemainingList" class="rffRemainingList"></div></div>`;
+  const p1=qs('#p1');
+  if(p1) p1.parentNode.insertBefore(page,p1);
+
+  const show=id=>{qsa('.page').forEach(p=>p.classList.remove('active'));qs(id)?.classList.add('active');window.scrollTo(0,0)};
+  const openRegister=()=>show('#p1');
+  const openDaily=()=>{show('#p2');try{window.scrollTo(0,0)}catch(_){}};
+  const openBoard=async focus=>{const b=qs('#toBoard');if(b)b.click();else show('#p3');setTimeout(()=>{if(focus==='calendar'){const d=qs('#calendarAddPanel');if(d)d.open=true;qs('.calendarCard')?.scrollIntoView({behavior:'smooth',block:'start'})}else{qs('#boardText')?.scrollIntoView({behavior:'smooth',block:'center'});qs('#boardText')?.focus()}},180)};
+  const openAmount=()=>{openDaily();setTimeout(()=>{const d=qs('#paymentDrop');if(d)d.open=true;qs('#entryAmount')?.scrollIntoView({behavior:'smooth',block:'center'});qs('#entryAmount')?.focus()},120)};
+  const openVarie=()=>{openDaily();setTimeout(()=>qs('#varieSingle')?.scrollIntoView({behavior:'smooth',block:'start'}),120)};
+  const openPending=()=>{openDaily();setTimeout(()=>{const d=qs('#pendingDrop');if(d)d.open=true;qs('#pendingDrop')?.scrollIntoView({behavior:'smooth',block:'center'})},120)};
+
+  qs('#rffDashBoard').onclick=()=>openBoard('board');
+  qs('#rffDashAmount').onclick=openAmount;
+  qs('#rffDashCalendar').onclick=()=>openBoard('calendar');
+  qs('#rffDashFoodOpen').onclick=openDaily;
+  qs('#rffDashSeeAll').onclick=openVarie;
+  qs('#rffDashPhonePending').onclick=openPending;
+
+  let hidden=localStorage.getItem('rff_dashboard_hidden')==='1';
+  qs('#rffDashEye').onclick=()=>{hidden=!hidden;localStorage.setItem('rff_dashboard_hidden',hidden?'1':'0');refresh()};
+
+  function computeFood(d,key){
+    const daily=d?.daily||{};const [yy,mm]=key.split('-').map(Number);if(!yy||!mm)return 0;
+    const last=new Date(yy,mm,0).getDate();const today=new Date();const current=key===today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
+    const start=Math.min(last,Math.max(1,Number(String(daily.start||'').slice(-2))||1));const end=current?Math.max(start,Math.min(last,today.getDate())):last;
+    const entries=Array.isArray(daily.entries)?daily.entries:[];const spend=daily.spend||{};let carry=0;
+    for(let day=start;day<=end;day++){
+      const dt=new Date(yy,mm-1,day),sat=dt.getDay()===6,sp=spend[day]||{};
+      const manual=entries.filter(x=>Number(x.day)===day&&x.category==='food').reduce((s,x)=>s+Number(x.amount||0),0);
+      carry+=(Number(daily.food)||0)+(sat?(Number(daily.sat)||0):0)-(Number(sp.food)||0)+manual;
+    }
+    return carry;
+  }
+  function remainingItems(d){
+    const planned=Array.isArray(d?.planned)?d.planned:[],daily=d?.daily||{},hiddenRows=daily.varieHidden||{},adj=Array.isArray(daily.varieAdjustments)?d.daily?.varieAdjustments||[]:[];
+    return planned.map((r,i)=>{const adjustment=adj.filter(x=>Number(x.row)===i).reduce((s,x)=>s+Number(x.amount||0),0);return {name:String(r?.[0]||'Varie'),amount:Number(r?.[1]||0)+adjustment,show:!!r?.[2]&&!r?.[4]&&!hiddenRows[i]}}).filter(x=>x.show&&Math.abs(x.amount)>0.004);
+  }
+  function moneyText(real){return hidden?'••••••':real}
+  function setMoney(el,real){if(!el)return;el.textContent=moneyText(real);el.classList.toggle('rffMasked',hidden)}
+  function refresh(){
+    const key=monthKey(),db=readDb(),d=db[key]||{};
+    const greeting=qs('#rffDashGreeting');if(greeting)greeting.textContent='Ciao '+(roleIsViewer()?'Simona':'Mario');
+    const income='€ '+(qs('#incomeTotal')?.textContent||'0,00');
+    const planned='€ '+(qs('#plannedTotal')?.textContent||'0,00');
+    const balance='€ '+(qs('#balance')?.textContent||'0,00');
+    setMoney(qs('#rffDashIncome'),income);setMoney(qs('#rffDashPlanned'),planned);setMoney(qs('#rffDashBalance'),balance);
+    const food=computeFood(d,key),foodReal='€ '+euro(food),foodEl=qs('#rffDashFood');setMoney(foodEl,foodReal);if(foodEl)foodEl.classList.toggle('neg',food<0);
+    const daily=d?.daily||{};const dayBudget=Number(daily.food)||0;qs('#rffDashFoodSub').textContent=hidden?'Budget giornaliero ••••••':('Budget giornaliero € '+euro(dayBudget));
+    qs('#rffDashEye').textContent=hidden?'🙈':'👁';page.classList.toggle('rffDashMask',hidden);
+    const pending=(d?.daily?.pending||[]).length,count=qs('#rffDashPendingCount');if(count){count.hidden=!pending;count.textContent=pending>99?'99+':String(pending)};
+    const host=qs('#rffDashRemainingList'),items=remainingItems(d);if(host){host.innerHTML='';if(!items.length){host.innerHTML='<div class="rffRemainingEmpty">Nessun pagamento rimasto in Varie.</div>'}else items.slice(0,6).forEach(it=>{const row=document.createElement('div');row.className='rffRemainingItem';row.innerHTML='<div class="dot">🧾</div><div class="name"></div><div class="amount rffMoney"></div>';row.querySelector('.name').textContent=it.name;setMoney(row.querySelector('.amount'),'€ '+euro(it.amount));host.appendChild(row)})}
+  }
+
+  const nav=qs('#rffQuickNav');
+  if(nav){nav.classList.add('rffV92Nav');nav.innerHTML=`<button type="button" data-v92="home">🏠 Home</button><button type="button" data-v92="register">📊 Registro</button><button type="button" data-v92="daily">💳 Spese</button><button type="button" data-v92="board">📝 Lavagna</button><button type="button" data-v92="calendar">📅 Calendario</button>`;nav.querySelector('[data-v92="home"]').onclick=()=>show('#p0');nav.querySelector('[data-v92="register"]').onclick=openRegister;nav.querySelector('[data-v92="daily"]').onclick=openDaily;nav.querySelector('[data-v92="board"]').onclick=()=>openBoard('board');nav.querySelector('[data-v92="calendar"]').onclick=()=>openBoard('calendar')}
+
+  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 03/10 · V92';document.title='Registro Finanziario Familiare V92';
+  if(p1)p1.classList.remove('active');page.classList.add('active');
+  const obs=new MutationObserver(()=>refresh());['#incomeTotal','#plannedTotal','#balance','#viewerBanner','#badge'].forEach(s=>{const el=qs(s);if(el)obs.observe(el,{childList:true,subtree:true,attributes:true})});
+  const gate=qs('#authGate');if(gate)new MutationObserver(()=>{if(gate.classList.contains('hidden')){show('#p0');setTimeout(refresh,80)}}).observe(gate,{attributes:true,attributeFilter:['class']});
+  qs('#monthPick')?.addEventListener('change',()=>setTimeout(refresh,50));window.addEventListener('storage',refresh);window.addEventListener('focus',refresh);setInterval(refresh,1500);refresh();
+})();
+</script>
+
 </body></html>
