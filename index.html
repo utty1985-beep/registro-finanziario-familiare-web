@@ -1242,7 +1242,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20261003-v92-dashboard', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20261003-v93-balance-trend', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
@@ -1297,6 +1297,7 @@ if ('serviceWorker' in navigator) {
 .rffDashHello{min-width:0;flex:1}.rffDashHelloRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rffDashHello h2{margin:0;color:#102a78;font-size:27px;line-height:1.1}.rffReadOnlyPill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;background:#e8f1ff;color:#1749d1;padding:6px 10px;font-size:13px;font-weight:800}.rffDashHello p{margin:4px 0 0;color:#64748b;font-weight:650}
 .rffPhonePending{border:0;background:transparent;padding:4px;min-width:56px;position:relative;color:#102a78}.rffPhonePending .bell{font-size:29px}.rffPhonePending small{display:block;font-size:10px;line-height:1.05}.rffPhonePending .count{position:absolute;right:2px;top:0;background:#ff3b30;color:#fff;border-radius:999px;min-width:22px;height:22px;display:grid;place-items:center;font-size:11px;font-weight:900;border:2px solid #fff}
 .rffDashCard{background:#fff;border:1px solid #e5eaf1;border-radius:20px;box-shadow:0 8px 26px #0f172a0e;margin-bottom:12px}.rffBalanceCard{padding:18px 18px 16px}.rffBalanceTop{display:flex;align-items:center;justify-content:space-between;gap:8px}.rffBalanceLabel{font-size:17px;color:#173778;font-weight:800}.rffEye{border:0;background:transparent;font-size:25px;padding:4px 8px;color:#657b99}.rffBalanceValue{font-size:42px;line-height:1.1;font-weight:900;color:#09a879;margin-top:6px;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.rffTrend{display:flex;align-items:center;gap:8px;margin-top:8px;min-height:24px;font-size:12px;font-weight:850}.rffTrend.up{color:#0a9b65}.rffTrend.down{color:#d62f2f}.rffTrend.same{color:#718096}.rffTrend[hidden]{display:none!important}.rffTrendLeds{display:inline-flex;align-items:center;gap:2px}.rffTrendLeds b{display:block;width:5px;height:15px;border-radius:4px;background:currentColor;opacity:.18;transform:skewX(-28deg);animation:rffLedPulse 1.15s infinite}.rffTrendLeds b:nth-child(2){animation-delay:.16s}.rffTrendLeds b:nth-child(3){animation-delay:.32s}.rffTrendLeds b:nth-child(4){animation-delay:.48s}.rffTrend.down .rffTrendLeds{transform:rotate(180deg)}.rffTrendArrow{font-size:19px;line-height:1;font-weight:950}.rffTrendDiff{font-variant-numeric:tabular-nums}@keyframes rffLedPulse{0%,70%,100%{opacity:.18;filter:none}25%{opacity:1;filter:drop-shadow(0 0 4px currentColor)}}@media(prefers-reduced-motion:reduce){.rffTrendLeds b{animation:none;opacity:.8}}
 .rffDashTwo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}.rffMini{padding:15px 16px}.rffMini .label{font-size:14px;color:#6b7e9e;font-weight:750}.rffMini .value{font-size:25px;font-weight:900;margin-top:4px;font-variant-numeric:tabular-nums}.rffMini.in .value{color:#08a36f}.rffMini.out .value{color:#ef3e2f}
 .rffFoodCard{padding:16px;display:grid;grid-template-columns:58px minmax(0,1fr) auto;gap:12px;align-items:center}.rffFoodIcon{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:#ffe3b4;font-size:30px}.rffFoodText .label{font-size:18px;color:#132b75;font-weight:850}.rffFoodValue{font-size:30px;font-weight:950;color:#0cab78;font-variant-numeric:tabular-nums}.rffFoodValue.neg{color:#d62929}.rffFoodSub{font-size:12px;color:#70809a;margin-top:2px}.rffFoodArrow{font-size:31px;color:#7e90aa;border:0;background:transparent;padding:8px}
 .rffDashActions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.rffAction{border:0!important;border-radius:18px!important;color:white!important;min-height:132px;padding:14px 8px!important;box-shadow:0 7px 18px #0f172a1a;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:5px}.rffAction .ico{font-size:33px}.rffAction b{font-size:18px;line-height:1.05}.rffAction small{font-weight:650;opacity:.94;line-height:1.15}.rffAction.board{background:linear-gradient(145deg,#0878ff,#0961e8)!important}.rffAction.amount{background:linear-gradient(145deg,#6942ff,#8339e8)!important}.rffAction.calendar{background:linear-gradient(145deg,#02ae82,#08a469)!important}
@@ -1322,7 +1323,7 @@ if ('serviceWorker' in navigator) {
       <div class="rffDashHello"><div class="rffDashHelloRow"><h2 id="rffDashGreeting">Ciao Mario</h2><span class="rffReadOnlyPill">👁 Solo lettura</span></div><p>Ecco la situazione di oggi</p></div>
       <button id="rffDashPhonePending" class="rffPhonePending" type="button" title="Pagamenti ricevuti dal telefono"><span class="bell">🔔</span><span id="rffDashPendingCount" class="count" hidden>0</span><small>Pagamenti<br>telefono</small></button>
     </div>
-    <div class="rffDashCard rffBalanceCard"><div class="rffBalanceTop"><div class="rffBalanceLabel">Saldo finale del mese</div><button id="rffDashEye" class="rffEye" type="button" aria-label="Oscura o mostra gli importi" title="Oscura o mostra gli importi">👁</button></div><div id="rffDashBalance" class="rffBalanceValue rffMoney">€ 0,00</div></div>
+    <div class="rffDashCard rffBalanceCard"><div class="rffBalanceTop"><div class="rffBalanceLabel">Saldo finale del mese</div><button id="rffDashEye" class="rffEye" type="button" aria-label="Oscura o mostra gli importi" title="Oscura o mostra gli importi">👁</button></div><div id="rffDashBalance" class="rffBalanceValue rffMoney">€ 0,00</div><div id="rffDashTrend" class="rffTrend" hidden><span class="rffTrendLeds" aria-hidden="true"><b></b><b></b><b></b><b></b></span><span id="rffDashTrendArrow" class="rffTrendArrow" aria-hidden="true">↑</span><span id="rffDashTrendDiff" class="rffTrendDiff"></span></div></div>
     <div class="rffDashTwo"><div class="rffDashCard rffMini in"><div class="label">Totale ingressi</div><div id="rffDashIncome" class="value rffMoney">€ 0,00</div></div><div class="rffDashCard rffMini out"><div class="label">Spese preventivate oggi</div><div id="rffDashPlanned" class="value rffMoney">€ 0,00</div></div></div>
     <div class="rffDashCard rffFoodCard"><div class="rffFoodIcon">🍴</div><div class="rffFoodText"><div class="label">Mangiare oggi</div><div id="rffDashFood" class="rffFoodValue rffMoney">€ 0,00</div><div id="rffDashFoodSub" class="rffFoodSub"></div></div><button id="rffDashFoodOpen" class="rffFoodArrow" type="button" aria-label="Apri spese giornaliere">›</button></div>
     <div class="rffDashActions"><button id="rffDashBoard" class="rffAction board" type="button"><span class="ico">📝</span><b>Lavagna</b><small>Appunti e cose da comprare</small></button><button id="rffDashAmount" class="rffAction amount" type="button"><span class="ico">⊕</span><b>Segna importi</b><small>Aggiungi entrate o uscite</small></button><button id="rffDashCalendar" class="rffAction calendar" type="button"><span class="ico">📅</span><b>Calendario</b><small>Appuntamenti familiari</small></button></div>
@@ -1364,15 +1365,33 @@ if ('serviceWorker' in navigator) {
     const planned=Array.isArray(d?.planned)?d.planned:[],daily=d?.daily||{},hiddenRows=daily.varieHidden||{},adj=Array.isArray(daily.varieAdjustments)?d.daily?.varieAdjustments||[]:[];
     return planned.map((r,i)=>{const adjustment=adj.filter(x=>Number(x.row)===i).reduce((s,x)=>s+Number(x.amount||0),0);return {name:String(r?.[0]||'Varie'),amount:Number(r?.[1]||0)+adjustment,show:!!r?.[2]&&!r?.[4]&&!hiddenRows[i]}}).filter(x=>x.show&&Math.abs(x.amount)>0.004);
   }
+  function prevMonthKey(key){const [y,m]=key.split('-').map(Number),dt=new Date(y,m-2,1);return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')}
+  function monthBalance(d){
+    const signOf=(r,kind)=>r?.[3]==='+'||r?.[3]==='-'?r[3]:(kind==='moves'?(Number(r?.[1])<0?'-':'+'):'-');
+    const signed=(rows,kind)=>(Array.isArray(rows)?rows:[]).reduce((sum,r)=>sum+(signOf(r,kind)==='+'?1:-1)*Math.abs(Number(r?.[1])||0),0);
+    const planned=(Array.isArray(d?.planned)?d.planned:[]).reduce((sum,r)=>sum+Math.abs(Number(r?.[1])||0),0);
+    return -planned+signed(d?.moves,'moves')+signed(d?.rates,'rates');
+  }
   function moneyText(real){return hidden?'••••••':real}
   function setMoney(el,real){if(!el)return;el.textContent=moneyText(real);el.classList.toggle('rffMasked',hidden)}
   function refresh(){
     const key=monthKey(),db=readDb(),d=db[key]||{};
-    const greeting=qs('#rffDashGreeting');if(greeting)greeting.textContent='Ciao '+(roleIsViewer()?'Simona':'Mario');
+    const viewer=roleIsViewer(),greeting=qs('#rffDashGreeting');if(greeting)greeting.textContent='Ciao '+(viewer?'Simona':'Mario');
+    const pill=qs('.rffReadOnlyPill');if(pill)pill.hidden=!viewer;
     const income='€ '+(qs('#incomeTotal')?.textContent||'0,00');
     const planned='€ '+(qs('#plannedTotal')?.textContent||'0,00');
-    const balance='€ '+(qs('#balance')?.textContent||'0,00');
-    setMoney(qs('#rffDashIncome'),income);setMoney(qs('#rffDashPlanned'),planned);setMoney(qs('#rffDashBalance'),balance);
+    const currentBalance=monthBalance(d);
+    setMoney(qs('#rffDashIncome'),income);setMoney(qs('#rffDashPlanned'),planned);setMoney(qs('#rffDashBalance'),'€ '+euro(currentBalance));
+    const trend=qs('#rffDashTrend'),prev=db[prevMonthKey(key)];
+    if(trend){
+      if(!prev){trend.hidden=true}
+      else{
+        const delta=currentBalance-monthBalance(prev),up=delta>0.004,down=delta< -0.004;
+        trend.hidden=false;trend.className='rffTrend '+(up?'up':down?'down':'same');
+        qs('#rffDashTrendArrow').textContent=up?'↑':down?'↓':'•';
+        qs('#rffDashTrendDiff').textContent=hidden?'•••••• rispetto al mese precedente':(!up&&!down?'Nessuna differenza dal mese precedente':((up?'+ ':'− ')+'€ '+euro(Math.abs(delta))+' rispetto al mese precedente'));
+      }
+    }
     const food=computeFood(d,key),foodReal='€ '+euro(food),foodEl=qs('#rffDashFood');setMoney(foodEl,foodReal);if(foodEl)foodEl.classList.toggle('neg',food<0);
     const daily=d?.daily||{};const dayBudget=Number(daily.food)||0;qs('#rffDashFoodSub').textContent=hidden?'Budget giornaliero ••••••':('Budget giornaliero € '+euro(dayBudget));
     qs('#rffDashEye').textContent=hidden?'🙈':'👁';page.classList.toggle('rffDashMask',hidden);
@@ -1383,7 +1402,7 @@ if ('serviceWorker' in navigator) {
   const nav=qs('#rffQuickNav');
   if(nav){nav.classList.add('rffV92Nav');nav.innerHTML=`<button type="button" data-v92="home">🏠 Home</button><button type="button" data-v92="register">📊 Registro</button><button type="button" data-v92="daily">💳 Spese</button><button type="button" data-v92="board">📝 Lavagna</button><button type="button" data-v92="calendar">📅 Calendario</button>`;nav.querySelector('[data-v92="home"]').onclick=()=>show('#p0');nav.querySelector('[data-v92="register"]').onclick=openRegister;nav.querySelector('[data-v92="daily"]').onclick=openDaily;nav.querySelector('[data-v92="board"]').onclick=()=>openBoard('board');nav.querySelector('[data-v92="calendar"]').onclick=()=>openBoard('calendar')}
 
-  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 03/10 · V92';document.title='Registro Finanziario Familiare V92';
+  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 03/10 · V93';document.title='Registro Finanziario Familiare V93';
   if(p1)p1.classList.remove('active');page.classList.add('active');
   const obs=new MutationObserver(()=>refresh());['#incomeTotal','#plannedTotal','#balance','#viewerBanner','#badge'].forEach(s=>{const el=qs(s);if(el)obs.observe(el,{childList:true,subtree:true,attributes:true})});
   const gate=qs('#authGate');if(gate)new MutationObserver(()=>{if(gate.classList.contains('hidden')){show('#p0');setTimeout(refresh,80)}}).observe(gate,{attributes:true,attributeFilter:['class']});
