@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V99</title>
+<title>Registro Finanziario Familiare V100</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -1245,7 +1245,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20261004-v99-strict-viewer', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20261004-v100-viewer-greeting', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
@@ -1412,7 +1412,7 @@ if ('serviceWorker' in navigator) {
   const nav=qs('#rffQuickNav');
   if(nav){nav.classList.add('rffV92Nav');nav.innerHTML=`<button type="button" data-v92="home">🏠 Home</button><button type="button" data-v92="register">📊 Registro</button><button type="button" data-v92="daily">💳 Spese</button><button type="button" data-v92="board">📝 Lavagna</button><button type="button" data-v92="calendar">📅 Calendario</button>`;nav.querySelector('[data-v92="home"]').onclick=()=>show('#p0');nav.querySelector('[data-v92="register"]').onclick=openRegister;nav.querySelector('[data-v92="daily"]').onclick=openDaily;nav.querySelector('[data-v92="board"]').onclick=()=>openBoard('board');nav.querySelector('[data-v92="calendar"]').onclick=()=>openBoard('calendar')}
 
-  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 04/10 · V99';document.title='Registro Finanziario Familiare V99';
+  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 04/10 · V100';document.title='Registro Finanziario Familiare V100';
   if(p1)p1.classList.remove('active');page.classList.add('active');
   const obs=new MutationObserver(()=>refresh());['#incomeTotal','#plannedTotal','#balance','#viewerBanner','#badge'].forEach(s=>{const el=qs(s);if(el)obs.observe(el,{childList:true,subtree:true,attributes:true})});
   const gate=qs('#authGate');if(gate)new MutationObserver(()=>{if(gate.classList.contains('hidden')){show('#p0');setTimeout(refresh,80)}}).observe(gate,{attributes:true,attributeFilter:['class']});
@@ -1521,4 +1521,27 @@ if ('serviceWorker' in navigator) {
 })();
 </script>
 
-<script src="./v64-sentinel-role.js?v=20261004-v99-strict-viewer"></script>\n</body></html>
+<script src="./v64-sentinel-role.js?v=20261004-v99-strict-viewer"></script>\n
+<script id="rff-v100-viewer-greeting-fix">
+(()=>{
+  function isViewerNow(){
+    const b=document.getElementById('viewerBanner');
+    if(!b)return false;
+    return !b.hidden && getComputedStyle(b).display!=='none';
+  }
+  function syncViewerUi(){
+    const viewer=isViewerNow();
+    const greeting=document.getElementById('rffDashGreeting');
+    if(greeting)greeting.textContent=viewer?'Ciao Simona':'Ciao Mario';
+    const pill=document.querySelector('.rffReadOnlyPill');
+    if(pill)pill.hidden=!viewer;
+  }
+  const banner=document.getElementById('viewerBanner');
+  if(banner)new MutationObserver(syncViewerUi).observe(banner,{attributes:true,attributeFilter:['hidden','class','style'],childList:true,subtree:true});
+  window.addEventListener('focus',syncViewerUi);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncViewerUi()});
+  setInterval(syncViewerUi,500);
+  setTimeout(syncViewerUi,50);
+})();
+</script>
+</body></html>
