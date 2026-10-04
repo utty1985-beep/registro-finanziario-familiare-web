@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V98</title>
+<title>Registro Finanziario Familiare V99</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -989,8 +989,11 @@ async function enter(session){
   if(!await resolveFamily())throw new Error('Account non collegato alla famiglia.');
   const {data:device,error:pairError}=await sb.rpc('rff_register_device',{...deviceArgs(),p_label:'Telefono '+deviceId.slice(-6)});
   if(pairError)throw pairError;
-  familyRole=(device.status==='active'&&accountRole==='owner')?'owner':'viewer';if(familyRole==='viewer')$('#addEntry').textContent='Invia da confermare';else $('#addEntry').textContent='+ Aggiungi pagamento';
-  if(device.status==='pending'){
+  const {data:deviceStatus,error:deviceStatusError}=await sb.rpc('rff_device_status',deviceArgs());
+  const currentDevice=(!deviceStatusError&&deviceStatus)?deviceStatus:device;
+  familyRole=(currentDevice?.status==='active'&&currentDevice?.role==='primary'&&accountRole==='owner')?'owner':'viewer';
+  if(familyRole==='viewer')$('#addEntry').textContent='Invia da confermare';else $('#addEntry').textContent='+ Aggiungi pagamento';
+  if(currentDevice?.status==='pending'){
    say('Questo telefono è in attesa. Sul principale autorizza il codice '+deviceId.slice(-6)+'.',true);
    pendingTimer=setInterval(async()=>{
     const {data:status,error}=await sb.rpc('rff_device_status',deviceArgs());
@@ -1242,7 +1245,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20261004-v98-annual-chart-fit', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20261004-v99-strict-viewer', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
@@ -1314,7 +1317,7 @@ if ('serviceWorker' in navigator) {
   const euro=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
   const monthKey=()=>qs('#monthPick')?.value||(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')})();
   const readDb=()=>{try{return JSON.parse(localStorage.getItem('rff_verified')||'{}')}catch(_){return {}}};
-  const roleIsViewer=()=>{const b=qs('#viewerBanner');return !!b&&!b.hidden};
+  const roleIsViewer=()=>{try{return typeof familyRole!=='undefined'&&familyRole==='viewer'}catch(_){const b=qs('#viewerBanner');return !!b&&!b.hidden}};
   const page=document.createElement('section');
   page.id='p0';page.className='page rffDashboardPage';
   page.innerHTML=`
@@ -1409,7 +1412,7 @@ if ('serviceWorker' in navigator) {
   const nav=qs('#rffQuickNav');
   if(nav){nav.classList.add('rffV92Nav');nav.innerHTML=`<button type="button" data-v92="home">🏠 Home</button><button type="button" data-v92="register">📊 Registro</button><button type="button" data-v92="daily">💳 Spese</button><button type="button" data-v92="board">📝 Lavagna</button><button type="button" data-v92="calendar">📅 Calendario</button>`;nav.querySelector('[data-v92="home"]').onclick=()=>show('#p0');nav.querySelector('[data-v92="register"]').onclick=openRegister;nav.querySelector('[data-v92="daily"]').onclick=openDaily;nav.querySelector('[data-v92="board"]').onclick=()=>openBoard('board');nav.querySelector('[data-v92="calendar"]').onclick=()=>openBoard('calendar')}
 
-  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 04/10 · V98';document.title='Registro Finanziario Familiare V98';
+  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 04/10 · V99';document.title='Registro Finanziario Familiare V99';
   if(p1)p1.classList.remove('active');page.classList.add('active');
   const obs=new MutationObserver(()=>refresh());['#incomeTotal','#plannedTotal','#balance','#viewerBanner','#badge'].forEach(s=>{const el=qs(s);if(el)obs.observe(el,{childList:true,subtree:true,attributes:true})});
   const gate=qs('#authGate');if(gate)new MutationObserver(()=>{if(gate.classList.contains('hidden')){show('#p0');setTimeout(refresh,80)}}).observe(gate,{attributes:true,attributeFilter:['class']});
@@ -1428,7 +1431,7 @@ if ('serviceWorker' in navigator) {
 <script id="rff-v94-state-dots-script">
 (()=>{
   const hosts=['incomeRows','plannedRows','moveRows','rateRows'];
-  const isViewer=()=>{const b=document.getElementById('viewerBanner');return !!b&&!b.hidden};
+  const isViewer=()=>{try{return typeof familyRole!=='undefined'&&familyRole==='viewer'}catch(_){const b=document.getElementById('viewerBanner');return !!b&&!b.hidden}};
   function syncRow(row){
     const pending=row.classList.contains('pendingCarry')||!!row.querySelector('.confirmCarry');
     const confirm=row.querySelector('.confirmCarry');
@@ -1518,4 +1521,4 @@ if ('serviceWorker' in navigator) {
 })();
 </script>
 
-</body></html>
+<script src="./v64-sentinel-role.js?v=20261004-v99-strict-viewer"></script>\n</body></html>
