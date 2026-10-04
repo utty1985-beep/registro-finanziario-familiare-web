@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V100</title>
+<title>Registro Finanziario Familiare V101</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -220,7 +220,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 <header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 02/10 · V91</small><div class="userBar"><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><span class="syncStatus" id="syncStatus" role="status">Connessione…</span></div>
-<div id="viewerBanner" class="viewerBanner" hidden>Profilo familiare in sola lettura. I dispositivi approvati dello stesso account proprietario hanno accesso completo al registro.</div>
+<div id="viewerBanner" class="viewerBanner" hidden>Profilo Simona · sola lettura. Puoi usare Lavagna, Calendario e Aggiungi pagamento.</div>
 <div class="card" id="pairingCard" hidden><h2>Telefoni da autorizzare</h2><div id="pairingList"></div></div>
 <div class="card" id="sentinelBar" hidden><h2>Notifiche e sincronizzazione</h2><div class="syncInfo">Stato registro: <strong id="syncMirror">Connessione…</strong></div><button id="authorizeNotices">Autorizza notifiche</button> <button id="sourcesButton">Scegli app di pagamento</button> <button id="sendNotices">Importa pagamenti</button><div id="notificationState" class="hint" role="status"></div><div id="paymentSources" class="hint" role="group" aria-label="App di pagamento" hidden></div><p class="hint" id="sendStatus">Scegli le app da cui importare le spese. Arriveranno in rosso, da confermare.</p></div>
 <section id="p1" class="page active">
@@ -992,6 +992,7 @@ async function enter(session){
   const {data:deviceStatus,error:deviceStatusError}=await sb.rpc('rff_device_status',deviceArgs());
   const currentDevice=(!deviceStatusError&&deviceStatus)?deviceStatus:device;
   familyRole=(currentDevice?.status==='active'&&currentDevice?.role==='primary'&&accountRole==='owner')?'owner':'viewer';
+  try{localStorage.setItem('rff_last_family_role',familyRole)}catch(_){}
   if(familyRole==='viewer')$('#addEntry').textContent='Invia da confermare';else $('#addEntry').textContent='+ Aggiungi pagamento';
   if(currentDevice?.status==='pending'){
    say('Questo telefono è in attesa. Sul principale autorizza il codice '+deviceId.slice(-6)+'.',true);
@@ -1245,7 +1246,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20261004-v100-viewer-greeting', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20261004-v101-no-greeting-flicker', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
@@ -1317,13 +1318,14 @@ if ('serviceWorker' in navigator) {
   const euro=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
   const monthKey=()=>qs('#monthPick')?.value||(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')})();
   const readDb=()=>{try{return JSON.parse(localStorage.getItem('rff_verified')||'{}')}catch(_){return {}}};
-  const roleIsViewer=()=>{try{return typeof familyRole!=='undefined'&&familyRole==='viewer'}catch(_){const b=qs('#viewerBanner');return !!b&&!b.hidden}};
+  const roleIsViewer=()=>{try{if(typeof familyRole!=='undefined'&&familyRole)return familyRole==='viewer'}catch(_){}const b=qs('#viewerBanner');if(b&&!b.hidden)return true;try{return localStorage.getItem('rff_last_family_role')==='viewer'}catch(_){return false}};
+  const initialViewer=roleIsViewer();
   const page=document.createElement('section');
   page.id='p0';page.className='page rffDashboardPage';
   page.innerHTML=`
     <div class="rffDashHero">
       <div class="rffDashFlower" aria-hidden="true">🌼</div>
-      <div class="rffDashHello"><div class="rffDashHelloRow"><h2 id="rffDashGreeting">Ciao Mario</h2><span class="rffReadOnlyPill">👁 Solo lettura</span></div><p>Ecco la situazione di oggi</p></div>
+      <div class="rffDashHello"><div class="rffDashHelloRow"><h2 id="rffDashGreeting">${initialViewer?'Ciao Simona':'Ciao Mario'}</h2><span class="rffReadOnlyPill" ${initialViewer?'':'hidden'}>👁 Solo lettura</span></div><p>Ecco la situazione di oggi</p></div>
       <button id="rffDashPhonePending" class="rffPhonePending" type="button" title="Pagamenti ricevuti dal telefono"><span class="bell">🔔</span><span id="rffDashPendingCount" class="count" hidden>0</span><small>Pagamenti<br>telefono</small></button>
     </div>
     <div class="rffDashCard rffBalanceCard"><div class="rffBalanceTop"><div class="rffBalanceLabel">Saldo finale del mese</div><button id="rffDashEye" class="rffEye" type="button" aria-label="Oscura o mostra gli importi" title="Oscura o mostra gli importi">👁</button></div><div id="rffDashBalance" class="rffBalanceValue rffMoney">€ 0,00</div><div id="rffDashTrend" class="rffTrend" hidden><span class="rffTrendLeds" aria-hidden="true"><b></b><b></b><b></b><b></b></span><span id="rffDashTrendArrow" class="rffTrendArrow" aria-hidden="true">↑</span><span id="rffDashTrendDiff" class="rffTrendDiff"></span></div></div>
@@ -1412,7 +1414,7 @@ if ('serviceWorker' in navigator) {
   const nav=qs('#rffQuickNav');
   if(nav){nav.classList.add('rffV92Nav');nav.innerHTML=`<button type="button" data-v92="home">🏠 Home</button><button type="button" data-v92="register">📊 Registro</button><button type="button" data-v92="daily">💳 Spese</button><button type="button" data-v92="board">📝 Lavagna</button><button type="button" data-v92="calendar">📅 Calendario</button>`;nav.querySelector('[data-v92="home"]').onclick=()=>show('#p0');nav.querySelector('[data-v92="register"]').onclick=openRegister;nav.querySelector('[data-v92="daily"]').onclick=openDaily;nav.querySelector('[data-v92="board"]').onclick=()=>openBoard('board');nav.querySelector('[data-v92="calendar"]').onclick=()=>openBoard('calendar')}
 
-  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 04/10 · V100';document.title='Registro Finanziario Familiare V100';
+  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 04/10 · V101';document.title='Registro Finanziario Familiare V101';
   if(p1)p1.classList.remove('active');page.classList.add('active');
   const obs=new MutationObserver(()=>refresh());['#incomeTotal','#plannedTotal','#balance','#viewerBanner','#badge'].forEach(s=>{const el=qs(s);if(el)obs.observe(el,{childList:true,subtree:true,attributes:true})});
   const gate=qs('#authGate');if(gate)new MutationObserver(()=>{if(gate.classList.contains('hidden')){show('#p0');setTimeout(refresh,80)}}).observe(gate,{attributes:true,attributeFilter:['class']});
