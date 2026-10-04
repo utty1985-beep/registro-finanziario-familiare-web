@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V96</title>
+<title>Registro Finanziario Familiare V97</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -1242,7 +1242,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20261004-v96-native-unlock', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20261004-v97-annual-balance', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
@@ -1409,7 +1409,7 @@ if ('serviceWorker' in navigator) {
   const nav=qs('#rffQuickNav');
   if(nav){nav.classList.add('rffV92Nav');nav.innerHTML=`<button type="button" data-v92="home">🏠 Home</button><button type="button" data-v92="register">📊 Registro</button><button type="button" data-v92="daily">💳 Spese</button><button type="button" data-v92="board">📝 Lavagna</button><button type="button" data-v92="calendar">📅 Calendario</button>`;nav.querySelector('[data-v92="home"]').onclick=()=>show('#p0');nav.querySelector('[data-v92="register"]').onclick=openRegister;nav.querySelector('[data-v92="daily"]').onclick=openDaily;nav.querySelector('[data-v92="board"]').onclick=()=>openBoard('board');nav.querySelector('[data-v92="calendar"]').onclick=()=>openBoard('calendar')}
 
-  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 04/10 · V96';document.title='Registro Finanziario Familiare V96';
+  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 04/10 · V97';document.title='Registro Finanziario Familiare V97';
   if(p1)p1.classList.remove('active');page.classList.add('active');
   const obs=new MutationObserver(()=>refresh());['#incomeTotal','#plannedTotal','#balance','#viewerBanner','#badge'].forEach(s=>{const el=qs(s);if(el)obs.observe(el,{childList:true,subtree:true,attributes:true})});
   const gate=qs('#authGate');if(gate)new MutationObserver(()=>{if(gate.classList.contains('hidden')){show('#p0');setTimeout(refresh,80)}}).observe(gate,{attributes:true,attributeFilter:['class']});
@@ -1461,62 +1461,60 @@ if ('serviceWorker' in navigator) {
 </script>
 
 
-<style id="rff-v96-device-lock-style">
-#rffDeviceLock{position:fixed;inset:0;z-index:2147483647;background:rgba(244,247,251,.985);display:flex;align-items:center;justify-content:center;padding:22px}
-#rffDeviceLock[hidden]{display:none!important}
-.rffDeviceLockCard{width:min(430px,100%);background:#fff;border:1px solid #d7dee8;border-radius:22px;padding:28px 24px;box-shadow:0 18px 55px #0f172a2b;text-align:center}
-.rffDeviceLockIcon{font-size:58px;line-height:1;margin-bottom:12px}
-.rffDeviceLockCard h2{margin:0 0 22px;color:#123274;font-size:27px;line-height:1.12}
-#rffDeviceUnlockBtn{width:100%;min-height:58px;border-radius:15px;font-size:19px;font-weight:900;background:#0b4f8a;color:#fff;border:1px solid #0b4f8a}
-#rffDeviceUnlockBtn:disabled{opacity:.72}
+
+
+
+
+<style id="rff-annual-balance-style">
+.rffAnnualCard{border-left:5px solid #2563eb!important;overflow:hidden}
+.rffAnnualHead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.rffAnnualHead h2{margin:0;color:#173778!important}.rffAnnualYear{font-weight:900;color:#173778;background:#eef5ff;border:1px solid #bfdbfe;border-radius:999px;padding:6px 11px}
+.rffAnnualChartWrap{overflow-x:auto;padding:8px 0 2px}.rffAnnualChart{display:block;width:100%;min-width:620px;height:300px}
+.rffAnnualAxis{stroke:#cbd5e1;stroke-width:1}.rffAnnualGrid{stroke:#e2e8f0;stroke-width:1;stroke-dasharray:4 5}.rffAnnualLine{fill:none;stroke:#2563eb;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.rffAnnualPoint{stroke:#fff;stroke-width:3}.rffAnnualPoint.up{fill:#16a34a}.rffAnnualPoint.down{fill:#dc2626}.rffAnnualPoint.same{fill:#64748b}.rffAnnualPoint.first{fill:#2563eb}
+.rffAnnualLabel{font-size:11px;fill:#64748b;font-weight:700}.rffAnnualValue{font-size:10px;fill:#334155;font-weight:800}
+.rffAnnualSummary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}.rffAnnualStat{border:1px solid #e2e8f0;border-radius:13px;padding:11px;background:#f8fafc}
+.rffAnnualStat .k{font-size:11px;color:#64748b;font-weight:800;text-transform:uppercase}.rffAnnualStat .v{margin-top:3px;font-size:19px;color:#173778;font-weight:950;font-variant-numeric:tabular-nums}
+.rffAnnualStat.good .v{color:#15803d}.rffAnnualStat.bad .v{color:#c62828}.rffAnnualMonths{margin-top:12px;padding:11px 12px;border-radius:13px;background:#f8fafc;border:1px solid #e2e8f0;color:#475569;font-size:13px;line-height:1.45}
+.rffAnnualEmpty{text-align:center;padding:42px 12px;color:#64748b;font-weight:700}
+#rffQuickNav.rffV97Nav{grid-template-columns:repeat(6,minmax(0,1fr))}.rffV97Nav button{font-size:10px!important;padding:8px 2px!important}
+@media(max-width:390px){.rffV97Nav button{font-size:9px!important}}@media(max-width:650px){.rffAnnualSummary{grid-template-columns:1fr 1fr}.rffAnnualStat .v{font-size:16px}.rffAnnualChart{height:270px}}
+@media print{.rffAnnualCard{display:none!important}}
 </style>
-<div id="rffDeviceLock" role="dialog" aria-modal="true" aria-labelledby="rffDeviceLockTitle">
-  <div class="rffDeviceLockCard">
-    <div class="rffDeviceLockIcon">🔐</div>
-    <h2 id="rffDeviceLockTitle">Sblocca Registro Finanziario</h2>
-    <button id="rffDeviceUnlockBtn" type="button">Sblocca con il telefono</button>
-  </div>
-</div>
-<script id="rff-v96-device-lock-script">
+<script id="rff-annual-balance-script">
 (()=>{
-  const gate=document.getElementById('rffDeviceLock');
-  const btn=document.getElementById('rffDeviceUnlockBtn');
-  let unlocked=false,nativePending=false;
-
-  const hasNativeUnlock=()=>!!(window.RegistroAndroid&&typeof window.RegistroAndroid.requestDeviceUnlock==='function');
-  const show=()=>{gate.hidden=false;document.body.style.overflow='hidden';btn.disabled=false;btn.textContent='Sblocca con il telefono'};
-  const hide=()=>{gate.hidden=true;document.body.style.overflow='';btn.disabled=false;btn.textContent='Sblocca con il telefono'};
-
-  window.rffDeviceUnlockResult=(ok)=>{
-    nativePending=false;
-    if(ok){unlocked=true;hide()}
-    else{unlocked=false;show()}
-  };
-  window.rffRequireDeviceUnlock=()=>{
-    if(!hasNativeUnlock()){hide();return}
-    if(nativePending)return;
-    unlocked=false;show();
-  };
-
-  btn.addEventListener('click',()=>{
-    if(!hasNativeUnlock()){hide();return}
-    nativePending=true;
-    btn.disabled=true;
-    btn.textContent='Apri sblocco telefono…';
-    try{window.RegistroAndroid.requestDeviceUnlock()}
-    catch(_){nativePending=false;show()}
-  });
-
-  document.addEventListener('visibilitychange',()=>{
-    if(document.hidden){
-      if(!nativePending)unlocked=false;
-    }else if(!nativePending&&!unlocked){
-      window.rffRequireDeviceUnlock();
-    }
-  });
-  window.addEventListener('pageshow',()=>{if(!nativePending&&!unlocked)window.rffRequireDeviceUnlock()});
-
-  if(hasNativeUnlock())show(); else hide();
+ const qs=(s,r=document)=>r.querySelector(s),euro=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+ const mons=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'],names=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+ const readDb=()=>{try{return JSON.parse(localStorage.getItem('rff_verified')||'{}')}catch(_){return {}}};
+ const sign=(r,k)=>r?.[3]==='+'||r?.[3]==='-'?r[3]:(k==='moves'?(Number(r?.[1])<0?'-':'+'):'-');
+ const signed=(rows,k)=>(Array.isArray(rows)?rows:[]).reduce((s,r)=>s+(sign(r,k)==='+'?1:-1)*Math.abs(Number(r?.[1])||0),0);
+ const balance=d=>{const p=(Array.isArray(d?.planned)?d.planned:[]).reduce((s,r)=>s+Math.abs(Number(r?.[1])||0),0);return -p+signed(d?.moves,'moves')+signed(d?.rates,'rates')};
+ const valid=d=>{if(!d||typeof d!=='object')return false;if(d._monthConfirmed)return true;return ['income','planned','moves','rates'].some(k=>(Array.isArray(d[k])?d[k]:[]).some(r=>Math.abs(Number(r?.[1])||0)>0.004))};
+ const year=()=>{const y=Number((qs('#monthPick')?.value||'').slice(0,4));return Number.isInteger(y)&&y>2000?y:new Date().getFullYear()};
+ const hidden=()=>localStorage.getItem('rff_dashboard_hidden')==='1',money=n=>hidden()?'••••••':'€ '+euro(n);
+ let card,last='';
+ function ensure(){const p=qs('#p3');if(!p)return null;if(card?.isConnected)return card;card=document.createElement('div');card.id='rffAnnualBalanceCard';card.className='card rffAnnualCard';card.innerHTML='<div class="rffAnnualHead"><h2>📈 Andamento saldo finale annuale</h2><span id="rffAnnualYear" class="rffAnnualYear"></span></div><div id="rffAnnualBody"></div>';p.insertBefore(card,p.querySelector('.nav')||null);return card}
+ function render(){
+  const host=ensure();if(!host)return;const yv=year(),db=readDb(),rows=[];
+  for(let m=1;m<=12;m++){const k=yv+'-'+String(m).padStart(2,'0'),d=db[k];if(valid(d))rows.push({m,value:balance(d)})}
+  const sig=yv+'|'+hidden()+'|'+rows.map(r=>r.m+':'+r.value.toFixed(2)).join('|');if(sig===last)return;last=sig;
+  qs('#rffAnnualYear',host).textContent=String(yv);const body=qs('#rffAnnualBody',host);
+  if(!rows.length){body.innerHTML='<div class="rffAnnualEmpty">Non ci sono ancora mesi compilati per '+yv+'.</div>';return}
+  const vals=rows.map(r=>r.value),mn=Math.min(...vals),mx=Math.max(...vals),pad=Math.max(100,(mx-mn)*.18,Math.max(Math.abs(mn),Math.abs(mx))*.08),lo=mn-pad,hi=mx+pad,range=Math.max(1,hi-lo);
+  const W=760,H=270,L=58,R=18,T=24,B=46,pw=W-L-R,ph=H-T-B,X=m=>L+((m-1)/11)*pw,Y=v=>T+(hi-v)/range*ph;
+  let grid='';for(let i=0;i<5;i++){const gy=T+i*ph/4,gv=hi-i*range/4;grid+='<line class="rffAnnualGrid" x1="'+L+'" y1="'+gy+'" x2="'+(W-R)+'" y2="'+gy+'"></line><text class="rffAnnualLabel" x="'+(L-7)+'" y="'+(gy+4)+'" text-anchor="end">'+(hidden()?'••':Math.round(gv).toLocaleString('it-IT'))+'</text>'}
+  let xl='';for(let m=1;m<=12;m++)xl+='<text class="rffAnnualLabel" x="'+X(m)+'" y="'+(H-16)+'" text-anchor="middle">'+mons[m-1]+'</text>';
+  const pts=rows.map(r=>X(r.m)+','+Y(r.value)).join(' ');let dots='';
+  rows.forEach((r,i)=>{const p=i?rows[i-1]:null,cl=!p?'first':r.value>p.value+.004?'up':r.value<p.value-.004?'down':'same';dots+='<circle class="rffAnnualPoint '+cl+'" cx="'+X(r.m)+'" cy="'+Y(r.value)+'" r="7"></circle>';if(!hidden())dots+='<text class="rffAnnualValue" x="'+X(r.m)+'" y="'+(Y(r.value)-12)+'" text-anchor="middle">'+Math.round(r.value).toLocaleString('it-IT')+'</text>'});
+  const first=rows[0],lastRow=rows[rows.length-1],annual=lastRow.value-first.value,changes=rows.slice(1).map((r,i)=>({m:r.m,delta:r.value-rows[i].value})),up=changes.filter(x=>x.delta>.004),down=changes.filter(x=>x.delta<-.004);
+  const best=changes.length?changes.reduce((a,b)=>b.delta>a.delta?b:a):null,worst=changes.length?changes.reduce((a,b)=>b.delta<a.delta?b:a):null;
+  const when=up.length?up.map(x=>names[x.m-1]+' (+'+money(x.delta)+')').join(', '):'Nessun mese in aumento rispetto al precedente.';
+  body.innerHTML='<div class="rffAnnualChartWrap"><svg class="rffAnnualChart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Andamento saldo finale mese per mese">'+grid+'<line class="rffAnnualAxis" x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-R)+'" y2="'+(H-B)+'"></line>'+xl+(rows.length>1?'<polyline class="rffAnnualLine" points="'+pts+'"></polyline>':'')+dots+'</svg></div>'+
+  '<div class="rffAnnualSummary"><div class="rffAnnualStat '+(annual>.004?'good':annual<-.004?'bad':'')+'"><div class="k">Messo da parte nell’anno</div><div class="v">'+(annual>=0?'+ ':'− ')+money(Math.abs(annual))+'</div></div><div class="rffAnnualStat"><div class="k">Periodo calcolato</div><div class="v">'+mons[first.m-1]+' → '+mons[lastRow.m-1]+'</div></div><div class="rffAnnualStat good"><div class="k">Mesi in aumento</div><div class="v">'+up.length+'</div></div><div class="rffAnnualStat bad"><div class="k">Mesi in diminuzione</div><div class="v">'+down.length+'</div></div></div>'+
+  '<div class="rffAnnualMonths"><b>Quando sei riuscito a mettere da parte:</b> '+when+(best&&best.delta>.004?'<br><b>Mese migliore:</b> '+names[best.m-1]+' (+'+money(best.delta)+')':'')+(worst&&worst.delta<-.004?'<br><b>Mese con calo maggiore:</b> '+names[worst.m-1]+' ('+money(worst.delta)+')':'')+'</div>';
+ }
+ function nav(){const n=qs('#rffQuickNav');if(!n||n.querySelector('[data-v97="annual"]'))return;n.classList.add('rffV97Nav');const b=document.createElement('button');b.type='button';b.setAttribute('data-v97','annual');b.textContent='📈 Andamento';b.onclick=()=>{qs('#toBoard')?.click();setTimeout(()=>{render();qs('#rffAnnualBalanceCard')?.scrollIntoView({behavior:'smooth',block:'start'})},180)};n.appendChild(b)}
+ setInterval(()=>{nav();render()},1400);window.addEventListener('focus',render);window.addEventListener('storage',render);qs('#monthPick')?.addEventListener('change',()=>setTimeout(render,80));setTimeout(()=>{nav();render()},250);
 })();
 </script>
 
