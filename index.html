@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V97</title>
+<title>Registro Finanziario Familiare V98</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -1242,7 +1242,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20261004-v97-annual-balance', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20261004-v98-annual-chart-fit', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
@@ -1409,7 +1409,7 @@ if ('serviceWorker' in navigator) {
   const nav=qs('#rffQuickNav');
   if(nav){nav.classList.add('rffV92Nav');nav.innerHTML=`<button type="button" data-v92="home">🏠 Home</button><button type="button" data-v92="register">📊 Registro</button><button type="button" data-v92="daily">💳 Spese</button><button type="button" data-v92="board">📝 Lavagna</button><button type="button" data-v92="calendar">📅 Calendario</button>`;nav.querySelector('[data-v92="home"]').onclick=()=>show('#p0');nav.querySelector('[data-v92="register"]').onclick=openRegister;nav.querySelector('[data-v92="daily"]').onclick=openDaily;nav.querySelector('[data-v92="board"]').onclick=()=>openBoard('board');nav.querySelector('[data-v92="calendar"]').onclick=()=>openBoard('calendar')}
 
-  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 04/10 · V97';document.title='Registro Finanziario Familiare V97';
+  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 04/10 · V98';document.title='Registro Finanziario Familiare V98';
   if(p1)p1.classList.remove('active');page.classList.add('active');
   const obs=new MutationObserver(()=>refresh());['#incomeTotal','#plannedTotal','#balance','#viewerBanner','#badge'].forEach(s=>{const el=qs(s);if(el)obs.observe(el,{childList:true,subtree:true,attributes:true})});
   const gate=qs('#authGate');if(gate)new MutationObserver(()=>{if(gate.classList.contains('hidden')){show('#p0');setTimeout(refresh,80)}}).observe(gate,{attributes:true,attributeFilter:['class']});
@@ -1469,7 +1469,7 @@ if ('serviceWorker' in navigator) {
 .rffAnnualCard{border-left:5px solid #2563eb!important;overflow:hidden}
 .rffAnnualHead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .rffAnnualHead h2{margin:0;color:#173778!important}.rffAnnualYear{font-weight:900;color:#173778;background:#eef5ff;border:1px solid #bfdbfe;border-radius:999px;padding:6px 11px}
-.rffAnnualChartWrap{overflow-x:auto;padding:8px 0 2px}.rffAnnualChart{display:block;width:100%;min-width:620px;height:300px}
+.rffAnnualChartWrap{overflow:hidden;padding:8px 0 2px;width:100%}.rffAnnualChart{display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;height:auto!important;aspect-ratio:760/270}
 .rffAnnualAxis{stroke:#cbd5e1;stroke-width:1}.rffAnnualGrid{stroke:#e2e8f0;stroke-width:1;stroke-dasharray:4 5}.rffAnnualLine{fill:none;stroke:#2563eb;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
 .rffAnnualPoint{stroke:#fff;stroke-width:3}.rffAnnualPoint.up{fill:#16a34a}.rffAnnualPoint.down{fill:#dc2626}.rffAnnualPoint.same{fill:#64748b}.rffAnnualPoint.first{fill:#2563eb}
 .rffAnnualLabel{font-size:11px;fill:#64748b;font-weight:700}.rffAnnualValue{font-size:10px;fill:#334155;font-weight:800}
@@ -1478,7 +1478,7 @@ if ('serviceWorker' in navigator) {
 .rffAnnualStat.good .v{color:#15803d}.rffAnnualStat.bad .v{color:#c62828}.rffAnnualMonths{margin-top:12px;padding:11px 12px;border-radius:13px;background:#f8fafc;border:1px solid #e2e8f0;color:#475569;font-size:13px;line-height:1.45}
 .rffAnnualEmpty{text-align:center;padding:42px 12px;color:#64748b;font-weight:700}
 #rffQuickNav.rffV97Nav{grid-template-columns:repeat(6,minmax(0,1fr))}.rffV97Nav button{font-size:10px!important;padding:8px 2px!important}
-@media(max-width:390px){.rffV97Nav button{font-size:9px!important}}@media(max-width:650px){.rffAnnualSummary{grid-template-columns:1fr 1fr}.rffAnnualStat .v{font-size:16px}.rffAnnualChart{height:270px}}
+@media(max-width:390px){.rffV97Nav button{font-size:9px!important}}@media(max-width:650px){.rffAnnualSummary{grid-template-columns:1fr 1fr}.rffAnnualStat .v{font-size:16px}.rffAnnualChart{width:100%!important;min-width:0!important;height:auto!important}.rffAnnualLabel{font-size:13px}.rffAnnualValue{font-size:11px}}
 @media print{.rffAnnualCard{display:none!important}}
 </style>
 <script id="rff-annual-balance-script">
@@ -1509,7 +1509,7 @@ if ('serviceWorker' in navigator) {
   const first=rows[0],lastRow=rows[rows.length-1],annual=lastRow.value-first.value,changes=rows.slice(1).map((r,i)=>({m:r.m,delta:r.value-rows[i].value})),up=changes.filter(x=>x.delta>.004),down=changes.filter(x=>x.delta<-.004);
   const best=changes.length?changes.reduce((a,b)=>b.delta>a.delta?b:a):null,worst=changes.length?changes.reduce((a,b)=>b.delta<a.delta?b:a):null;
   const when=up.length?up.map(x=>names[x.m-1]+' (+'+money(x.delta)+')').join(', '):'Nessun mese in aumento rispetto al precedente.';
-  body.innerHTML='<div class="rffAnnualChartWrap"><svg class="rffAnnualChart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Andamento saldo finale mese per mese">'+grid+'<line class="rffAnnualAxis" x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-R)+'" y2="'+(H-B)+'"></line>'+xl+(rows.length>1?'<polyline class="rffAnnualLine" points="'+pts+'"></polyline>':'')+dots+'</svg></div>'+
+  body.innerHTML='<div class="rffAnnualChartWrap"><svg class="rffAnnualChart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Andamento saldo finale mese per mese">'+grid+'<line class="rffAnnualAxis" x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-R)+'" y2="'+(H-B)+'"></line>'+xl+(rows.length>1?'<polyline class="rffAnnualLine" points="'+pts+'"></polyline>':'')+dots+'</svg></div>'+
   '<div class="rffAnnualSummary"><div class="rffAnnualStat '+(annual>.004?'good':annual<-.004?'bad':'')+'"><div class="k">Messo da parte nell’anno</div><div class="v">'+(annual>=0?'+ ':'− ')+money(Math.abs(annual))+'</div></div><div class="rffAnnualStat"><div class="k">Periodo calcolato</div><div class="v">'+mons[first.m-1]+' → '+mons[lastRow.m-1]+'</div></div><div class="rffAnnualStat good"><div class="k">Mesi in aumento</div><div class="v">'+up.length+'</div></div><div class="rffAnnualStat bad"><div class="k">Mesi in diminuzione</div><div class="v">'+down.length+'</div></div></div>'+
   '<div class="rffAnnualMonths"><b>Quando sei riuscito a mettere da parte:</b> '+when+(best&&best.delta>.004?'<br><b>Mese migliore:</b> '+names[best.m-1]+' (+'+money(best.delta)+')':'')+(worst&&worst.delta<-.004?'<br><b>Mese con calo maggiore:</b> '+names[worst.m-1]+' ('+money(worst.delta)+')':'')+'</div>';
  }
