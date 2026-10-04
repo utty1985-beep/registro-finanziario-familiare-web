@@ -1,5 +1,5 @@
-const CACHE='rff-20261004-v100-viewer-greeting';
-const SW_VERSION='20261004-v100-viewer-greeting';
+const CACHE='rff-20261004-v101-no-greeting-flicker';
+const SW_VERSION='20261004-v101-no-greeting-flicker';
 const ASSETS=[
   './','./index.html','./manifest.json','./icon-192.png?v=80-icon','./icon-512.png?v=80-icon',
   './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js','./v85-calendar-fix.js'
