@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V101</title>
+<title>Registro Finanziario Familiare V102</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -1246,7 +1246,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20261004-v101-no-greeting-flicker', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20261004-v102-current-balance', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
@@ -1388,13 +1388,14 @@ if ('serviceWorker' in navigator) {
   function setMoney(el,real,maskable=true){if(!el)return;el.textContent=moneyText(real,maskable);el.classList.toggle('rffMasked',hidden&&maskable)}
   function refresh(){
     const key=monthKey(),db=readDb(),d=db[key]||{};
+    const nowDate=new Date(),currentKey=nowDate.getFullYear()+'-'+String(nowDate.getMonth()+1).padStart(2,'0'),currentMonthData=db[currentKey]||{};
     const viewer=roleIsViewer(),greeting=qs('#rffDashGreeting');if(greeting)greeting.textContent='Ciao '+(viewer?'Simona':'Mario');
     const pill=qs('.rffReadOnlyPill');if(pill)pill.hidden=!viewer;
     const income='€ '+(qs('#incomeTotal')?.textContent||'0,00');
     const planned='€ '+(qs('#plannedTotal')?.textContent||'0,00');
-    const currentBalance=monthBalance(d);
+    const currentBalance=monthBalance(currentMonthData);
     setMoney(qs('#rffDashIncome'),income,true);setMoney(qs('#rffDashPlanned'),planned,false);setMoney(qs('#rffDashBalance'),'€ '+euro(currentBalance),true);
-    const trend=qs('#rffDashTrend'),prev=db[prevMonthKey(key)];
+    const trend=qs('#rffDashTrend'),prev=db[prevMonthKey(currentKey)];
     if(trend){
       if(!prev){trend.hidden=true}
       else{
@@ -1414,7 +1415,7 @@ if ('serviceWorker' in navigator) {
   const nav=qs('#rffQuickNav');
   if(nav){nav.classList.add('rffV92Nav');nav.innerHTML=`<button type="button" data-v92="home">🏠 Home</button><button type="button" data-v92="register">📊 Registro</button><button type="button" data-v92="daily">💳 Spese</button><button type="button" data-v92="board">📝 Lavagna</button><button type="button" data-v92="calendar">📅 Calendario</button>`;nav.querySelector('[data-v92="home"]').onclick=()=>show('#p0');nav.querySelector('[data-v92="register"]').onclick=openRegister;nav.querySelector('[data-v92="daily"]').onclick=openDaily;nav.querySelector('[data-v92="board"]').onclick=()=>openBoard('board');nav.querySelector('[data-v92="calendar"]').onclick=()=>openBoard('calendar')}
 
-  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 04/10 · V101';document.title='Registro Finanziario Familiare V101';
+  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 04/10 · V102';document.title='Registro Finanziario Familiare V102';
   if(p1)p1.classList.remove('active');page.classList.add('active');
   const obs=new MutationObserver(()=>refresh());['#incomeTotal','#plannedTotal','#balance','#viewerBanner','#badge'].forEach(s=>{const el=qs(s);if(el)obs.observe(el,{childList:true,subtree:true,attributes:true})});
   const gate=qs('#authGate');if(gate)new MutationObserver(()=>{if(gate.classList.contains('hidden')){show('#p0');setTimeout(refresh,80)}}).observe(gate,{attributes:true,attributeFilter:['class']});
