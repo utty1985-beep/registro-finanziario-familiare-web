@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V79</title>
+<title>Registro Finanziario Familiare V95</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -1242,7 +1242,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20261003-v94-stability', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20261004-v95-privacy-lock', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
@@ -1324,7 +1324,7 @@ if ('serviceWorker' in navigator) {
       <button id="rffDashPhonePending" class="rffPhonePending" type="button" title="Pagamenti ricevuti dal telefono"><span class="bell">🔔</span><span id="rffDashPendingCount" class="count" hidden>0</span><small>Pagamenti<br>telefono</small></button>
     </div>
     <div class="rffDashCard rffBalanceCard"><div class="rffBalanceTop"><div class="rffBalanceLabel">Saldo finale del mese</div><button id="rffDashEye" class="rffEye" type="button" aria-label="Oscura o mostra gli importi" title="Oscura o mostra gli importi">👁</button></div><div id="rffDashBalance" class="rffBalanceValue rffMoney">€ 0,00</div><div id="rffDashTrend" class="rffTrend" hidden><span class="rffTrendLeds" aria-hidden="true"><b></b><b></b><b></b><b></b></span><span id="rffDashTrendArrow" class="rffTrendArrow" aria-hidden="true">↑</span><span id="rffDashTrendDiff" class="rffTrendDiff"></span></div></div>
-    <div class="rffDashTwo"><div class="rffDashCard rffMini in"><div class="label">Totale ingressi</div><div id="rffDashIncome" class="value rffMoney">€ 0,00</div></div><div class="rffDashCard rffMini out"><div class="label">Spese preventivate oggi</div><div id="rffDashPlanned" class="value rffMoney">€ 0,00</div></div></div>
+    <div class="rffDashTwo"><div class="rffDashCard rffMini in"><div class="label">Totale ingressi</div><div id="rffDashIncome" class="value rffMoney">€ 0,00</div></div><div class="rffDashCard rffMini out"><div class="label">Spese preventivate del mese</div><div id="rffDashPlanned" class="value rffMoney">€ 0,00</div></div></div>
     <div class="rffDashCard rffFoodCard"><div class="rffFoodIcon">🍴</div><div class="rffFoodText"><div class="label">Mangiare oggi</div><div id="rffDashFood" class="rffFoodValue rffMoney">€ 0,00</div><div id="rffDashFoodSub" class="rffFoodSub"></div></div><button id="rffDashFoodOpen" class="rffFoodArrow" type="button" aria-label="Apri spese giornaliere">›</button></div>
     <div class="rffDashActions"><button id="rffDashBoard" class="rffAction board" type="button"><span class="ico">📝</span><b>Lavagna</b><small>Appunti e cose da comprare</small></button><button id="rffDashAmount" class="rffAction amount" type="button"><span class="ico">⊕</span><b>Segna importi</b><small>Aggiungi entrate o uscite</small></button><button id="rffDashCalendar" class="rffAction calendar" type="button"><span class="ico">📅</span><b>Calendario</b><small>Appuntamenti familiari</small></button></div>
     <div class="rffDashCard rffRemaining"><div class="rffRemainingHead"><h3>Pagamenti rimasti del mese</h3><button id="rffDashSeeAll" type="button">Vedi tutti ›</button></div><div id="rffDashRemainingList" class="rffRemainingList"></div></div>`;
@@ -1379,8 +1379,8 @@ if ('serviceWorker' in navigator) {
     const planned=(Array.isArray(d?.planned)?d.planned:[]).reduce((sum,r)=>sum+Math.abs(Number(r?.[1])||0),0);
     return -planned+signed(d?.moves,'moves')+signed(d?.rates,'rates');
   }
-  function moneyText(real){return hidden?'••••••':real}
-  function setMoney(el,real){if(!el)return;el.textContent=moneyText(real);el.classList.toggle('rffMasked',hidden)}
+  function moneyText(real,maskable=true){return hidden&&maskable?'••••••':real}
+  function setMoney(el,real,maskable=true){if(!el)return;el.textContent=moneyText(real,maskable);el.classList.toggle('rffMasked',hidden&&maskable)}
   function refresh(){
     const key=monthKey(),db=readDb(),d=db[key]||{};
     const viewer=roleIsViewer(),greeting=qs('#rffDashGreeting');if(greeting)greeting.textContent='Ciao '+(viewer?'Simona':'Mario');
@@ -1388,7 +1388,7 @@ if ('serviceWorker' in navigator) {
     const income='€ '+(qs('#incomeTotal')?.textContent||'0,00');
     const planned='€ '+(qs('#plannedTotal')?.textContent||'0,00');
     const currentBalance=monthBalance(d);
-    setMoney(qs('#rffDashIncome'),income);setMoney(qs('#rffDashPlanned'),planned);setMoney(qs('#rffDashBalance'),'€ '+euro(currentBalance));
+    setMoney(qs('#rffDashIncome'),income,true);setMoney(qs('#rffDashPlanned'),planned,false);setMoney(qs('#rffDashBalance'),'€ '+euro(currentBalance),true);
     const trend=qs('#rffDashTrend'),prev=db[prevMonthKey(key)];
     if(trend){
       if(!prev){trend.hidden=true}
@@ -1396,20 +1396,20 @@ if ('serviceWorker' in navigator) {
         const delta=currentBalance-monthBalance(prev),up=delta>0.004,down=delta< -0.004;
         trend.hidden=false;trend.className='rffTrend '+(up?'up':down?'down':'same');
         qs('#rffDashTrendArrow').textContent=up?'↑':down?'↓':'•';
-        qs('#rffDashTrendDiff').textContent=hidden?'•••••• rispetto al mese precedente':(!up&&!down?'Nessuna differenza dal mese precedente':((up?'+ ':'− ')+'€ '+euro(Math.abs(delta))+' rispetto al mese precedente'));
+        qs('#rffDashTrendDiff').textContent=!up&&!down?'Nessuna differenza dal mese precedente':((up?'+ ':'− ')+'€ '+euro(Math.abs(delta))+' rispetto al mese precedente');
       }
     }
-    const food=computeFood(d,key),foodReal='€ '+euro(food),foodEl=qs('#rffDashFood');setMoney(foodEl,foodReal);if(foodEl)foodEl.classList.toggle('neg',food<0);
-    const daily=d?.daily||{};const dayBudget=Number(daily.food)||0;qs('#rffDashFoodSub').textContent=hidden?'Budget giornaliero ••••••':('Budget giornaliero € '+euro(dayBudget));
+    const food=computeFood(d,key),foodReal='€ '+euro(food),foodEl=qs('#rffDashFood');setMoney(foodEl,foodReal,false);if(foodEl)foodEl.classList.toggle('neg',food<0);
+    const daily=d?.daily||{};const dayBudget=Number(daily.food)||0;qs('#rffDashFoodSub').textContent='Budget giornaliero € '+euro(dayBudget);
     qs('#rffDashEye').textContent=hidden?'🙈':'👁';page.classList.toggle('rffDashMask',hidden);
     const pending=(d?.daily?.pending||[]).length,count=qs('#rffDashPendingCount');if(count){count.hidden=!pending;count.textContent=pending>99?'99+':String(pending)};
-    const host=qs('#rffDashRemainingList'),items=remainingItems(d);if(host){host.innerHTML='';if(!items.length){host.innerHTML='<div class="rffRemainingEmpty">Nessun pagamento rimasto in Varie.</div>'}else items.slice(0,6).forEach(it=>{const row=document.createElement('div');row.className='rffRemainingItem';row.innerHTML='<div class="dot">🧾</div><div class="name"></div><div class="amount rffMoney"></div>';row.querySelector('.name').textContent=it.name;setMoney(row.querySelector('.amount'),'€ '+euro(it.amount));host.appendChild(row)})}
+    const host=qs('#rffDashRemainingList'),items=remainingItems(d);if(host){host.innerHTML='';if(!items.length){host.innerHTML='<div class="rffRemainingEmpty">Nessun pagamento rimasto in Varie.</div>'}else items.slice(0,6).forEach(it=>{const row=document.createElement('div');row.className='rffRemainingItem';row.innerHTML='<div class="dot">🧾</div><div class="name"></div><div class="amount rffMoney"></div>';row.querySelector('.name').textContent=it.name;setMoney(row.querySelector('.amount'),'€ '+euro(it.amount),false);host.appendChild(row)})}
   }
 
   const nav=qs('#rffQuickNav');
   if(nav){nav.classList.add('rffV92Nav');nav.innerHTML=`<button type="button" data-v92="home">🏠 Home</button><button type="button" data-v92="register">📊 Registro</button><button type="button" data-v92="daily">💳 Spese</button><button type="button" data-v92="board">📝 Lavagna</button><button type="button" data-v92="calendar">📅 Calendario</button>`;nav.querySelector('[data-v92="home"]').onclick=()=>show('#p0');nav.querySelector('[data-v92="register"]').onclick=openRegister;nav.querySelector('[data-v92="daily"]').onclick=openDaily;nav.querySelector('[data-v92="board"]').onclick=()=>openBoard('board');nav.querySelector('[data-v92="calendar"]').onclick=()=>openBoard('calendar')}
 
-  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 03/10 · V94';document.title='Registro Finanziario Familiare V94';
+  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 04/10 · V95';document.title='Registro Finanziario Familiare V95';
   if(p1)p1.classList.remove('active');page.classList.add('active');
   const obs=new MutationObserver(()=>refresh());['#incomeTotal','#plannedTotal','#balance','#viewerBanner','#badge'].forEach(s=>{const el=qs(s);if(el)obs.observe(el,{childList:true,subtree:true,attributes:true})});
   const gate=qs('#authGate');if(gate)new MutationObserver(()=>{if(gate.classList.contains('hidden')){show('#p0');setTimeout(refresh,80)}}).observe(gate,{attributes:true,attributeFilter:['class']});
@@ -1457,6 +1457,130 @@ if ('serviceWorker' in navigator) {
   const viewer=document.getElementById('viewerBanner');if(viewer)observer.observe(viewer,{attributes:true,attributeFilter:['hidden']});
   window.addEventListener('focus',syncAll);document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncAll()});
   setInterval(syncAll,1500);syncAll();
+})();
+</script>
+
+
+<style id="rff-v95-device-lock-style">
+#rffDeviceLock{position:fixed;inset:0;z-index:2147483647;background:rgba(244,247,251,.98);display:flex;align-items:center;justify-content:center;padding:22px}
+#rffDeviceLock[hidden]{display:none!important}
+.rffDeviceLockCard{width:min(430px,100%);background:#fff;border:1px solid #d7dee8;border-radius:22px;padding:24px;box-shadow:0 18px 55px #0f172a2b;text-align:center}
+.rffDeviceLockIcon{font-size:54px;line-height:1;margin-bottom:10px}
+.rffDeviceLockCard h2{margin:0 0 8px;color:#123274;font-size:24px}
+.rffDeviceLockCard p{margin:0 0 16px;color:#64748b;line-height:1.4}
+#rffDeviceUnlockBtn,#rffDeviceFallbackBtn{width:100%;min-height:52px;border-radius:14px;font-size:16px;font-weight:900}
+#rffDeviceUnlockBtn{background:#0b4f8a;color:#fff;border-color:#0b4f8a}
+#rffDeviceFallbackBtn{margin-top:9px;background:#fff;color:#475569}
+#rffDeviceLockStatus{min-height:21px;margin-top:12px;font-size:13px;font-weight:750;color:#475569}
+</style>
+<div id="rffDeviceLock" role="dialog" aria-modal="true" aria-labelledby="rffDeviceLockTitle">
+  <div class="rffDeviceLockCard">
+    <div class="rffDeviceLockIcon">🔐</div>
+    <h2 id="rffDeviceLockTitle">Sblocca Registro Finanziario</h2>
+    <p>Conferma con l’impronta digitale oppure con il blocco schermo già impostato sul telefono.</p>
+    <button id="rffDeviceUnlockBtn" type="button">Sblocca con il telefono</button>
+    <button id="rffDeviceFallbackBtn" type="button" hidden>Continua senza sblocco dispositivo</button>
+    <div id="rffDeviceLockStatus" aria-live="polite"></div>
+  </div>
+</div>
+<script id="rff-v95-device-lock-script">
+(()=>{
+  const gate=document.getElementById('rffDeviceLock');
+  const btn=document.getElementById('rffDeviceUnlockBtn');
+  const fallback=document.getElementById('rffDeviceFallbackBtn');
+  const status=document.getElementById('rffDeviceLockStatus');
+  const STORE='rff_device_credential_v1';
+  let busy=false,unlocked=false,relockOnVisible=false;
+
+  const b64u=bytes=>btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const fromB64u=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const raw=atob(s),out=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);return out};
+  const random=n=>crypto.getRandomValues(new Uint8Array(n));
+
+  function show(msg=''){
+    gate.hidden=false;
+    document.body.style.overflow='hidden';
+    if(msg)status.textContent=msg;
+  }
+  function hide(){
+    gate.hidden=true;
+    document.body.style.overflow='';
+    status.textContent='';
+    fallback.hidden=true;
+  }
+  async function platformAvailable(){
+    if(!window.isSecureContext||!window.PublicKeyCredential||!navigator.credentials)return false;
+    if(typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable!=='function')return true;
+    try{return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()}catch(_){return false}
+  }
+  async function registerCredential(){
+    const userId=random(32);
+    const cred=await navigator.credentials.create({publicKey:{
+      challenge:random(32),
+      rp:{name:'Registro Finanziario Familiare',id:location.hostname},
+      user:{id:userId,name:'registro-'+b64u(userId).slice(0,16),displayName:'Registro Finanziario Familiare'},
+      pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+      authenticatorSelection:{authenticatorAttachment:'platform',residentKey:'discouraged',userVerification:'required'},
+      timeout:60000,
+      attestation:'none'
+    }});
+    if(!cred)throw new Error('Credenziale non creata');
+    localStorage.setItem(STORE,b64u(new Uint8Array(cred.rawId)));
+  }
+  async function verifyCredential(){
+    const saved=localStorage.getItem(STORE);
+    if(!saved){await registerCredential();return}
+    try{
+      const cred=await navigator.credentials.get({publicKey:{
+        challenge:random(32),
+        allowCredentials:[{type:'public-key',id:fromB64u(saved),transports:['internal']}],
+        userVerification:'required',
+        timeout:60000
+      }});
+      if(!cred)throw new Error('Verifica non completata');
+    }catch(e){
+      if(e&&e.name==='NotAllowedError')throw e;
+      localStorage.removeItem(STORE);
+      await registerCredential();
+    }
+  }
+  async function unlock(){
+    if(busy||unlocked)return;
+    busy=true;show('Richiesta di sblocco in corso…');btn.disabled=true;fallback.hidden=true;
+    try{
+      if(!await platformAvailable()){
+        status.textContent='Lo sblocco del telefono non è disponibile in questa versione. Puoi continuare e riprovare dopo un aggiornamento dell’app.';
+        fallback.hidden=false;
+        return;
+      }
+      await verifyCredential();
+      unlocked=true;
+      hide();
+    }catch(e){
+      const cancelled=e&&e.name==='NotAllowedError';
+      status.textContent=cancelled?'Sblocco annullato. Premi il pulsante per riprovare.':'Impossibile usare lo sblocco del telefono. Premi il pulsante per riprovare.';
+    }finally{
+      busy=false;btn.disabled=false;
+    }
+  }
+  function relock(){
+    if(busy)return;
+    unlocked=false;
+    show('Conferma l’accesso per continuare.');
+  }
+
+  btn.addEventListener('click',unlock);
+  fallback.addEventListener('click',()=>{unlocked=true;hide()});
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){
+      if(!busy){relockOnVisible=true;relock()}
+    }else if(relockOnVisible){
+      relockOnVisible=false;
+      setTimeout(unlock,120);
+    }
+  });
+  window.addEventListener('pageshow',()=>{if(!unlocked)setTimeout(unlock,80)});
+  show('Conferma l’accesso per continuare.');
+  setTimeout(unlock,120);
 })();
 </script>
 
