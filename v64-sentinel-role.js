@@ -27,6 +27,7 @@
       const desired=primaryOwner?'owner':'viewer';
       const changed=typeof familyRole!=='undefined'&&familyRole!==desired;
       if(typeof familyRole!=='undefined')familyRole=desired;
+      try{localStorage.setItem('rff_last_family_role',desired)}catch(_){ }
       setSentinelUi(sentinel);
       const greeting=document.getElementById('rffDashGreeting');
       if(greeting)greeting.textContent='Ciao '+(desired==='viewer'?'Simona':'Mario');
