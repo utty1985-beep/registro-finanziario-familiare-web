@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V102</title>
+<title>Registro Finanziario Familiare V108</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -194,7 +194,10 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 .paymentDrop>summary{list-style:none!important;cursor:pointer!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;background:#0b4f8a!important;color:#fff!important;padding:11px 14px!important;font-weight:900!important;min-height:44px!important}
 .paymentDrop>summary::-webkit-details-marker{display:none!important}.paymentDrop>summary::marker{content:''}
 .paymentDrop>summary::after{content:'▼';font-size:12px;transition:transform .2s}.paymentDrop[open]>summary::after{transform:rotate(180deg)}
-.paymentDrop>.entryForm{padding:7px 10px 0!important;margin:0!important}.paymentDrop>.historyDrop{margin:8px 10px 10px!important}
+.paymentDrop>.entryForm{padding:7px 10px 10px!important;margin:0!important}
+.historyDrop.card{padding:0!important;overflow:hidden!important;border:1px solid #cbd5e1!important;background:#fff!important;box-shadow:0 3px 12px #0f172a10!important}
+.historyDrop.card>summary{padding:11px 14px!important;min-height:44px!important;font-size:15px!important}
+.historyDrop.card #entryHistory{padding:0 12px 12px!important;margin-top:0!important}
 .pendingBar.pendingDropCompact{padding:0!important;overflow:hidden!important;border:1px solid #cbd5e1!important;background:#fff!important;box-shadow:0 3px 12px #0f172a10!important}
 .pendingDropCompact>summary.pendingBarHead{list-style:none!important;cursor:pointer!important;display:flex!important;align-items:center!important;gap:10px!important;background:#fff!important;color:#334155!important;padding:11px 14px!important;font-weight:900!important;min-height:44px!important}
 .pendingDropCompact>summary::-webkit-details-marker{display:none!important}.pendingDropCompact>summary::marker{content:''}
@@ -217,7 +220,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 02/10 · V91</small><div class="userBar"><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 04/10 · V108</small><div class="userBar"><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><span class="syncStatus" id="syncStatus" role="status">Connessione…</span></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Profilo Simona · sola lettura. Puoi usare Lavagna, Calendario e Aggiungi pagamento.</div>
@@ -261,8 +264,8 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <label>Importo (€)<input id="entryAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></label>
  <label>Categoria<select id="entryCategory"></select></label>
  <label class="full">Giorno del pagamento<input id="entryDate" type="date"></label>
- <button id="addEntry" class="primary">+ Aggiungi pagamento</button><button id="sendForApproval" type="button">Invia da confermare</button><div class="full hint">“Invia da confermare” crea una richiesta rossa condivisa con gli altri telefoni, senza registrare ancora la spesa.</div></div>
- <details class="historyDrop"><summary>Pagamenti inseriti <span id="entryHistoryCount"></span></summary><div id="entryHistory"></div></details></details>
+ <button id="addEntry" class="primary">+ Aggiungi pagamento</button><button id="sendForApproval" type="button">Invia da confermare</button><div class="full hint">“Invia da confermare” crea una richiesta rossa condivisa con gli altri telefoni, senza registrare ancora la spesa.</div></div></details>
+ <details class="card historyDrop" id="historyDrop"><summary><span>🧾 Pagamenti inseriti <span id="entryHistoryCount"></span></span></summary><div id="entryHistory"></div></details>
  <details class="card pending pendingBar pendingDrop pendingDropCompact" id="pendingDrop"><summary class="pendingBarHead"><span>🔔 Notifiche</span><span class="badge" id="badge" hidden>0</span></summary><div class="pendingCompactBody"><div class="pendingList" id="pendingList"><div class="hint">Nessuna notifica da confermare.</div></div><button id="testNotice">+ Simula notifica</button></div></details>
  <div class="card"><label>Mostra dal giorno <input id="viewDate" type="date"></label></div>
  <div class="tableWrap"><table><thead><tr id="dailyHead"><th>Giorno</th><th>Mangiare</th></tr></thead><tbody id="dailyBody"></tbody></table></div>
@@ -724,7 +727,7 @@ $('#addEntry').onclick=async(event)=>{
  if(familyRole!=='owner')return;
  const d=data().daily;d.entries||(d.entries=[]);
  d.entries.push({id:Date.now()+'-'+Math.random().toString(36).slice(2),day,category:category,amount:(sign==='-'?-1:1)*amount,desc:'Manuale'});
- $('#entryAmount').value='';save();renderDaily();
+ $('#entryAmount').value='';save();renderDaily();const hd=$('#historyDrop');if(hd)hd.open=true;
 };
 function renderEntryHistory(){
  const host=$('#entryHistory'),count=$('#entryHistoryCount');host.innerHTML='';
@@ -757,12 +760,12 @@ function renderPending(){
    if(cat==='diesel-proposed'){let col=customCols().find(c=>(c.name||'').toLowerCase()==='diesel');if(!col){col={id:'diesel',name:'Diesel',budget:0};customCols().push(col)}cat=colKey(col)}
    const current=data();current.daily.entries||(current.daily.entries=[]);
    const entry={id:'n_'+(n.id||crypto.randomUUID()),day,category:cat,amount:(sgn==='-'?-1:1)*amount,desc:cleanNoticeDesc(n.desc)||'Notifica'};
-   if(!n.inboxId){current.daily.entries.push(entry);p.splice(i,1);save();renderDaily();return}
+   if(!n.inboxId){current.daily.entries.push(entry);p.splice(i,1);save();renderDaily();const hd=$('#historyDrop');if(hd)hd.open=true;return}
    paymentActionBusy=true;x.querySelectorAll('button').forEach(btn=>btn.disabled=true);
    const proposed=JSON.parse(JSON.stringify(db));proposed[month].daily.entries.push(entry);
    try{
     const {error}=await sb.rpc('rff_confirm_payment',{...deviceArgs(),p_inbox_id:n.inboxId,p_data:proposed});if(error)throw error;
-    await loadCloud();
+    await loadCloud();renderDaily();const hd=$('#historyDrop');if(hd)hd.open=true;
    }catch(e){console.log('Conferma:',e);alert('Conferma non completata. Riprova: il pagamento non verrà duplicato.');x.querySelectorAll('button').forEach(btn=>btn.disabled=false)}
    finally{paymentActionBusy=false;await fetchInbox()}
   };
@@ -1415,7 +1418,7 @@ if ('serviceWorker' in navigator) {
   const nav=qs('#rffQuickNav');
   if(nav){nav.classList.add('rffV92Nav');nav.innerHTML=`<button type="button" data-v92="home">🏠 Home</button><button type="button" data-v92="register">📊 Registro</button><button type="button" data-v92="daily">💳 Spese</button><button type="button" data-v92="board">📝 Lavagna</button><button type="button" data-v92="calendar">📅 Calendario</button>`;nav.querySelector('[data-v92="home"]').onclick=()=>show('#p0');nav.querySelector('[data-v92="register"]').onclick=openRegister;nav.querySelector('[data-v92="daily"]').onclick=openDaily;nav.querySelector('[data-v92="board"]').onclick=()=>openBoard('board');nav.querySelector('[data-v92="calendar"]').onclick=()=>openBoard('calendar')}
 
-  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 04/10 · V102';document.title='Registro Finanziario Familiare V102';
+  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 04/10 · V108';document.title='Registro Finanziario Familiare V108';
   if(p1)p1.classList.remove('active');page.classList.add('active');
   const obs=new MutationObserver(()=>refresh());['#incomeTotal','#plannedTotal','#balance','#viewerBanner','#badge'].forEach(s=>{const el=qs(s);if(el)obs.observe(el,{childList:true,subtree:true,attributes:true})});
   const gate=qs('#authGate');if(gate)new MutationObserver(()=>{if(gate.classList.contains('hidden')){show('#p0');setTimeout(refresh,80)}}).observe(gate,{attributes:true,attributeFilter:['class']});
