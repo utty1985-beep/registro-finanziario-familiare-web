@@ -28,10 +28,14 @@
       const changed=typeof familyRole!=='undefined'&&familyRole!==desired;
       if(typeof familyRole!=='undefined')familyRole=desired;
       setSentinelUi(sentinel);
+      const greeting=document.getElementById('rffDashGreeting');
+      if(greeting)greeting.textContent='Ciao '+(desired==='viewer'?'Simona':'Mario');
+      const pill=document.querySelector('.rffReadOnlyPill');
+      if(pill)pill.hidden=desired!=='viewer';
+      try{if(typeof applyPermissions==='function')applyPermissions()}catch(_){ }
       if(changed||lastRoleKey!==key){
         lastRoleKey=key;
         try{if(typeof render==='function')render()}catch(_){ }
-        try{if(typeof applyPermissions==='function')applyPermissions()}catch(_){ }
       }
       if(sentinel){
         try{if(typeof sendAndroidPayments==='function')await sendAndroidPayments()}catch(_){ }
