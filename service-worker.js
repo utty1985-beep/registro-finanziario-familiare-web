@@ -1,5 +1,5 @@
-const CACHE='rff-20261004-v103-notifiche-confirm-fix';
-const SW_VERSION='20261004-v103-notifiche-confirm-fix';
+const CACHE='rff-20261004-v102-current-balance';
+const SW_VERSION='20261004-v102-current-balance';
 const ASSETS=[
   './','./index.html','./manifest.json','./icon-192.png?v=80-icon','./icon-512.png?v=80-icon',
   './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js','./v85-calendar-fix.js'
@@ -7,11 +7,6 @@ const ASSETS=[
 
 function patchHtml(html){
   let out=html.replace(/service-worker\.js\?v=[^'" ]+/g,'service-worker.js?v='+SW_VERSION);
-
-  // V103: nome sezione Notifiche e intestazione aggiornata anche su copie HTML in cache.
-  out=out.replace(/🔔 Modifiche ricevute/g,'🔔 Notifiche');
-  out=out.replace(/Registro mensile condivisibile · Aggiornato 04\/10 · V102/g,'Registro mensile condivisibile · Aggiornato 04/10 · V103');
-  out=out.replace(/Registro Finanziario Familiare V102/g,'Registro Finanziario Familiare V103');
 
   // V91: recupera i pagamenti Wallet rimasti in coda quando torna Internet o l'app torna in primo piano.
   out=out.replace('Aggiornato 02/10 · V90','Aggiornato 02/10 · V91');
