@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V109</title>
+<title>Registro Finanziario Familiare V110</title>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -220,7 +220,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 06/10 · V109</small><div class="userBar"><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 06/10 · V110</small><div class="userBar"><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><span class="syncStatus" id="syncStatus" role="status">Connessione…</span></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Profilo Simona · sola lettura. Puoi usare Lavagna, Calendario e Aggiungi pagamento.</div>
@@ -1075,7 +1075,7 @@ if(sb){
 </script>
 <script>
 (()=>{
-  document.title='Registro Finanziario Familiare V109';
+  document.title='Registro Finanziario Familiare V110';
   const style=document.createElement('style');
   style.id='rff-v57-polish';
   style.textContent=`
@@ -1249,7 +1249,7 @@ if ('serviceWorker' in navigator) {
    try {
      const regs = await navigator.serviceWorker.getRegistrations();
      for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20261006-v109-wallet-selfheal', {updateViaCache:'none'});
+     await navigator.serviceWorker.register('./service-worker.js?v=20261006-v110-wallet-recovery', {updateViaCache:'none'});
    } catch(e) { console.log(e); }
  });
 }
@@ -1580,6 +1580,46 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('pageshow',()=>setTimeout(()=>heal('riapertura'),250),{passive:true});
   window.addEventListener('online',()=>setTimeout(()=>heal('rete'),300),{passive:true});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>heal('primo piano'),300)});
+})();
+</script>
+
+<script id="rff-v110-wallet-recovery">
+(()=>{
+  let busy=false;
+  const parse=(raw)=>{try{const v=JSON.parse(raw||'[]');return Array.isArray(v)?v:[]}catch(_){return[]}};
+  const isPayment=(s)=>/wallet|google pay|gpay|pay|paga|banc|bank|poste|postepay|satispay|revolut|n26|hype|isybank|unicredit|intesa|fineco|bper|buddy|bancomat|sumup|curve|wise|credit|american express|amex|klarna|scalapay|sella|mediolanum|illimity|tinaba|mooney|nexi|bbva/i.test(String(s||''));
+  async function recover(reason='avvio'){
+    if(busy)return; const b=window.RegistroAndroid;
+    if(!b?.setAllowedPaymentSources)return;
+    busy=true;
+    try{
+      let sources=[]; try{sources=parse(b.availablePaymentSources?.())}catch(_){}
+      let installed=[]; try{installed=parse(b.discoverInstalledApps?.())}catch(_){}
+      const allowed=new Set();
+      for(const s of sources){ if(s?.enabled&&s.package) allowed.add(String(s.package)); }
+      if(!allowed.size){
+        for(const s of sources){ if(s?.package) allowed.add(String(s.package)); }
+        for(const a of installed){
+          const pkg=String(a?.package||''), label=String(a?.label||'');
+          if(pkg==='com.google.android.apps.walletnfcrel'||isPayment(label+' '+pkg)) allowed.add(pkg);
+        }
+      }
+      if(installed.some(a=>String(a?.package||'')==='com.google.android.apps.walletnfcrel')) allowed.add('com.google.android.apps.walletnfcrel');
+      if(allowed.size){ b.setAllowedPaymentSources(JSON.stringify([...allowed])); }
+      try{b.requestPaymentListenerRescan?.()}catch(_){}
+      setTimeout(()=>{try{b.requestPaymentListenerRescan?.()}catch(_){};try{window.sendAndroidPayments?.()}catch(_){};try{window.updateNotificationState?.()}catch(_){}},450);
+      setTimeout(()=>{try{window.sendAndroidPayments?.()}catch(_){};try{window.updateNotificationState?.()}catch(_){}},1800);
+      const st=document.getElementById('sendStatus');
+      if(st&&allowed.size) st.textContent='Rilevamento pagamenti ripristinato · '+allowed.size+' app abilitate · controllo in corso.';
+    }catch(e){console.log('V110 recupero notifiche '+reason+':',e)}finally{busy=false}
+  }
+  window.rffRecoverPaymentListener=recover;
+  setTimeout(()=>recover('avvio'),400);
+  setTimeout(()=>recover('avvio-2'),1800);
+  window.addEventListener('focus',()=>setTimeout(()=>recover('focus'),200));
+  window.addEventListener('pageshow',()=>setTimeout(()=>recover('riapertura'),200));
+  window.addEventListener('online',()=>setTimeout(()=>recover('rete'),200));
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>recover('primo piano'),200)});
 })();
 </script>
 </body></html>
