@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V110</title>
+<title>Registro Finanziario Familiare V111</title>
+<script>window.RFF_RELEASE=Object.freeze({version:'V111',date:'06/10',build:'20261006-v111-update-fix'});</script>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -220,7 +221,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 06/10 · V110</small><div class="userBar"><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 06/10 · V111</small><div class="userBar"><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><span class="syncStatus" id="syncStatus" role="status">Connessione…</span></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Profilo Simona · sola lettura. Puoi usare Lavagna, Calendario e Aggiungi pagamento.</div>
@@ -1075,7 +1076,7 @@ if(sb){
 </script>
 <script>
 (()=>{
-  document.title='Registro Finanziario Familiare V110';
+  document.title='Registro Finanziario Familiare '+window.RFF_RELEASE.version;
   const style=document.createElement('style');
   style.id='rff-v57-polish';
   style.textContent=`
@@ -1247,9 +1248,13 @@ if(sb){
 if ('serviceWorker' in navigator) {
  window.addEventListener('load', async () => {
    try {
-     const regs = await navigator.serviceWorker.getRegistrations();
-     for (const r of regs) await r.unregister();
-     await navigator.serviceWorker.register('./service-worker.js?v=20261006-v110-wallet-recovery', {updateViaCache:'none'});
+     const registration = await navigator.serviceWorker.register('./service-worker.js?v='+window.RFF_RELEASE.build, {updateViaCache:'none'});
+     let lastCheck=0;
+     const checkUpdate=()=>{if(document.hidden||Date.now()-lastCheck<60000)return;lastCheck=Date.now();registration.update().catch(e=>console.log('Controllo aggiornamento:',e));};
+     window.addEventListener('online',checkUpdate);
+     window.addEventListener('pageshow',checkUpdate);
+     document.addEventListener('visibilitychange',checkUpdate);
+     checkUpdate();
    } catch(e) { console.log(e); }
  });
 }
@@ -1418,7 +1423,7 @@ if ('serviceWorker' in navigator) {
   const nav=qs('#rffQuickNav');
   if(nav){nav.classList.add('rffV92Nav');nav.innerHTML=`<button type="button" data-v92="home">🏠 Home</button><button type="button" data-v92="register">📊 Registro</button><button type="button" data-v92="daily">💳 Spese</button><button type="button" data-v92="board">📝 Lavagna</button><button type="button" data-v92="calendar">📅 Calendario</button>`;nav.querySelector('[data-v92="home"]').onclick=()=>show('#p0');nav.querySelector('[data-v92="register"]').onclick=openRegister;nav.querySelector('[data-v92="daily"]').onclick=openDaily;nav.querySelector('[data-v92="board"]').onclick=()=>openBoard('board');nav.querySelector('[data-v92="calendar"]').onclick=()=>openBoard('calendar')}
 
-  const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato 04/10 · V108';document.title='Registro Finanziario Familiare V108';
+  const release=window.RFF_RELEASE;const small=qs('header small');if(small)small.textContent='Registro mensile condivisibile · Aggiornato '+release.date+' · '+release.version;document.title='Registro Finanziario Familiare '+release.version;
   if(p1)p1.classList.remove('active');page.classList.add('active');
   const obs=new MutationObserver(()=>refresh());['#incomeTotal','#plannedTotal','#balance','#viewerBanner','#badge'].forEach(s=>{const el=qs(s);if(el)obs.observe(el,{childList:true,subtree:true,attributes:true})});
   const gate=qs('#authGate');if(gate)new MutationObserver(()=>{if(gate.classList.contains('hidden')){show('#p0');setTimeout(refresh,80)}}).observe(gate,{attributes:true,attributeFilter:['class']});

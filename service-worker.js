@@ -1,5 +1,5 @@
-const CACHE='rff-20261006-v110-wallet-recovery';
-const SW_VERSION='20261006-v110-wallet-recovery';
+const CACHE='rff-20261006-v111-update-fix';
+const SW_VERSION='20261006-v111-update-fix';
 const ASSETS=[
   './','./index.html','./manifest.json','./icon-192.png?v=80-icon','./icon-512.png?v=80-icon',
   './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js','./v85-calendar-fix.js'
@@ -153,7 +153,10 @@ async function patchedResponse(response){
 self.addEventListener('install',event=>{
   event.waitUntil(
     caches.open(CACHE)
-      .then(cache=>cache.addAll(ASSETS))
+      .then(async cache=>{
+        await cache.addAll(['./','./index.html']);
+        await Promise.all(ASSETS.filter(asset=>asset!=='./'&&asset!=='./index.html').map(asset=>cache.add(asset).catch(()=>{})));
+      })
       .then(()=>self.skipWaiting())
   );
 });
@@ -161,7 +164,7 @@ self.addEventListener('install',event=>{
 self.addEventListener('activate',event=>{
   event.waitUntil((async()=>{
     const keys=await caches.keys();
-    await Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)));
+    await Promise.all(keys.filter(key=>key.startsWith('rff-')&&key!==CACHE).map(key=>caches.delete(key)));
     await self.clients.claim();
   })());
 });
