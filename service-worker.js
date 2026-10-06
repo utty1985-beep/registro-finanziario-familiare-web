@@ -1,5 +1,5 @@
-const CACHE='rff-20261006-v109-wallet-selfheal';
-const SW_VERSION='20261006-v109-wallet-selfheal';
+const CACHE='rff-20261006-v110-wallet-recovery';
+const SW_VERSION='20261006-v110-wallet-recovery';
 const ASSETS=[
   './','./index.html','./manifest.json','./icon-192.png?v=80-icon','./icon-512.png?v=80-icon',
   './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js','./v85-calendar-fix.js'
