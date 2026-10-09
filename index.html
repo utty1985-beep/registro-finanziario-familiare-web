@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V111</title>
-<script>window.RFF_RELEASE=Object.freeze({version:'V111',date:'06/10',build:'20261006-v111-update-fix'});</script>
+<title>Registro Finanziario Familiare V113</title>
+<script>window.RFF_RELEASE=Object.freeze({version:'V113',date:'09/10',build:'20261009-v113-board-recovery'});</script>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -1625,6 +1625,46 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('pageshow',()=>setTimeout(()=>recover('riapertura'),200));
   window.addEventListener('online',()=>setTimeout(()=>recover('rete'),200));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>recover('primo piano'),200)});
+})();
+</script>
+<script id="rff-v113-board-recovery">
+(()=>{
+ let busy=false,lastAuto=0;
+ const status=()=>document.getElementById('rffReminderRecoveryStatus');
+ function say(text){const el=status();if(el)el.textContent=text}
+ async function recover(manual=false){
+  if(busy)return;
+  if(typeof familyId==='undefined'||!familyId){if(manual)say('Accedi al registro per ripristinare i promemoria.');return}
+  const bridge=window.FamilyAndroid;
+  if(typeof bridge?.syncFamilyReminders!=='function'){if(manual)say('Il ripristino richiede l’app Android con i promemoria integrati.');return}
+  busy=true;const btn=document.getElementById('rffRestoreBoardReminders');if(btn)btn.disabled=true;
+  try{
+   const raw=bridge.reminderPermissionGranted?.();
+   if(raw!==true&&raw!=='true'){if(manual){say('Autorizza le notifiche, poi premi di nuovo Ripristina.');bridge.requestFamilyPermissions?.()}return}
+   say('Ripristino promemoria in corso…');
+   const boardOk=await syncBoard(false);
+   const calendarOk=await syncCalendar(false);
+   if(!boardOk||!calendarOk){say('Connessione non riuscita. Riprova quando entrambi gli elenchi sono aggiornati.');return}
+   syncNativeFamilyTools();
+   const count=boardData().filter(it=>it&&typeof it==='object'&&targetApplies(it)&&Number.isFinite(Date.parse(it.dueAt))&&Date.parse(it.dueAt)>Date.now()).length;
+   renderBoard();
+   say('Richiesta di ripristino inviata ad Android · '+count+' promemori'+(count===1?'a futuro':'a futuri')+' della lavagna. Verifica con un avviso di prova.');
+  }catch(e){say('Ripristino non riuscito. Riprova.');console.log('Ripristino promemoria:',e)}
+  finally{busy=false;if(btn)btn.disabled=false}
+ }
+ function mount(){
+  const host=document.querySelector('#p3 .boardReminder');if(!host||document.getElementById('rffRestoreBoardReminders'))return;
+  const panel=document.createElement('div');panel.className='toolbar';panel.style.marginTop='10px';
+  const btn=document.createElement('button');btn.id='rffRestoreBoardReminders';btn.type='button';btn.textContent='↻ Ripristina notifiche lavagna';btn.onclick=()=>recover(true);
+  const msg=document.createElement('div');msg.id='rffReminderRecoveryStatus';msg.className='hint';msg.setAttribute('role','status');msg.setAttribute('aria-live','polite');
+  panel.appendChild(btn);host.after(panel);panel.after(msg);
+ }
+ function auto(){mount();if(document.hidden||Date.now()-lastAuto<60000)return;lastAuto=Date.now();recover(false)}
+ window.rffRestoreBoardReminders=()=>recover(true);
+ window.addEventListener('pageshow',auto);window.addEventListener('online',auto);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)auto()});
+ const gate=document.getElementById('authGate');if(gate)new MutationObserver(()=>{if(gate.classList.contains('hidden'))auto()}).observe(gate,{attributes:true,attributeFilter:['class']});
+ mount();setTimeout(auto,1500);
 })();
 </script>
 </body></html>
