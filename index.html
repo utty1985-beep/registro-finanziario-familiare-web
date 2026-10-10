@@ -226,7 +226,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><span class="syncStatus" id="syncStatus" role="status">Connessione…</span></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Profilo Simona · sola lettura. Puoi usare Lavagna, Calendario e Aggiungi pagamento.</div>
 <div class="card" id="pairingCard" hidden><h2>Telefoni da autorizzare</h2><div id="pairingList"></div></div>
-<div class="card" id="sentinelBar" hidden><h2>Notifiche e sincronizzazione</h2><div class="syncInfo">Stato registro: <strong id="syncMirror">Connessione…</strong></div><button id="authorizeNotices">Autorizza notifiche</button> <button id="sourcesButton">Scegli app di pagamento</button> <button id="sendNotices">Importa pagamenti</button><div id="notificationState" class="hint" role="status"></div><div id="paymentSources" class="hint" role="group" aria-label="App di pagamento" hidden></div><p class="hint" id="sendStatus">Scegli le app da cui importare le spese. Arriveranno in rosso, da confermare.</p></div>
+<div class="card" id="sentinelBar" hidden><h2>Notifiche e sincronizzazione</h2><div class="syncInfo">Stato registro: <strong id="syncMirror">Connessione…</strong></div><button id="authorizeNotices">Autorizza notifiche</button> <button id="sourcesButton">Scegli app di pagamento</button> <button id="sendNotices">Importa pagamenti</button> <button id="recoverWalletNotices" type="button">Recupera notifiche Wallet</button><div id="notificationState" class="hint" role="status"></div><div id="paymentSources" class="hint" role="group" aria-label="App di pagamento" hidden></div><p class="hint" id="sendStatus">Scegli le app da cui importare le spese. Arriveranno in rosso, da confermare.</p></div>
 <section id="p1" class="page active">
  <div class="toolbar monthNavigation"><button id="prevM" aria-label="Mese precedente">‹</button><input id="monthPick" type="month"><div class="month" id="monthTitle"></div><button id="nextM" aria-label="Mese successivo">›</button></div>
  <div class="monthActions"><button class="primary" id="confirmMonth" type="button">✓ Conferma mese</button><button id="editMonth" type="button" hidden>✏️ Modifica</button><span id="monthModeLabel" class="hint"></span></div>
@@ -860,6 +860,22 @@ function renderPaymentSources(){
 }
 $('#sourcesButton').onclick=renderPaymentSources;
 $('#sendNotices').onclick=sendAndroidPayments;
+$('#recoverWalletNotices').onclick=async()=>{
+ const bridge=window.RegistroAndroid,status=$('#sendStatus');
+ if(!bridge?.requestPaymentListenerRescan){status.textContent='Questa versione Android non supporta il recupero: occorre un aggiornamento APK.';return}
+ status.textContent='Controllo delle notifiche Wallet ancora presenti in corso…';
+ try{bridge.requestPaymentListenerRescan()}catch(e){status.textContent='Il servizio notifiche non ha risposto: verifica l’autorizzazione Android.';return}
+ await new Promise(resolve=>setTimeout(resolve,1400));
+ await sendAndroidPayments();
+ let diag=null;try{diag=JSON.parse(bridge.notificationDiagnostics?.()||'null')}catch(e){}
+ const pending=Number(bridge.queuedPaymentCount?.()||0);
+ const details=diag?' Stato lettore: '+(diag.listenerConnected||diag.connected?'collegato':'da verificare')+
+  '. Ultima notifica vista: '+(Number(diag.lastSeenAt)>0?new Date(Number(diag.lastSeenAt)).toLocaleString('it-IT'):'nessuna informazione')+
+  '. Ultimo errore di lettura: '+(Number(diag.lastParseFailedAt)>0?new Date(Number(diag.lastParseFailedAt)).toLocaleString('it-IT'):'nessuno registrato')+'.':'';
+ status.textContent='Ricontrollo completato. '+pending+' pagamento/i ancora in coda sul telefono.'+details+
+  ' Se manca ancora Burger King, lascia la notifica visibile e comunica questo risultato.';
+ updateNotificationState();
+};
 async function showPairingRequests(){
  if(familyRole!=='owner'){ $('#pairingCard').hidden=true; return; }
  const {data:requests,error}=await sb.rpc('rff_pending_devices',deviceArgs());
