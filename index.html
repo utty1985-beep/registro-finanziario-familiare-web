@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Registro Finanziario Familiare V113</title>
-<script>window.RFF_RELEASE=Object.freeze({version:'V122',date:'11/10',build:'20261011-v122-residui-notifiche'});</script>
+<script>window.RFF_RELEASE=Object.freeze({version:'V124',date:'11/10',build:'20261011-v124-conferma-residui'});</script>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -647,7 +647,7 @@ function moveResidual(key){
  if(familyRole!=='owner'||key==='food')return;let source=sourceDetails(key);if(!source||!source.amount)return;const day=transferDay(),before=source.amount;
  if(before<0&&RFFBudget.remaining(data(),'food',day,month)<-before){alert('Il residuo Mangiare non basta per coprire questo sforamento.');return;}
  const question=before>0?'Vuoi spostarla in Mangiare?':'Vuoi coprire questo residuo con Mangiare?';
- if(!confirm(question+'\n'+source.name+': € '+euro(Math.abs(before))+(before<0?'\nQuesto importo viene prelevato da Mangiare per azzerare lo sforamento.':'')))return;
+ if(!confirm(question+'\n'+source.name+': € '+euro(RFFBudget.money(Math.abs(before)))+(before<0?'\nQuesto importo viene prelevato da Mangiare per azzerare lo sforamento.':'')))return;
  source=sourceDetails(key);if(!source||source.amount!==before){alert('Il residuo è cambiato. Verifica l’importo e riprova.');return;}
  let sourceKey=key;if(source.r){source.r[6]||='budget_'+crypto.randomUUID();sourceKey='varie:'+source.kind+':'+source.r[6];}
  RFFBudget.transfer(data(),sourceKey,source.name,before,day,crypto.randomUUID());save();renderDaily();$('#sendStatus').textContent='Residuo rettificato · saldo invariato.';
