@@ -1,5 +1,5 @@
-const CACHE='rff-20261011-v122-residui-notifiche';
-const SW_VERSION='20261011-v122-residui-notifiche';
+const CACHE='rff-20261011-v124-conferma-residui';
+const SW_VERSION='20261011-v124-conferma-residui';
 const ASSETS=[
   './rff-budget-transfers.js','./','./index.html','./manifest.json','./icon-192.png?v=80-icon','./icon-512.png?v=80-icon',
   './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js','./v85-calendar-fix.js'
