@@ -535,14 +535,14 @@ function buildPrintSheets(){
  const cols=(daily.columns||[]).filter(c=>(c.name||'').trim());
  const dailyHeads=['Giorno','Mangiare',...cols.map(c=>c.name.trim())];
  const first=Number((daily.start||'').slice(-2))||1;
- let carry=0;const spent={};cols.forEach(c=>spent[colKey(c)]=0);
+ let carry=RFFBudget.delta(d,'food',first-1)/100;const spent={};cols.forEach(c=>spent[colKey(c)]=0);
  const rows=[];
  for(let day=first;day<=last;day++){
   const dt=new Date(year,mon-1,day),sp=(daily.spend||{})[day]||{},sat=dt.getDay()===6;
   const byCategory=k=>(daily.entries||[]).filter(x=>Number(x.day)===day&&x.category===k).reduce((sum,x)=>sum+Number(x.amount||0),0);
-  carry+=(Number(daily.food)||0)+(sat?(Number(daily.sat)||0):0)-(Number(sp.food)||0)+byCategory('food');
+  carry+=(Number(daily.food)||0)+(sat?(Number(daily.sat)||0):0)-(Number(sp.food)||0)+byCategory('food')+(daily.budgetTransfers||[]).filter(t=>Number(t.day)===day).reduce((n,t)=>n+Number(t.foodCents||0),0)/100;
   const cells=[`${dt.toLocaleDateString('it-IT',{weekday:'short'})} ${day}`,`€ ${euro(byCategory('food')-(Number(sp.food)||0))} · residuo € ${euro(carry)}`];
-  cols.forEach(c=>{let k=colKey(c);spent[k]+=(Number(sp[k])||0)-byCategory(k);cells.push(`€ ${euro(byCategory(k)-(Number(sp[k])||0))} · residuo € ${euro((Number(c.budget)||0)-spent[k])}`)});
+  cols.forEach(c=>{let k=colKey(c);spent[k]+=(Number(sp[k])||0)-byCategory(k);cells.push(`€ ${euro(byCategory(k)-(Number(sp[k])||0))} · residuo € ${euro((Number(c.budget)||0)-spent[k]+RFFBudget.delta(d,k,day)/100)}`)});
   rows.push('<tr>'+cells.map(v=>`<td>${escapeNotice(v)}</td>`).join('')+'</tr>');
  }
  host.innerHTML=`<div class="printSheet"><div class="printTitle">Registro Finanziario Familiare · ${escapeNotice(label)} — riepilogo</div><div class="printColumns"><div>${block('Ingressi del mese',entries('income'),'Totale ingressi: € '+$('#incomeTotal').textContent,'income')}${block('Spese preventivate mese',entries('planned'),'Totale: € '+$('#plannedTotal').textContent,'planned')}${block('Ingressi − spese preventivate','', 'Differenza: € '+$('#incomeAfterPlanned').textContent,'projection')}</div><div>${block('Situazione economica / movimenti',entries('moves'),'Parziale: € '+$('#moveTotal').textContent,'moves')}${block('Rate / scadenze',entries('rates'),'Parziale: € '+$('#rateTotal').textContent,'rates')}${block('Bilancio finale','', 'Totale delle tre sezioni: € '+$('#balance').textContent,'balance')}</div></div></div><div class="printSheet"><div class="printTitle">Registro Finanziario Familiare · ${escapeNotice(label)} — spese giornaliere</div><table class="printDaily"><thead><tr>${dailyHeads.map(h=>`<th>${escapeNotice(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
