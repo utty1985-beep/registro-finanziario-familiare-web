@@ -405,7 +405,7 @@ function applyPermissions(){
  const manualCard=$('#entryAmount')?.closest('.card');if(manualCard)manualCard.hidden=false;$('#sendForApproval').hidden=viewer;
  document.querySelectorAll('#p1 input:not(#monthPick),#p2 input,#p1 button,#p2 button,#p2 select').forEach(el=>{
   if(['prevM','nextM','prevM2','nextM2','toDaily','toMonth','toBoard','toBoard2','authorizeNotices','sourcesButton','sendNotices'].includes(el.id))return;
-  if(el.closest('.entryForm')){el.disabled=false;return}
+  if(el.classList.contains('rffResidualTile')){el.disabled=viewer||el.disabled;return}if(el.closest('.entryForm')){el.disabled=false;return}
   el.disabled=viewer;
  });
  if($('#boardText'))$('#boardText').disabled=false;if($('#boardAdd'))$('#boardAdd').disabled=false;
@@ -699,7 +699,7 @@ function renderDaily(){
  const totalCols=2+activeCols.length;
  head.closest('table').style.minWidth=totalCols<=3?'0':Math.max(520,totalCols*145)+'px';
  head.querySelector('th:first-child').style.width=totalCols===2?'42%':(totalCols===3?'30%':'120px');
- let body=$('#dailyBody');body.innerHTML='';let foodCarry=0;const spent={};activeCols.forEach(c=>spent[colKey(c)]=0);
+ let body=$('#dailyBody');body.innerHTML='';let foodCarry=RFFBudget.delta(data(),'food',start-1)/100;const spent={};activeCols.forEach(c=>spent[colKey(c)]=0);
  for(let day=start;day<=end;day++){
   let dt=new Date(y,m-1,day),sp=spendObj(day),isSat=dt.getDay()===6;
   foodCarry+=(+d.food||0)+(isSat?(+d.sat||0):0);foodCarry-=(+sp.food||0);foodCarry+=entriesFor(day,'food');foodCarry+=(d.budgetTransfers||[]).filter(t=>Number(t.day)===day).reduce((n,t)=>n+Number(t.foodCents||0),0)/100;
@@ -1424,8 +1424,8 @@ if ('serviceWorker' in navigator) {
   function computeFood(d,key){
     const daily=d?.daily||{};const [yy,mm]=key.split('-').map(Number);if(!yy||!mm)return 0;
     const last=new Date(yy,mm,0).getDate();const today=new Date();const current=key===today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
-    const start=Math.min(last,Math.max(1,Number(String(daily.start||'').slice(-2))||1));const end=current?Math.max(start,Math.min(last,today.getDate())):last;
-    const entries=Array.isArray(daily.entries)?daily.entries:[];const spend=daily.spend||{};let carry=0;
+    const start=Math.min(last,Math.max(1,Number(String(daily.start||'').slice(-2))||1));const end=current?Math.min(last,today.getDate()):last;
+    const entries=Array.isArray(daily.entries)?daily.entries:[];const spend=daily.spend||{};let carry=RFFBudget.delta(d,'food',start-1)/100;
     for(let day=start;day<=end;day++){
       const dt=new Date(yy,mm-1,day),sat=dt.getDay()===6,sp=spend[day]||{};
       const manual=entries.filter(x=>Number(x.day)===day&&x.category==='food').reduce((s,x)=>s+Number(x.amount||0),0);
