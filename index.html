@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Registro Finanziario Familiare V113</title>
-<script>window.RFF_RELEASE=Object.freeze({version:'V113',date:'09/10',build:'20261009-v113-board-recovery'});</script>
+<script>window.RFF_RELEASE=Object.freeze({version:'V122',date:'11/10',build:'20261011-v122-residui-notifiche'});</script>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -210,7 +210,17 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
 @media(max-width:650px){.paymentDrop>summary,.pendingDropCompact>summary.pendingBarHead{padding:10px 12px!important;min-height:42px!important;font-size:15px!important}}
 @media print{.paymentDrop,.pendingDropCompact{display:none!important}}
 </style>
-</head>
+<style id="rff-v82-rates-varie-style">
+.row.rateVarieRow{grid-template-columns:minmax(90px,1fr) 42px 100px 42px 42px}
+@media(max-width:650px){
+ .row.rateVarieRow{grid-template-columns:30px minmax(0,1fr) 25px 30px 30px}
+ .row.rateVarieRow>input[type="text"]{grid-column:1/-1}
+ .row.rateVarieRow>input[type="number"]{grid-column:2/4}
+ .row.rateVarieRow>.keep{grid-column:4;width:20px;height:20px;margin:auto}
+ .row.rateVarieRow>.del{grid-column:5}
+ .row.rateVarieRow>.rateReminder{grid-column:1/-1}
+}
+</style></head>
 <body>
 <!-- RFF V91: recupero pagamenti Wallet dopo ritorno rete/riapertura -->
 <div id="authGate" class="authGate"><div class="authCard">
@@ -263,7 +273,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <details class="card paymentDrop" id="paymentDrop"><summary><span>➕ Aggiungi pagamento</span></summary><div class="entryForm">
  <div class="full"><b>Segno</b> <span class="signs"><label><input type="radio" name="entrySign" value="+" checked>+</label><label><input type="radio" name="entrySign" value="-">−</label></span></div>
  <label>Importo (€)<input id="entryAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></label>
- <label>Categoria<select id="entryCategory"></select></label>
+ <label>Categoria<select id="entryCategory"></select><span id="rffResidualTiles" style="display:block;margin-top:7px"></span></label>
  <label class="full">Giorno del pagamento<input id="entryDate" type="date"></label>
  <button id="addEntry" class="primary">+ Aggiungi pagamento</button><button id="sendForApproval" type="button">Invia da confermare</button><div class="full hint">“Invia da confermare” crea una richiesta rossa condivisa con gli altri telefoni, senza registrare ancora la spesa.</div></div></details>
  <details class="card historyDrop" id="historyDrop"><summary><span>🧾 Pagamenti inseriti <span id="entryHistoryCount"></span></span></summary><div id="entryHistory"></div></details>
@@ -284,6 +294,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="nav"><button class="primary" id="boardBack">← Registro</button><button class="primary" id="boardDaily">Spese →</button></div>
 </section>
 <div id="printSheets" aria-hidden="true"></div>
+<script src="./rff-budget-transfers.js?v=20261011-v122"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (()=>{
@@ -579,9 +590,9 @@ function bindProvisionalHold(row,r){
 }
 function rowEditor(arr,host,kind){
  host.innerHTML='';
- arr.forEach((r,i)=>{let d=document.createElement('div');d.className='row'+(kind==='planned'?' plannedRow':kind==='income'?'':' signedRow')+(r[4]?' pendingCarry':'');
+ arr.forEach((r,i)=>{let d=document.createElement('div');d.className='row'+(kind==='planned'?' plannedRow':kind==='rates'?' signedRow rateVarieRow':kind==='income'?'':' signedRow')+(r[4]?' pendingCarry':'');
  let sign=(kind==='income'||kind==='planned')?'':`<span class="signBox" data-sign="${rowSign(r,kind)}"><select aria-label="Aggiungi o sottrai"><option value="+" ${rowSign(r,kind)==='+'?'selected':''}>+</option><option value="-" ${rowSign(r,kind)==='-'?'selected':''}>−</option></select></span>`;
- d.innerHTML=`<input type="text" value="${String(r[0]).replace(/"/g,'&quot;')}" aria-label="Descrizione">${sign}<input type="number" min="0" step="0.01" value="${Math.abs(Number(r[1])||0)}" aria-label="Importo">${kind==='planned'?`<input class="keep" type="checkbox" title="Mostra in Varie" aria-label="Mostra in Varie" ${r[2]?'checked':''}>`:''}<button class="del" title="Elimina voce">−</button>${r[4]?'<button class="confirmCarry" type="button">✓ Conferma voce</button>':''}`;
+ d.innerHTML=`<input type="text" value="${String(r[0]).replace(/"/g,'&quot;')}" aria-label="Descrizione">${sign}<input type="number" min="0" step="0.01" value="${Math.abs(Number(r[1])||0)}" aria-label="Importo">${kind==='planned'?`<input class="keep" type="checkbox" title="Mostra in Varie" aria-label="Mostra in Varie" ${r[2]?'checked':''}>`:kind==='rates'?`<input class="keep" type="checkbox" title="Mostra questa rata in Varie" aria-label="Mostra questa rata in Varie" ${(r[5]&&r[5].varie)?'checked':''}>`:''}<button class="del" title="Elimina voce">−</button>${r[4]?'<button class="confirmCarry" type="button">✓ Conferma voce</button>':''}`;
  if(kind==='rates'){
   const meta=rateMeta(r,true),rem=document.createElement('div');rem.className='rateReminder';
   rem.innerHTML=`<div class="rateDateRow"><label>Giorno<input class="rateDueDay" type="number" min="1" max="31" inputmode="numeric" placeholder="gg" value="${meta.dueDay||''}"></label><label>Mese<select class="rateDueMonth"><option value="1">Gen</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option><option value="5">Mag</option><option value="6">Giu</option><option value="7">Lug</option><option value="8">Ago</option><option value="9">Set</option><option value="10">Ott</option><option value="11">Nov</option><option value="12">Dic</option></select></label><label>Anno<input class="rateDueYear" type="number" min="2000" max="2100" inputmode="numeric"></label></div><label>Avvisami<select class="rateReminderDays"><option value="0">il giorno stesso</option><option value="1">1 giorno prima</option><option value="2">2 giorni prima</option><option value="3">3 giorni prima</option><option value="5">5 giorni prima</option><option value="7">7 giorni prima</option></select></label><label>Notifica a<select class="rateReminderTarget"><option value="both">Entrambi i telefoni</option><option value="creator">Solo questo telefono</option><option value="other">Solo l'altro telefono</option></select></label><div class="rateCalendarHint">📅 Se imposti il giorno, la rata compare automaticamente nel Calendario familiare alle 09:00 e può essere sincronizzata con Google Calendar.</div>`;
@@ -598,7 +609,7 @@ function rowEditor(arr,host,kind){
  ins[0].onchange=e=>{r[0]=e.target.value.trim()||'Nuova voce';e.target.value=r[0];save();renderDaily()};
  ins[1].onchange=e=>{r[1]=Math.abs(Number(e.target.value)||0);if(kind==='planned')r[3]='-';else if(kind!=='income')r[3]=d.querySelector('select').value;save();calc()};
  if(kind!=='income'&&kind!=='planned')d.querySelector('select').onchange=e=>{r[1]=Math.abs(Number(r[1])||0);r[3]=e.target.value;d.querySelector('.signBox').dataset.sign=r[3];save();calc()};
- if(kind==='planned')ins[2].onchange=e=>{r[2]=e.target.checked;save();renderDaily()};d.querySelector('.del').onclick=()=>{arr.splice(i,1);save();render();if(kind==='rates')syncNativeFamilyTools()};
+ if(kind==='planned')ins[2].onchange=e=>{r[2]=e.target.checked;const hidden=data().daily.varieHidden||(data().daily.varieHidden={});delete hidden[i];save();renderDaily()};if(kind==='rates')ins[2].onchange=e=>{const meta=rateMeta(r,true);meta.varie=e.target.checked;save();renderDaily()};d.querySelector('.del').onclick=()=>{arr.splice(i,1);save();render();if(kind==='rates')syncNativeFamilyTools()};
  if(r[4])d.querySelector('.confirmCarry').onclick=()=>{r[4]=false;save();render()};
  if(!r[4]&&familyRole!=='viewer'){const mark=document.createElement('button');mark.type='button';mark.className='markProvisional';mark.textContent='🔴';mark.title='Segna come provvisoria';mark.setAttribute('aria-label','Segna questa voce come provvisoria rossa');mark.style.cssText='position:absolute;right:4px;top:4px;z-index:6;width:30px;height:30px;min-width:30px;min-height:30px;padding:0;border:1px solid #fca5a5;border-radius:999px;background:#fff;display:grid;place-items:center;font-size:16px;line-height:1;box-shadow:0 1px 4px #0002';d.style.position='relative';const desc=d.querySelector(':scope > input[type=\"text\"]');if(desc)desc.style.paddingRight='40px';mark.onclick=e=>{e.preventDefault();e.stopPropagation();r[4]=true;save();render()};d.appendChild(mark)}
  /* V60_DIRECT_RED_BUTTON */ host.appendChild(d)})
@@ -622,6 +633,32 @@ function validStart(){
  $('#startDate').min=`${month}-01`;$('#startDate').max=`${month}-${String(last).padStart(2,'0')}`;$('#startDate').value=d.start;
  return Number(d.start.slice(-2))
 }
+function transferDay(){const [y,m]=ymParts(),last=new Date(y,m,0).getDate(),date=$('#entryDate').value;return date.startsWith(month)?Math.min(last,Math.max(1,Number(date.slice(-2))||1)):Math.min(last,new Date().getDate())}
+function varieSources(){return [...data().planned.map((r,i)=>({r,i,kind:'planned'})),...data().rates.map((r,i)=>({r,i,kind:'rates'}))].filter(x=>x.kind==='planned'?!!x.r[2]:!!x.r[5]?.varie)}
+function sourceDetails(key){
+ const day=transferDay();if(key.startsWith('varie:')){const [,kind,idx]=key.split(':'),r=data()[kind]?.[Number(idx)];if(!r)return null;return {name:String(r[0]||'Varie'),amount:RFFBudget.varieRemaining(data(),r,kind),r,kind};}
+ return {name:categoryName(key),amount:RFFBudget.remaining(data(),key,day,month),key};
+}
+function makeResidualTile(key){
+ const source=sourceDetails(key);if(!source)return null;const b=document.createElement('button');b.type='button';b.className='rffResidualTile';b.style.cssText='display:block;width:100%;padding:10px;text-align:left;background:#eaf4ff;color:#0b4f8a;border:1px solid #93b7d4;border-radius:10px;font-size:14px;margin:4px 0';b.textContent=(/^residuo\s/i.test(source.name)?source.name:'Residuo '+source.name)+' · € '+euro(source.amount/100);b.disabled=familyRole!=='owner'||key==='food'||source.amount===0;b.onclick=()=>moveResidual(key);return b;
+}
+function renderResidualTiles(){const host=$('#rffResidualTiles');if(!host)return;host.textContent='';const key=$('#entryCategory').value;if(key==='varie'){varieSources().forEach(x=>{const b=makeResidualTile('varie:'+x.kind+':'+x.i);if(b)host.appendChild(b)})}else{const b=makeResidualTile(key);if(b)host.appendChild(b)}}
+function moveResidual(key){
+ if(familyRole!=='owner'||key==='food')return;let source=sourceDetails(key);if(!source||!source.amount)return;const day=transferDay(),before=source.amount;
+ if(before<0&&RFFBudget.remaining(data(),'food',day,month)<-before){alert('Il residuo Mangiare non basta per coprire questo sforamento.');return;}
+ const question=before>0?'Vuoi spostarla in Mangiare?':'Vuoi coprire questo residuo con Mangiare?';
+ if(!confirm(question+'\n'+source.name+': € '+euro(Math.abs(before))+(before<0?'\nQuesto importo viene prelevato da Mangiare per azzerare lo sforamento.':'')))return;
+ source=sourceDetails(key);if(!source||source.amount!==before){alert('Il residuo è cambiato. Verifica l’importo e riprova.');return;}
+ let sourceKey=key;if(source.r){source.r[6]||='budget_'+crypto.randomUUID();sourceKey='varie:'+source.kind+':'+source.r[6];}
+ RFFBudget.transfer(data(),sourceKey,source.name,before,day,crypto.randomUUID());save();renderDaily();$('#sendStatus').textContent='Residuo rettificato · saldo invariato.';
+}
+function renderTransferHistory(){
+ let host=$('#rffTransferHistory');if(!host){host=document.createElement('details');host.id='rffTransferHistory';host.className='card';$('#varieSingle').after(host)}
+ const list=data().daily.budgetTransfers||[];host.hidden=!list.length;host.innerHTML='<summary>Rettifiche dei residui ('+list.length+')</summary>';
+ list.slice().reverse().forEach(t=>{const line=document.createElement('div');line.className='entryLine';const text=document.createElement('span');text.textContent=t.sourceName+' · '+(t.foodCents>0?'in Mangiare':'da Mangiare')+' € '+euro(Math.abs(t.foodCents)/100)+' · giorno '+t.day+(t.reverses?' · annullamento':'');line.appendChild(text);
+ if(!t.reverses&&!list.some(x=>x.reverses===t.id)){const b=document.createElement('button');b.type='button';b.textContent='Annulla';b.disabled=familyRole!=='owner';b.onclick=()=>{if(familyRole!=='owner'||!confirm('Annullare questa rettifica?'))return;if(t.foodCents>0&&RFFBudget.remaining(data(),'food',transferDay(),month)<t.foodCents){alert('Mangiare non ha abbastanza residuo per annullare la rettifica.');return;}RFFBudget.transfer(data(),t.sourceKey,t.sourceName,-t.foodCents,t.day,crypto.randomUUID());data().daily.budgetTransfers.at(-1).reverses=t.id;save();renderDaily()};line.appendChild(b)}host.appendChild(line)})
+}
+$('#entryCategory').addEventListener('change',renderResidualTiles);$('#entryDate').addEventListener('change',renderResidualTiles);
 function entriesFor(day,k){return (data().daily.entries||[]).filter(x=>Number(x.day)===Number(day)&&x.category===k).reduce((sum,x)=>sum+Number(x.amount||0),0)}
 function dayTotal(day,k){return (Number(spendObj(day)[k])||0)+entriesFor(day,k)}
 function spendObj(day){let s=data().daily.spend;return s[day]||(s[day]={food:0,varie:0})}
@@ -641,7 +678,7 @@ function renderCustomColumns(){
 function refreshCategorySelect(){
  const sel=$('#entryCategory');if(!sel)return;const old=sel.value;sel.innerHTML='';
  [['Mangiare','food'],...customCols().filter(c=>(c.name||'').trim()).map(c=>[c.name.trim(),colKey(c)]),['Varie','varie']].forEach(([name,key])=>{const o=document.createElement('option');o.textContent=name;o.value=key;sel.appendChild(o)});
- if([...sel.options].some(o=>o.value===old))sel.value=old
+ varieSources().forEach(x=>{const o=document.createElement('option');o.value='varie:'+x.kind+':'+x.i;o.textContent=String(x.r[0]||'Varie')+' · Varie';sel.appendChild(o)});if([...sel.options].some(o=>o.value===old))sel.value=old;renderResidualTiles()
 }
 function categoryName(key){if(key==='food')return'Mangiare';if(key==='varie')return'Varie';const c=customCols().find(c=>colKey(c)===key);return c?c.name:'Varie'}
 function renderDaily(){
@@ -665,36 +702,39 @@ function renderDaily(){
  let body=$('#dailyBody');body.innerHTML='';let foodCarry=0;const spent={};activeCols.forEach(c=>spent[colKey(c)]=0);
  for(let day=start;day<=end;day++){
   let dt=new Date(y,m-1,day),sp=spendObj(day),isSat=dt.getDay()===6;
-  foodCarry+=(+d.food||0)+(isSat?(+d.sat||0):0);foodCarry-=(+sp.food||0);foodCarry+=entriesFor(day,'food');
-  let cells=activeCols.map(c=>{const k=colKey(c);spent[k]+=(+sp[k]||0)-entriesFor(day,k);return cell(day,k,entriesFor(day,k)-(+sp[k]||0),(+c.budget||0)-spent[k],'residuo')}).join('');
-  let tr=document.createElement('tr');if(y===now.getFullYear()&&m===now.getMonth()+1&&day===now.getDate())tr.className='today';
-  tr.innerHTML=`<td class="day">${dt.toLocaleDateString('it-IT',{weekday:'short'})} ${day}</td>${cell(day,'food',entriesFor(day,'food')-(+sp.food||0),foodCarry,'residuo')}${cells}`;if(day>=displayStart)body.appendChild(tr)
+  foodCarry+=(+d.food||0)+(isSat?(+d.sat||0):0);foodCarry-=(+sp.food||0);foodCarry+=entriesFor(day,'food');foodCarry+=(d.budgetTransfers||[]).filter(t=>Number(t.day)===day).reduce((n,t)=>n+Number(t.foodCents||0),0)/100;
+  const isToday=y===now.getFullYear()&&m===now.getMonth()+1&&day===now.getDate();
+  let cells=activeCols.map(c=>{const k=colKey(c);spent[k]+=(+sp[k]||0)-entriesFor(day,k);const monthlyResidual=(+c.budget||0)-spent[k]+RFFBudget.delta(data(),k,day)/100;return isToday ? `<td class="moneyCell"><strong>€ ${euro(monthlyResidual)}</strong><span class="res">Budget mensile: <strong>€ ${euro(+c.budget||0)}</strong></span></td>` : cell(day,k,entriesFor(day,k)-(+sp[k]||0),monthlyResidual,'residuo')}).join('');
+  const todayFoodBudget=(+d.food||0)+(isSat?(+d.sat||0):0);
+  const foodHtml=isToday ? `<td class="moneyCell"><strong>€ ${euro(foodCarry)}</strong><span class="res">Budget giornaliero: <strong>€ ${euro(todayFoodBudget)}</strong></span></td>` : cell(day,'food',entriesFor(day,'food')-(+sp.food||0),foodCarry,'residuo');
+  let tr=document.createElement('tr');if(isToday)tr.className='today';
+  tr.innerHTML=`<td class="day">${dt.toLocaleDateString('it-IT',{weekday:'short'})} ${day}</td>${foodHtml}${cells}`;if(day>=displayStart)body.appendChild(tr)
  }
- renderVarieSingle();renderEntryHistory();renderPending()
+ renderVarieSingle();renderTransferHistory();renderEntryHistory();renderPending();renderResidualTiles()
 }
 function renderVarieSingle(){
  const host=$('#varieSingle'); if(!host) return;
  host.innerHTML='';
  const arr=data().planned;
  const hidden=data().daily.varieHidden||(data().daily.varieHidden={});
- const selected=arr.map((r,i)=>({r,i})).filter(x=>x.r[2]&&!x.r[4]&&!hidden[x.i]);
- selected.forEach(({r,i})=>{
+ const selected=[...arr.map((r,i)=>({r,i,kind:'planned'})),...data().rates.map((r,i)=>({r,i,kind:'rates'}))].filter(x=>x.kind==='planned'?!!x.r[2]:!!(x.r[5]&&x.r[5].varie));
+ selected.forEach(({r,i,kind})=>{
    const adjustments=data().daily.varieAdjustments||(data().daily.varieAdjustments=[]);
-   const matching=adjustments.filter(x=>x.row===i);
-   const total=()=>Number(r[1]||0)+adjustments.filter(x=>x.row===i).reduce((n,x)=>n+Number(x.amount||0),0);
+   const match=x=>x.row===i&&(x.kind||'planned')===kind;const matching=adjustments.filter(match);
+   const total=()=>RFFBudget.varieRemaining(data(),r,kind)/100;
    const line=document.createElement('div');line.className='varieItem';
    const base=document.createElement('div');base.className='varieBase';
    const name=document.createElement('input');name.type='text';name.value=r[0];name.readOnly=true;
    const value=document.createElement('input');value.type='number';value.step='0.01';value.value=Number(r[1])||0;value.setAttribute('aria-label','Importo iniziale '+r[0]);
-   value.onchange=()=>{const n=Number(value.value);if(!Number.isFinite(n)){value.value=r[1];return}r[1]=n;save();calc();renderVarieSingle()};const del=document.createElement('button');del.type='button';del.textContent='🗑️';del.title='Elimina solo da Varie';del.setAttribute('aria-label','Elimina '+r[0]+' solo da Varie');del.onclick=()=>{if(familyRole!=='owner')return;hidden[i]=true;save();renderVarieSingle()};base.append(name,value,del);
+   value.onchange=()=>{const n=Number(value.value);if(!Number.isFinite(n)){value.value=r[1];return}r[1]=n;save();calc();renderVarieSingle()};const del=document.createElement('button');del.type='button';del.textContent='🗑️';del.title='Elimina solo da Varie';del.setAttribute('aria-label','Elimina '+r[0]+' solo da Varie');del.onclick=()=>{if(familyRole!=='owner')return;if(kind==='rates'){const meta=rateMeta(r,true);meta.varie=false}else r[2]=false;save();renderVarieSingle()};base.append(name,value,del);
    const adjust=document.createElement('div');adjust.className='varieAdjust';
    const sign=document.createElement('select');sign.innerHTML='<option value="-">−</option><option value="+">+</option>';sign.setAttribute('aria-label','Segno variazione '+r[0]);
    const amount=document.createElement('input');amount.type='number';amount.min='0.01';amount.step='0.01';amount.placeholder='Importo';amount.setAttribute('aria-label','Importo variazione '+r[0]);
-   const add=document.createElement('button');add.textContent='Applica';add.onclick=()=>{if(familyRole!=='owner')return;const n=Number(amount.value);if(!Number.isFinite(n)||n<=0)return;adjustments.push({id:Date.now()+'-'+Math.random().toString(36).slice(2),row:i,amount:(sign.value==='-'?-1:1)*n});save();renderVarieSingle()};adjust.append(sign,amount,add);
+   const add=document.createElement('button');add.textContent='Applica';add.onclick=()=>{if(familyRole!=='owner')return;const n=Number(amount.value);if(!Number.isFinite(n)||n<=0)return;adjustments.push({id:Date.now()+'-'+Math.random().toString(36).slice(2),row:i,kind,amount:(sign.value==='-'?-1:1)*n});save();renderVarieSingle()};adjust.append(sign,amount,add);
    const result=document.createElement('div');result.className='varieResult';result.textContent='Risultato: € '+euro(total());
    const history=document.createElement('div');history.className='varieAdjustments';
    matching.forEach(x=>{const item=document.createElement('div');item.textContent=(x.amount<0?'− ':'+ ')+'€ '+euro(Math.abs(x.amount))+' ';const remove=document.createElement('button');remove.textContent='Rimuovi';remove.onclick=()=>{if(familyRole!=='owner')return;data().daily.varieAdjustments=adjustments.filter(y=>y.id!==x.id);save();renderVarieSingle()};item.appendChild(remove);history.appendChild(item)});
-   line.append(base,adjust,result,history);host.appendChild(line);
+   line.append(base,adjust,result,history);const tile=makeResidualTile('varie:'+kind+':'+i);if(tile)line.appendChild(tile);host.appendChild(line);
  });
  const extra=Object.entries(data().daily.spend||{}).filter(([day,sp])=>Number(sp.varie)>0||entriesFor(day,'varie')!==0).sort((a,b)=>Number(a[0])-Number(b[0]));
  extra.forEach(([day,sp])=>{const line=document.createElement('div');line.className='total';line.textContent=`Giorno ${day}: € ${euro(dayTotal(day,'varie'))}`;host.appendChild(line)});
@@ -710,7 +750,7 @@ $('#addEntry').onclick=async(event)=>{
  if(!Number.isFinite(amount)||amount<=0||!date.startsWith(month)){alert('Inserisci importo e giorno validi.');return}
  const day=Number(date.slice(-2)),[yy,mm]=ymParts();if(day<1||day>new Date(yy,mm,0).getDate())return;
  const sign=document.querySelector('input[name="entrySign"]:checked').value;
- const category=$('#entryCategory').value;
+ const category=$('#entryCategory').value;if(category.startsWith('varie:')){moveResidual(category);return;}
  if(familyRole==='viewer'||event?.sendForApproval){
   if(!sb||!familyId){alert('Sincronizzazione non disponibile. Riprova.');return}
   const btn=event?.sendForApproval?$('#sendForApproval'):$('#addEntry'),label=btn.textContent;btn.disabled=true;btn.textContent='Invio…';
@@ -810,8 +850,10 @@ async function fetchInbox(){
   if(changed){localStorage.setItem('rff_verified',JSON.stringify(db));renderPending()}
  }catch(e){console.log('Pagamenti in attesa:',e);syncStatus('Pagamenti da confermare non sincronizzati · riprovo',true)}finally{inboxBusy=false}
 }
+let androidSendBusy=false;
 async function sendAndroidPayments(){
- if(!['owner','viewer'].includes(familyRole)||!familyId||!window.RegistroAndroid)return;
+ if(androidSendBusy||!['owner','viewer'].includes(familyRole)||!familyId||!window.RegistroAndroid)return;
+ androidSendBusy=true;try{
  let items=[];try{items=JSON.parse(RegistroAndroid.peekPendingPayments()||'[]')}catch(e){return}
  if(!items.length)return;
  let sent=0;
@@ -823,7 +865,8 @@ async function sendAndroidPayments(){
   if(error){console.log('Invio pagamento:',error);$('#sendStatus').textContent='Importazione non riuscita. I pagamenti restano sul telefono per riprovare.';continue}
   RegistroAndroid.acknowledgePendingPayments(JSON.stringify([x.id]));sent++;
  }
- if(sent){$('#sendStatus').textContent=sent+' pagamento/i inviato/i. Compariranno tra i pagamenti da confermare sui telefoni autorizzati.';if(familyRole==='owner')await fetchInbox(true)}updateNotificationState()
+ if(sent){$('#sendStatus').textContent=sent+' pagamento/i inviato/i. Compariranno tra i pagamenti da confermare sui telefoni autorizzati.';await fetchInbox(true)}updateNotificationState()
+ }catch(e){console.log('Invio pagamento:',e);$('#sendStatus').textContent='Invio non riuscito: pagamenti conservati sul telefono.';}finally{androidSendBusy=false}
 }
 window.sendAndroidPayments=sendAndroidPayments;
 function updateNotificationState(){const bridge=window.RegistroAndroid,el=$('#notificationState');if(!el)return;if(!bridge){el.textContent='Le notifiche dei pagamenti si attivano nell’app Android. Sul sito puoi vedere i pagamenti sincronizzati.';return}const enabled=bridge.notificationAccessEnabled?.();const pending=Number(bridge.queuedPaymentCount?.()||0);el.textContent=(enabled===true||enabled==='true'?'Accesso notifiche attivo.':'Accesso notifiche da attivare nelle impostazioni Android.')+' '+pending+' pagamento/i ancora sul telefono. Seleziona le app qui sotto: i pagamenti riconosciuti compariranno in rosso su tutti i telefoni autorizzati dopo la sincronizzazione.'}
@@ -1386,7 +1429,7 @@ if ('serviceWorker' in navigator) {
     for(let day=start;day<=end;day++){
       const dt=new Date(yy,mm-1,day),sat=dt.getDay()===6,sp=spend[day]||{};
       const manual=entries.filter(x=>Number(x.day)===day&&x.category==='food').reduce((s,x)=>s+Number(x.amount||0),0);
-      carry+=(Number(daily.food)||0)+(sat?(Number(daily.sat)||0):0)-(Number(sp.food)||0)+manual;
+      carry+=(Number(daily.food)||0)+(sat?(Number(daily.sat)||0):0)-(Number(sp.food)||0)+manual+(daily.budgetTransfers||[]).filter(t=>Number(t.day)===day).reduce((n,t)=>n+Number(t.foodCents||0),0)/100;
     }
     return carry;
   }
@@ -1398,7 +1441,7 @@ if ('serviceWorker' in navigator) {
     ];
     return rows.map(({r,i,kind,show})=>{
       const adjustment=adj.filter(x=>Number(x.row)===i&&(x.kind||'planned')===kind).reduce((sum,x)=>sum+Number(x.amount||0),0);
-      return {name:String(r?.[0]||'Varie'),amount:Number(r?.[1]||0)+adjustment,show};
+      return {name:String(r?.[0]||'Varie'),amount:Number(r?.[1]||0)+adjustment+RFFBudget.delta(d,'varie:'+kind+':'+r?.[6],31)/100,show};
     }).filter(x=>x.show&&Math.abs(x.amount)>0.004);
   }
   function prevMonthKey(key){const [y,m]=key.split('-').map(Number),dt=new Date(y,m-2,1);return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')}
@@ -1429,8 +1472,8 @@ if ('serviceWorker' in navigator) {
         qs('#rffDashTrendDiff').textContent=!up&&!down?'Nessuna differenza dal mese precedente':((up?'+ ':'− ')+'€ '+euro(Math.abs(delta))+' rispetto al mese precedente');
       }
     }
-    const food=computeFood(d,key),foodReal='€ '+euro(food),foodEl=qs('#rffDashFood');setMoney(foodEl,foodReal,false);if(foodEl)foodEl.classList.toggle('neg',food<0);
-    const daily=d?.daily||{};const dayBudget=Number(daily.food)||0;qs('#rffDashFoodSub').textContent='Budget giornaliero € '+euro(dayBudget);
+    const food=computeFood(currentMonthData,currentKey),foodReal='€ '+euro(food),foodEl=qs('#rffDashFood');setMoney(foodEl,foodReal,false);if(foodEl)foodEl.classList.toggle('neg',food<0);
+    const daily=currentMonthData?.daily||{};const dayBudget=(Number(daily.food)||0)+(nowDate.getDay()===6?(Number(daily.sat)||0):0);qs('#rffDashFoodSub').textContent=nowDate.toLocaleDateString('it-IT')+' · Budget giornaliero € '+euro(dayBudget);
     qs('#rffDashEye').textContent=hidden?'🙈':'👁';page.classList.toggle('rffDashMask',hidden);
     const pending=(d?.daily?.pending||[]).length,count=qs('#rffDashPendingCount');if(count){count.hidden=!pending;count.textContent=pending>99?'99+':String(pending)};
     const host=qs('#rffDashRemainingList'),items=remainingItems(d);if(host){host.innerHTML='';if(!items.length){host.innerHTML='<div class="rffRemainingEmpty">Nessun pagamento rimasto in Varie.</div>'}else items.slice(0,6).forEach(it=>{const row=document.createElement('div');row.className='rffRemainingItem';row.innerHTML='<div class="dot">🧾</div><div class="name"></div><div class="amount rffMoney"></div>';row.querySelector('.name').textContent=it.name;setMoney(row.querySelector('.amount'),'€ '+euro(it.amount),false);host.appendChild(row)})}
@@ -1683,4 +1726,7 @@ if ('serviceWorker' in navigator) {
  mount();setTimeout(auto,1500);
 })();
 </script>
+<script src="./v63-month-stability.js?v=20261009-v113-board-recovery"></script>
+<script src="./v65-varie-collapse.js?v=20261009-v113-board-recovery"></script>
+<script src="./v85-calendar-fix.js?v=20261009-v113-board-recovery"></script>
 </body></html>

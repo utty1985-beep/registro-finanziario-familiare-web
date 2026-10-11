@@ -1,7 +1,7 @@
-const CACHE='rff-20261009-v113-board-recovery';
-const SW_VERSION='20261009-v113-board-recovery';
+const CACHE='rff-20261011-v122-residui-notifiche';
+const SW_VERSION='20261011-v122-residui-notifiche';
 const ASSETS=[
-  './','./index.html','./manifest.json','./icon-192.png?v=80-icon','./icon-512.png?v=80-icon',
+  './rff-budget-transfers.js','./','./index.html','./manifest.json','./icon-192.png?v=80-icon','./icon-512.png?v=80-icon',
   './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js','./v85-calendar-fix.js'
 ];
 
@@ -154,7 +154,7 @@ self.addEventListener('install',event=>{
   event.waitUntil(
     caches.open(CACHE)
       .then(async cache=>{
-        await cache.addAll(['./','./index.html']);
+        await cache.addAll(['./rff-budget-transfers.js','./','./index.html']);
         await Promise.all(ASSETS.filter(asset=>asset!=='./'&&asset!=='./index.html').map(asset=>cache.add(asset).catch(()=>{})));
       })
       .then(()=>self.skipWaiting())
