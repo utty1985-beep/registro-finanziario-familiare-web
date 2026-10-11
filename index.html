@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V113</title>
-<script>window.RFF_RELEASE=Object.freeze({version:'V124',date:'11/10',build:'20261011-v124-conferma-residui'});</script>
+<title>Registro Finanziario Familiare V125</title>
+<script>window.RFF_RELEASE=Object.freeze({version:'V125',date:'11/10',build:'20261011-v125-pagamenti-oggi'});</script>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -772,12 +772,19 @@ $('#addEntry').onclick=async(event)=>{
 };
 function renderEntryHistory(){
  const host=$('#entryHistory'),count=$('#entryHistoryCount');host.innerHTML='';
- const entries=data().daily.entries||[];if(count)count.textContent=entries.length?'('+entries.length+')':'';
- if(!entries.length){host.innerHTML='<p class="hint">Nessun pagamento inserito.</p>';return}
+ const today=new Date(),day=today.getDate();
+ const todayMonth=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
+ const daily=db[todayMonth]?.daily;
+ const entries=(daily?.entries||[]).filter(entry=>Number(entry.day)===day);
+ const label=today.toLocaleDateString('it-IT',{month:'long',year:'numeric'});
+ if(count)count.textContent='('+entries.length+') · oggi';
+ if(!entries.length){host.innerHTML='<p class="hint">Nessun pagamento inserito oggi.</p>';return}
  entries.slice().reverse().forEach(entry=>{
   const line=document.createElement('div');line.className='entryLine';
-  const span=document.createElement('span');span.textContent=`${entry.day} ${title()} · ${categoryName(entry.category)} · ${entry.amount<0?'−':'+'} € ${euro(Math.abs(entry.amount))}`;
-  const btn=document.createElement('button');btn.textContent='−';btn.title='Rimuovi questo pagamento';btn.onclick=()=>{if(familyRole!=='owner')return;data().daily.entries=data().daily.entries.filter(x=>x.id!==entry.id);save();renderDaily()};
+  const category=entry.category==='food'?'Mangiare':entry.category==='varie'?'Varie':
+   ((daily.columns||[]).find(c=>colKey(c)===entry.category)?.name||'Varie');
+  const span=document.createElement('span');span.textContent=`${entry.day} ${label} · ${category} · ${entry.amount<0?'−':'+'} € ${euro(Math.abs(entry.amount))}`;
+  const btn=document.createElement('button');btn.textContent='−';btn.title='Rimuovi questo pagamento';btn.onclick=()=>{if(familyRole!=='owner')return;daily.entries=daily.entries.filter(x=>x.id!==entry.id);save();renderDaily()};
   line.append(span,btn);host.appendChild(line)
  });applyPermissions();
 }
