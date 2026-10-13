@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V125</title>
-<script>window.RFF_RELEASE=Object.freeze({version:'V125',date:'11/10',build:'20261011-v125-pagamenti-oggi'});</script>
+<title>Registro Finanziario Familiare V126</title>
+<script>window.RFF_RELEASE=Object.freeze({version:'V126',date:'13/10',build:'20261013-v126-residuo-cumulativo'});</script>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -262,7 +262,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <details class="card settingsDrop">
   <summary><b>Impostazioni giornaliere</b><span>▼</span></summary>
   <div class="dailyTop settingsBody">
-   <label>Inizia dal giorno<input id="startDate" type="date"></label>
+   <label>Calcolo dal primo del mese<input id="startDate" type="date" readonly></label>
    <label>Budget Mangiare al giorno (€)<input id="foodBudget" type="number" step="0.01" min="0"></label>
    <label>Extra sabato (€)<input id="satExtra" type="number" step="0.01" min="0"></label>
    <div class="full"><b>Colonne personalizzate</b><div class="hint">Crea le colonne che vuoi e indica l’importo da cui devono partire nel mese.</div></div>
@@ -294,7 +294,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="nav"><button class="primary" id="boardBack">← Registro</button><button class="primary" id="boardDaily">Spese →</button></div>
 </section>
 <div id="printSheets" aria-hidden="true"></div>
-<script src="./rff-budget-transfers.js?v=20261011-v122"></script>
+<script src="./rff-budget-transfers.js?v=20261013-v126"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (()=>{
@@ -534,13 +534,13 @@ function buildPrintSheets(){
  const daily=d.daily||{},[year,mon]=ymParts(),last=new Date(year,mon,0).getDate();
  const cols=(daily.columns||[]).filter(c=>(c.name||'').trim());
  const dailyHeads=['Giorno','Mangiare',...cols.map(c=>c.name.trim())];
- const first=Number((daily.start||'').slice(-2))||1;
+ const first=1;
  let carry=RFFBudget.delta(d,'food',first-1)/100;const spent={};cols.forEach(c=>spent[colKey(c)]=0);
  const rows=[];
  for(let day=first;day<=last;day++){
   const dt=new Date(year,mon-1,day),sp=(daily.spend||{})[day]||{},sat=dt.getDay()===6;
   const byCategory=k=>(daily.entries||[]).filter(x=>Number(x.day)===day&&x.category===k).reduce((sum,x)=>sum+Number(x.amount||0),0);
-  carry+=(Number(daily.food)||0)+(sat?(Number(daily.sat)||0):0)-(Number(sp.food)||0)+byCategory('food')+(daily.budgetTransfers||[]).filter(t=>Number(t.day)===day).reduce((n,t)=>n+Number(t.foodCents||0),0)/100;
+  carry=RFFBudget.remaining(d,'food',day,month)/100;
   const cells=[`${dt.toLocaleDateString('it-IT',{weekday:'short'})} ${day}`,`€ ${euro(byCategory('food')-(Number(sp.food)||0))} · residuo € ${euro(carry)}`];
   cols.forEach(c=>{let k=colKey(c);spent[k]+=(Number(sp[k])||0)-byCategory(k);cells.push(`€ ${euro(byCategory(k)-(Number(sp[k])||0))} · residuo € ${euro((Number(c.budget)||0)-spent[k]+RFFBudget.delta(d,k,day)/100)}`)});
   rows.push('<tr>'+cells.map(v=>`<td>${escapeNotice(v)}</td>`).join('')+'</tr>');
@@ -628,10 +628,9 @@ function render(){
  let d=data();rowEditor(d.income,$('#incomeRows'),'income');rowEditor(d.planned,$('#plannedRows'),'planned');rowEditor(d.moves,$('#moveRows'),'moves');rowEditor(d.rates,$('#rateRows'),'rates');calc();renderDaily();renderMonthMode();applyPermissions()
  renderBoard();if($('#p3').classList.contains('active'))renderCalendar();}
 function validStart(){
- let d=data().daily,[y,m]=ymParts(),last=new Date(y,m,0).getDate(),fallback=`${month}-01`;
- if(!d.start || !d.start.startsWith(month)) d.start=fallback;
- $('#startDate').min=`${month}-01`;$('#startDate').max=`${month}-${String(last).padStart(2,'0')}`;$('#startDate').value=d.start;
- return Number(d.start.slice(-2))
+ const first=month+'-01';
+ $('#startDate').value=first;$('#startDate').readOnly=true;
+ return 1;
 }
 function transferDay(){const [y,m]=ymParts(),last=new Date(y,m,0).getDate(),date=$('#entryDate').value;return date.startsWith(month)?Math.min(last,Math.max(1,Number(date.slice(-2))||1)):Math.min(last,new Date().getDate())}
 function varieSources(){return [...data().planned.map((r,i)=>({r,i,kind:'planned'})),...data().rates.map((r,i)=>({r,i,kind:'rates'}))].filter(x=>x.kind==='planned'?!!x.r[2]:!!x.r[5]?.varie)}
@@ -640,7 +639,7 @@ function sourceDetails(key){
  return {name:categoryName(key),amount:RFFBudget.remaining(data(),key,day,month),key};
 }
 function makeResidualTile(key){
- const source=sourceDetails(key);if(!source)return null;const b=document.createElement('button');b.type='button';b.className='rffResidualTile';b.style.cssText='display:block;width:100%;padding:10px;text-align:left;background:#eaf4ff;color:#0b4f8a;border:1px solid #93b7d4;border-radius:10px;font-size:14px;margin:4px 0';b.textContent=(/^residuo\s/i.test(source.name)?source.name:'Residuo '+source.name)+' · € '+euro(source.amount/100);b.disabled=familyRole!=='owner'||key==='food'||source.amount===0;b.onclick=()=>moveResidual(key);return b;
+ const source=sourceDetails(key);if(!source)return null;const b=document.createElement('button');b.type='button';b.className='rffResidualTile';b.style.cssText='display:block;width:100%;padding:10px;text-align:left;background:#eaf4ff;color:#0b4f8a;border:1px solid #93b7d4;border-radius:10px;font-size:14px;margin:4px 0';b.textContent=(source.amount<0?'Copri da Mangiare: ':'Sposta in Mangiare: ')+source.name+' · € '+euro(Math.abs(source.amount)/100);b.disabled=familyRole!=='owner'||key==='food'||source.amount===0;b.onclick=()=>moveResidual(key);return b;
 }
 function renderResidualTiles(){const host=$('#rffResidualTiles');if(!host)return;host.textContent='';const key=$('#entryCategory').value;if(key==='varie'){varieSources().forEach(x=>{const b=makeResidualTile('varie:'+x.kind+':'+x.i);if(b)host.appendChild(b)})}else{const b=makeResidualTile(key);if(b)host.appendChild(b)}}
 function moveResidual(key){
@@ -696,17 +695,20 @@ function renderDaily(){
  $('#foodBudget').value=d.food||0;$('#satExtra').value=d.sat||0;renderCustomColumns();refreshCategorySelect();
  const activeCols=customCols().filter(c=>(c.name||'').trim());
  const head=$('#dailyHead');head.innerHTML='<th>Giorno</th><th>Mangiare</th>'+activeCols.map(c=>`<th>${escapeNotice(c.name.trim())}</th>`).join('');
+ activeCols.forEach((c,i)=>{const tile=makeResidualTile(colKey(c));if(tile)head.children[i+2].appendChild(tile)});
  const totalCols=2+activeCols.length;
  head.closest('table').style.minWidth=totalCols<=3?'0':Math.max(520,totalCols*145)+'px';
  head.querySelector('th:first-child').style.width=totalCols===2?'42%':(totalCols===3?'30%':'120px');
  let body=$('#dailyBody');body.innerHTML='';let foodCarry=RFFBudget.delta(data(),'food',start-1)/100;const spent={};activeCols.forEach(c=>spent[colKey(c)]=0);
  for(let day=start;day<=end;day++){
   let dt=new Date(y,m-1,day),sp=spendObj(day),isSat=dt.getDay()===6;
-  foodCarry+=(+d.food||0)+(isSat?(+d.sat||0):0);foodCarry-=(+sp.food||0);foodCarry+=entriesFor(day,'food');foodCarry+=(d.budgetTransfers||[]).filter(t=>Number(t.day)===day).reduce((n,t)=>n+Number(t.foodCents||0),0)/100;
+  foodCarry=RFFBudget.remaining(data(),'food',day,month)/100;
   const isToday=y===now.getFullYear()&&m===now.getMonth()+1&&day===now.getDate();
   let cells=activeCols.map(c=>{const k=colKey(c);spent[k]+=(+sp[k]||0)-entriesFor(day,k);const monthlyResidual=(+c.budget||0)-spent[k]+RFFBudget.delta(data(),k,day)/100;return isToday ? `<td class="moneyCell"><strong>€ ${euro(monthlyResidual)}</strong><span class="res">Budget mensile: <strong>€ ${euro(+c.budget||0)}</strong></span></td>` : cell(day,k,entriesFor(day,k)-(+sp[k]||0),monthlyResidual,'residuo')}).join('');
   const todayFoodBudget=(+d.food||0)+(isSat?(+d.sat||0):0);
-  const foodHtml=isToday ? `<td class="moneyCell"><strong>€ ${euro(foodCarry)}</strong><span class="res">Budget giornaliero: <strong>€ ${euro(todayFoodBudget)}</strong></span></td>` : cell(day,'food',entriesFor(day,'food')-(+sp.food||0),foodCarry,'residuo');
+  const previousFood=RFFBudget.remaining(data(),'food',day-1,month)/100;
+  const foodTransfers=(RFFBudget.delta(data(),'food',day)-RFFBudget.delta(data(),'food',day-1))/100;
+  const foodHtml=`<td class="moneyCell"><strong style="color:${foodCarry<0?'#c62828':'#15803d'}">€ ${euro(foodCarry)}</strong><span class="res">Riporto: € ${euro(previousFood)}<br>Budget: + € ${euro(todayFoodBudget)}<br>Movimenti: € ${euro(entriesFor(day,'food')-(+sp.food||0))}${foodTransfers?'<br>Trasferimenti: € '+euro(foodTransfers):''}</span></td>`;
   let tr=document.createElement('tr');if(isToday)tr.className='today';
   tr.innerHTML=`<td class="day">${dt.toLocaleDateString('it-IT',{weekday:'short'})} ${day}</td>${foodHtml}${cells}`;if(day>=displayStart)body.appendChild(tr)
  }
@@ -833,7 +835,7 @@ function renderPending(){
 $('#monthPick').onchange=e=>{if(!e.target.value)return;ensureMonth(e.target.value);month=e.target.value;save();render()};$('#prevM').onclick=$('#prevM2').onclick=()=>nextMonth(-1);$('#nextM').onclick=$('#nextM2').onclick=()=>nextMonth(1);
 $('#addIncome').onclick=()=>add('income');$('#addPlanned').onclick=()=>add('planned');$('#addMove').onclick=()=>add('moves');$('#addRate').onclick=()=>add('rates');
 $('#toDaily').onclick=()=>{$('#p1').classList.remove('active');$('#p2').classList.add('active');renderDaily();scrollTo(0,0)};$('#toMonth').onclick=()=>{$('#p2').classList.remove('active');$('#p1').classList.add('active');scrollTo(0,0)};
-$('#startDate').onchange=e=>{if(e.target.value.startsWith(month)){data().daily.start=e.target.value;if(!data().daily.viewStart||data().daily.viewStart<e.target.value)data().daily.viewStart=e.target.value;save();renderDaily()}};
+$('#startDate').onchange=()=>renderDaily();
 [['foodBudget','food'],['satExtra','sat']].forEach(([id,k])=>$('#'+id).onchange=e=>{data().daily[k]=Number(e.target.value)||0;save();renderDaily()});
 $('#addCustomColumn').onclick=()=>{const cols=customCols();cols.push({id:'c_'+Date.now()+'_'+Math.random().toString(36).slice(2),name:'',budget:0});save();renderDaily()};
 $('#testNotice').onclick=()=>{data().daily.pending.push({amount:12.50,desc:'Pagamento da confermare'});save();renderPending()};
@@ -1431,14 +1433,8 @@ if ('serviceWorker' in navigator) {
   function computeFood(d,key){
     const daily=d?.daily||{};const [yy,mm]=key.split('-').map(Number);if(!yy||!mm)return 0;
     const last=new Date(yy,mm,0).getDate();const today=new Date();const current=key===today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
-    const start=Math.min(last,Math.max(1,Number(String(daily.start||'').slice(-2))||1));const end=current?Math.min(last,today.getDate()):last;
-    const entries=Array.isArray(daily.entries)?daily.entries:[];const spend=daily.spend||{};let carry=RFFBudget.delta(d,'food',start-1)/100;
-    for(let day=start;day<=end;day++){
-      const dt=new Date(yy,mm-1,day),sat=dt.getDay()===6,sp=spend[day]||{};
-      const manual=entries.filter(x=>Number(x.day)===day&&x.category==='food').reduce((s,x)=>s+Number(x.amount||0),0);
-      carry+=(Number(daily.food)||0)+(sat?(Number(daily.sat)||0):0)-(Number(sp.food)||0)+manual+(daily.budgetTransfers||[]).filter(t=>Number(t.day)===day).reduce((n,t)=>n+Number(t.foodCents||0),0)/100;
-    }
-    return carry;
+    const end=current?Math.min(last,today.getDate()):last;
+    return RFFBudget.remaining(d,'food',end,key)/100;
   }
   function remainingItems(d){
     const planned=Array.isArray(d?.planned)?d.planned:[],rates=Array.isArray(d?.rates)?d.rates:[],daily=d?.daily||{},hiddenRows=daily.varieHidden||{},adj=Array.isArray(daily.varieAdjustments)?daily.varieAdjustments:[];

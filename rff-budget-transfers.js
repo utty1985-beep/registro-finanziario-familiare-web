@@ -4,7 +4,7 @@
  const list=d=>Array.isArray(d?.daily?.budgetTransfers)?d.daily.budgetTransfers:[];
  const delta=(d,key,day)=>list(d).filter(t=>Number(t.day)<=day).reduce((n,t)=>n+(key==='food'?Number(t.foodCents)||0:t.sourceKey===key?Number(t.sourceCents)||0:0),0);
  function remaining(d,key,day,month){
-  const daily=d.daily||{},[y,m]=month.split('-').map(Number),start=Math.max(1,Number(String(daily.start||'').slice(-2))||1),entries=daily.entries||[];
+  const daily=d.daily||{},[y,m]=month.split('-').map(Number),start=1,entries=daily.entries||[];
   let total=key==='food'?0:cents((daily.columns||[]).find(c=>'custom:'+c.id===key)?.budget);
   for(let i=start;i<=day;i++){
    if(key==='food')total+=cents(daily.food)+(new Date(y,m-1,i).getDay()===6?cents(daily.sat):0);
@@ -26,3 +26,4 @@
  const api={cents,money,delta,remaining,varieRemaining,transfer};root.RFFBudget=api;
  if(typeof module!=='undefined')module.exports=api;
 })(typeof window==='undefined'?globalThis:window);
+

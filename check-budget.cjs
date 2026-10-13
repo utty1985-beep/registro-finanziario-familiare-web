@@ -1,0 +1,14 @@
+const A=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),B=require('./rff-budget-transfers.js');
+const d={planned:[['Luce',40,true,'-',false,null,'luce']],moves:[],rates:[],daily:{start:'2026-10-12',viewStart:'2026-10-13',food:13,sat:50,spend:{1:{food:43}},entries:[],columns:[{id:'gas',budget:100}],budgetTransfers:[]}};
+const left=n=>B.remaining(d,'food',n,'2026-10')/100;
+A.equal(left(1),-30);A.equal(left(2),-17);A.equal(left(3),46);
+d.daily.entries.push({day:3,category:'food',amount:-20});A.equal(left(3),26);A.equal(left(4),39);
+const before=JSON.stringify([d.planned,d.moves,d.rates,d.daily.spend,d.daily.entries]);
+B.transfer(d,'custom:gas','Gas',10000,4,'t1');B.transfer(d,'custom:gas','Gas',10000,4,'t1');A.equal(left(4),139);A.equal(B.remaining(d,'custom:gas',4,'2026-10'),0);A.equal(left(3),26);
+B.transfer(d,'varie:planned:luce','Luce',4000,4,'t2');A.equal(left(4),179);A.equal(B.varieRemaining(d,d.planned[0],'planned'),0);
+A.equal(before,JSON.stringify([d.planned,d.moves,d.rates,d.daily.spend,d.daily.entries]));
+B.transfer(d,'varie:planned:luce','Luce',-4000,4,'undo');A.equal(left(4),139);A.equal(left(13),306);
+const html=fs.readFileSync('index.html','utf8');const check=h=>{for(const m of h.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))if(m[1].trim())new vm.Script(m[1]);};check(html);
+const ctx={self:{addEventListener(){}},console};vm.createContext(ctx);vm.runInContext(fs.readFileSync('service-worker.js','utf8'),ctx);check(ctx.patchHtml(html));
+A.ok(html.includes("foodCarry=RFFBudget.remaining(data(),'food',day,month)/100"));A.ok(html.includes("return RFFBudget.remaining(d,'food',end,key)/100"));
+console.log('PASS: carry, Saturday, first-of-month, signed spending, transfers, deduplication, reversal, conservation, script syntax and service worker.');
