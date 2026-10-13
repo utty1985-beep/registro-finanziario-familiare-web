@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Registro Finanziario Familiare V126</title>
-<script>window.RFF_RELEASE=Object.freeze({version:'V126',date:'13/10',build:'20261013-v126-residuo-cumulativo'});</script>
+<script>window.RFF_RELEASE=Object.freeze({version:'V127',date:'13/10',build:'20261013-v127-spese-chiare'});</script>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -271,7 +271,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
   </div>
  </details>
  <details class="card paymentDrop" id="paymentDrop"><summary><span>➕ Aggiungi pagamento</span></summary><div class="entryForm">
- <div class="full"><b>Segno</b> <span class="signs"><label><input type="radio" name="entrySign" value="+" checked>+</label><label><input type="radio" name="entrySign" value="-">−</label></span></div>
+ <div class="full"><b>Tipo movimento</b> <span class="signs"><label><input type="radio" name="entrySign" value="-" checked>Spesa −</label><label><input type="radio" name="entrySign" value="+">Aggiunta +</label></span></div>
  <label>Importo (€)<input id="entryAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></label>
  <label>Categoria<select id="entryCategory"></select><span id="rffResidualTiles" style="display:block;margin-top:7px"></span></label>
  <label class="full">Giorno del pagamento<input id="entryDate" type="date"></label>
@@ -294,7 +294,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="nav"><button class="primary" id="boardBack">← Registro</button><button class="primary" id="boardDaily">Spese →</button></div>
 </section>
 <div id="printSheets" aria-hidden="true"></div>
-<script src="./rff-budget-transfers.js?v=20261013-v126"></script>
+<script src="./rff-budget-transfers.js?v=20261013-v127"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (()=>{
@@ -708,11 +708,33 @@ function renderDaily(){
   const todayFoodBudget=(+d.food||0)+(isSat?(+d.sat||0):0);
   const previousFood=RFFBudget.remaining(data(),'food',day-1,month)/100;
   const foodTransfers=(RFFBudget.delta(data(),'food',day)-RFFBudget.delta(data(),'food',day-1))/100;
-  const foodHtml=`<td class="moneyCell"><strong style="color:${foodCarry<0?'#c62828':'#15803d'}">€ ${euro(foodCarry)}</strong><span class="res">Riporto: € ${euro(previousFood)}<br>Budget: + € ${euro(todayFoodBudget)}<br>Movimenti: € ${euro(entriesFor(day,'food')-(+sp.food||0))}${foodTransfers?'<br>Trasferimenti: € '+euro(foodTransfers):''}</span></td>`;
+  const breakdown=RFFBudget.dayBreakdown(data(),'food',day);
+  const foodHtml=`<td class="moneyCell"><strong style="color:${foodCarry<0?'#c62828':'#15803d'}">€ ${euro(foodCarry)}</strong><span class="res">Disponibile a fine giorno<br>Riporto: € ${euro(previousFood)}<br>Budget: + € ${euro(todayFoodBudget)}<br>Spese: − € ${euro(breakdown.expenses/100)}${breakdown.additions?'<br>Aggiunte registrate: + € '+euro(breakdown.additions/100):''}${foodTransfers?'<br>Trasferimenti: '+(foodTransfers>0?'+':'−')+' € '+euro(Math.abs(foodTransfers)):''}</span><details class="rffDayDetails"><summary>Dettaglio del giorno</summary><div class="rffDayItems"></div></details></td>`;
   let tr=document.createElement('tr');if(isToday)tr.className='today';
-  tr.innerHTML=`<td class="day">${dt.toLocaleDateString('it-IT',{weekday:'short'})} ${day}</td>${foodHtml}${cells}`;if(day>=displayStart)body.appendChild(tr)
+  tr.innerHTML=`<td class="day">${dt.toLocaleDateString('it-IT',{weekday:'short'})} ${day}</td>${foodHtml}${cells}`;renderFoodDayDetails(tr.querySelector('.rffDayItems'),day);if(day>=displayStart)body.appendChild(tr)
  }
  renderVarieSingle();renderTransferHistory();renderEntryHistory();renderPending();renderResidualTiles()
+}
+function renderFoodDayDetails(host,day){
+ const daily=data().daily;
+ const append=text=>{const row=document.createElement('div');row.style.cssText='padding:6px 0;white-space:normal;font-size:13px';row.textContent=text;host.appendChild(row);return row};
+ const legacy=Number(daily.spend?.[day]?.food)||0;
+ if(legacy)append((legacy>0?'Spesa registrata: −':'Aggiunta registrata: +')+' € '+euro(Math.abs(legacy)));
+ (daily.entries||[]).filter(e=>Number(e.day)===day&&e.category==='food').forEach(entry=>{
+  const amount=Number(entry.amount)||0;
+  const row=append((amount<0?'Spesa −':'Aggiunta +')+' € '+euro(Math.abs(amount))+' · '+(cleanNoticeDesc(entry.desc)||'Movimento'));
+  if(amount>0&&familyRole==='owner'){
+   const button=document.createElement('button');button.type='button';button.textContent='Era una spesa';button.style.cssText='display:block;font-size:12px;margin-top:5px';
+   button.onclick=()=>{
+    if(familyRole!=='owner')return;
+    if(!confirm('Correggere + € '+euro(amount)+' del giorno '+day+' in una spesa di − € '+euro(amount)+'? Il disponibile da quel giorno diminuirà di € '+euro(amount*2)+'.'))return;
+    if(!(data().daily.entries||[]).includes(entry)||Number(entry.amount)!==amount){alert('Il movimento è cambiato. Riapri il dettaglio.');renderDaily();return;}
+    entry.signCorrection={previousAmount:amount,correctedAt:new Date().toISOString()};entry.amount=-amount;save();renderDaily();
+   };row.appendChild(button);
+  }
+ });
+ (daily.budgetTransfers||[]).filter(t=>Number(t.day)===day).forEach(t=>append('Trasferimento '+(t.foodCents>=0?'+':'−')+' € '+euro(Math.abs(t.foodCents)/100)+' · '+t.sourceName));
+ if(!host.children.length)append('Nessuna spesa, aggiunta o trasferimento.');
 }
 function renderVarieSingle(){
  const host=$('#varieSingle'); if(!host) return;
@@ -753,6 +775,7 @@ $('#addEntry').onclick=async(event)=>{
  const day=Number(date.slice(-2)),[yy,mm]=ymParts();if(day<1||day>new Date(yy,mm,0).getDate())return;
  const sign=document.querySelector('input[name="entrySign"]:checked').value;
  const category=$('#entryCategory').value;if(category.startsWith('varie:')){moveResidual(category);return;}
+ if(sign==='+'&&!confirm('Stai aggiungendo € '+euro(amount)+' a '+categoryName(category)+'. Il disponibile aumenterà. Se è una spesa, annulla e scegli Spesa −. Confermi l’aggiunta?'))return;
  if(familyRole==='viewer'||event?.sendForApproval){
   if(!sb||!familyId){alert('Sincronizzazione non disponibile. Riprova.');return}
   const btn=event?.sendForApproval?$('#sendForApproval'):$('#addEntry'),label=btn.textContent;btn.disabled=true;btn.textContent='Invio…';
@@ -762,7 +785,7 @@ $('#addEntry').onclick=async(event)=>{
    const desc=(sign==='-'?'__RFF_SIGN_NEG__':'__RFF_SIGN_POS__')+' Pagamento manuale · '+categoryName(category);
    const {error}=await sb.rpc('rff_send_payment',{...deviceArgs(),p_notification_id:nid,p_amount:amount,p_description:desc,p_occurred_at:occurred.toISOString(),p_category:categoryName(category)});
    if(error)throw error;
-   $('#entryAmount').value='';$('#sendStatus').textContent='Richiesta inviata: resta rossa fino alla conferma nel registro condiviso.';
+   $('#entryAmount').value='';document.querySelector('input[name="entrySign"][value="-"]').checked=true;$('#sendStatus').textContent='Richiesta inviata: resta rossa fino alla conferma nel registro condiviso.';
    await fetchInbox();$('#pendingDrop').open=true;
   }catch(e){console.log('Invio manuale:',e);alert('Invio non riuscito. Controlla Internet e riprova.')}finally{btn.textContent=label;btn.disabled=false}
   return;
@@ -770,7 +793,7 @@ $('#addEntry').onclick=async(event)=>{
  if(familyRole!=='owner')return;
  const d=data().daily;d.entries||(d.entries=[]);
  d.entries.push({id:Date.now()+'-'+Math.random().toString(36).slice(2),day,category:category,amount:(sign==='-'?-1:1)*amount,desc:'Manuale'});
- $('#entryAmount').value='';save();renderDaily();const hd=$('#historyDrop');if(hd)hd.open=true;
+ $('#entryAmount').value='';document.querySelector('input[name="entrySign"][value="-"]').checked=true;save();renderDaily();const hd=$('#historyDrop');if(hd)hd.open=true;
 };
 function renderEntryHistory(){
  const host=$('#entryHistory'),count=$('#entryHistoryCount');host.innerHTML='';

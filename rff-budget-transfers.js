@@ -3,6 +3,13 @@
  const cents=n=>Math.round((Number(n)||0)*100),money=n=>n/100;
  const list=d=>Array.isArray(d?.daily?.budgetTransfers)?d.daily.budgetTransfers:[];
  const delta=(d,key,day)=>list(d).filter(t=>Number(t.day)<=day).reduce((n,t)=>n+(key==='food'?Number(t.foodCents)||0:t.sourceKey===key?Number(t.sourceCents)||0:0),0);
+ function dayBreakdown(d,key,day){
+  let expenses=0,additions=0;
+  const add=amount=>{if(amount<0)expenses-=amount;else additions+=amount};
+  add(-cents(d.daily?.spend?.[day]?.[key]));
+  (d.daily?.entries||[]).filter(e=>Number(e.day)===Number(day)&&e.category===key).forEach(e=>add(cents(e.amount)));
+  return {expenses,additions,net:additions-expenses};
+ }
  function remaining(d,key,day,month){
   const daily=d.daily||{},[y,m]=month.split('-').map(Number),start=1,entries=daily.entries||[];
   let total=key==='food'?0:cents((daily.columns||[]).find(c=>'custom:'+c.id===key)?.budget);
@@ -23,7 +30,7 @@
   if(d.daily.budgetTransfers.some(t=>t.id===id))return;
   d.daily.budgetTransfers.push({id,sourceKey,sourceName,day,foodCents:amount,sourceCents:-amount,at:new Date().toISOString()});
  }
- const api={cents,money,delta,remaining,varieRemaining,transfer};root.RFFBudget=api;
+ const api={cents,money,delta,dayBreakdown,remaining,varieRemaining,transfer};root.RFFBudget=api;
  if(typeof module!=='undefined')module.exports=api;
 })(typeof window==='undefined'?globalThis:window);
 
