@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V126</title>
-<script>window.RFF_RELEASE=Object.freeze({version:'V128',date:'13/10',build:'20261013-v128-wallet-viewer'});</script>
+<title>Registro Finanziario Familiare V129</title>
+<script>window.RFF_RELEASE=Object.freeze({version:'V129',date:'14/10',build:'20261014-v129-wallet-recovery'});</script>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -939,22 +939,46 @@ function renderPaymentSources(){
 }
 $('#sourcesButton').onclick=renderPaymentSources;
 $('#sendNotices').onclick=()=>sendAndroidPayments(true);
-$('#recoverWalletNotices').onclick=async()=>{
- const bridge=window.RegistroAndroid,status=$('#sendStatus');
- if(!bridge?.requestPaymentListenerRescan){status.textContent='Questa versione Android non supporta il recupero: occorre un aggiornamento APK.';return}
- status.textContent='Controllo delle notifiche Wallet ancora presenti in corso…';
- try{bridge.requestPaymentListenerRescan()}catch(e){status.textContent='Il servizio notifiche non ha risposto: verifica l’autorizzazione Android.';return}
- await new Promise(resolve=>setTimeout(resolve,1400));
- await sendAndroidPayments();
- let diag=null;try{diag=JSON.parse(bridge.notificationDiagnostics?.()||'null')}catch(e){}
- const pending=Number(bridge.queuedPaymentCount?.()||0);
- const details=diag?' Stato lettore: '+(diag.listenerConnected||diag.connected?'collegato':'da verificare')+
-  '. Ultima notifica vista: '+(Number(diag.lastSeenAt)>0?new Date(Number(diag.lastSeenAt)).toLocaleString('it-IT'):'nessuna informazione')+
-  '. Ultimo errore di lettura: '+(Number(diag.lastParseFailedAt)>0?new Date(Number(diag.lastParseFailedAt)).toLocaleString('it-IT'):'nessuno registrato')+'.':'';
- status.textContent='Ricontrollo completato. '+pending+' pagamento/i ancora in coda sul telefono.'+details+
-  ' Se il pagamento manca ancora, lascia la notifica Wallet visibile e comunica questo risultato.';
- updateNotificationState();
-};
+async function recoverWalletNotices(){
+ const bridge=window.RegistroAndroid,status=$('#sendStatus'),button=$('#recoverWalletNotices');
+ if(!bridge?.requestPaymentListenerRescan){status.textContent='Per recuperare le notifiche serve l’aggiornamento Android V129.';return}
+ const started=Date.now();let diag=null;
+ button.disabled=true;status.textContent='Recupero Wallet in corso: attendo il collegamento del lettore Android…';
+ try{
+  bridge.requestPaymentListenerRescan();
+  for(let attempt=0;attempt<12;attempt++){
+   await new Promise(resolve=>setTimeout(resolve,1000));
+   await sendAndroidPayments();
+   try{diag=JSON.parse(bridge.notificationDiagnostics?.()||'null')}catch(_){}
+   if(attempt>=3&&diag?.listenerConnected&&Number(diag.lastScanAt)>=started)break;
+  }
+  await fetchInbox();updateNotificationState();
+  const pending=Number(bridge.queuedPaymentCount?.()||0);
+  if(Number(diag?.nativeVersion||0)<129){
+   status.textContent='Il recupero completo richiede l’APK V129. L’aggiornamento online da solo non aggiorna il lettore Android.';
+  }else if(!diag.accessEnabled){
+   status.textContent='Android non concede l’accesso alle notifiche a Registro.';
+  }else if(!diag.listenerConnected){
+   status.textContent='Il lettore Android non si è ancora collegato. Riconnessione richiesta; lascia la notifica Wallet nella tendina.';
+  }else if(diag.lastScanError){
+   status.textContent='Android non ha completato la lettura delle notifiche. Il recupero riproverà automaticamente.';
+  }else if(!diag.walletEnabled){
+   status.textContent='Il lettore è collegato, ma Wallet non è selezionato tra le app di pagamento.';
+  }else if(Number(diag.activeWalletNotifications)===0){
+   status.textContent='Lettore collegato: Android non ha restituito notifiche Wallet attive in questa scansione.';
+  }else if(Number(diag.lastParseFailedAt)>=started&&Number(diag.lastQueuedAt)<started){
+   status.textContent='La notifica Wallet è stata letta, ma l’importo non è stato riconosciuto. Il pagamento non è stato inserito.';
+  }else if(pending>0){
+   status.textContent=pending+' pagamento/i acquisito/i sul telefono, in attesa di sincronizzazione.';
+  }else if(Number(diag.lastQueuedAt)>=started){
+   status.textContent='Pagamento recuperato e inviato. Controlla i pagamenti da confermare nel Registro.';
+  }else{
+   status.textContent='Notifiche Wallet ricontrollate. Nessun nuovo pagamento in coda; verifica anche quelli già ricevuti nel Registro.';
+  }
+ }catch(e){status.textContent='Recupero non completato. Lascia la notifica Wallet visibile e riprova.'}
+ finally{button.disabled=false;updateNotificationState()}
+}
+$('#recoverWalletNotices').onclick=recoverWalletNotices;
 async function showPairingRequests(){
  if(familyRole!=='owner'){ $('#pairingCard').hidden=true; return; }
  const {data:requests,error}=await sb.rpc('rff_pending_devices',deviceArgs());
@@ -1760,3 +1784,4 @@ if ('serviceWorker' in navigator) {
 <script src="./v65-varie-collapse.js?v=20261009-v113-board-recovery"></script>
 <script src="./v85-calendar-fix.js?v=20261009-v113-board-recovery"></script>
 </body></html>
+
