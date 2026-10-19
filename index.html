@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V129</title>
-<script>window.RFF_RELEASE=Object.freeze({version:'V129',date:'14/10',build:'20261014-v129-wallet-recovery'});</script>
+<title>Registro Finanziario Familiare V130</title>
+<script>window.RFF_RELEASE=Object.freeze({version:'V130',date:'19/10',build:'20261019-v130-notifications-recovery'});</script>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -231,7 +231,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 06/10 · V111</small><div class="userBar"><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 19/10 · V130</small><div class="userBar"><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><span class="syncStatus" id="syncStatus" role="status">Connessione…</span></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Profilo Simona · sola lettura. Puoi usare Lavagna, Calendario e Aggiungi pagamento.</div>
@@ -385,7 +385,7 @@ const SUPABASE_URL='https://dqtqwfvszrtndwipyluh.supabase.co';
 const SUPABASE_KEY='sb_publishable_Qsbu5wHMUJ6ZJGuMNb16vA_gBx74NsB';
 const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 let localRevision=0,cloudDirty=false,cloudSaving=null,cloudRefreshing=false,lastRemoteSnapshot="",familySyncBusy=false,paymentActionBusy=false;
-let familyId=null, familyRole=null, accountRole=null, cloudTimer=null, cloudLoading=false, roleTimer=null, inboxBusy=false, pendingTimer=null, lastInboxSync=0, reconnectTimers=[];
+let familyId=null, familyRole=null, accountRole=null, cloudTimer=null, cloudLoading=false, roleTimer=null, inboxBusy=false, pendingTimer=null, lastInboxSync=0, reconnectTimers=[], lastWalletAutoScan=0;
 function syncStatus(message,error=false){const el=$('#syncStatus');el.textContent=message;el.classList.toggle('error',error);const mirror=$('#syncMirror');if(mirror){mirror.textContent=message;mirror.classList.toggle('error',error)}}
 const deviceId=localStorage.getItem('rff_device_id')||crypto.randomUUID();
 const deviceSecret=localStorage.getItem('rff_device_secret')||Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -466,7 +466,7 @@ async function refreshRemote(){
 }
 async function syncFamily(){
  if(familySyncBusy||paymentActionBusy||document.hidden||!familyId||!familyRole)return;familySyncBusy=true;
- try{updateNotificationState();await refreshRemote();await sendAndroidPayments();await fetchInbox();if(familyRole==='owner')await showPairingRequests();await syncBoard(false);await syncCalendar(false);syncNativeFamilyTools();if($('#p3').classList.contains('active')){renderBoard();renderCalendar()}}
+ try{autoScanWallet();updateNotificationState();await refreshRemote();await sendAndroidPayments();await fetchInbox();if(familyRole==='owner')await showPairingRequests();await syncBoard(false);await syncCalendar(false);syncNativeFamilyTools();if($('#p3').classList.contains('active')){renderBoard();renderCalendar()}}
  catch(e){console.log('Sincronizzazione famiglia:',e)}finally{familySyncBusy=false}
 }
 function cancelReconnectTimers(){for(const t of reconnectTimers)clearTimeout(t);reconnectTimers=[]}
@@ -905,7 +905,35 @@ async function sendAndroidPayments(manual=false){
  }catch(e){console.log('Invio pagamento:',e);$('#sendStatus').textContent='Invio non riuscito: pagamenti conservati sul telefono.';}finally{androidSendBusy=false}
 }
 window.sendAndroidPayments=sendAndroidPayments;
-function updateNotificationState(){const bridge=window.RegistroAndroid,el=$('#notificationState');if(!el)return;if(!bridge){el.textContent='Le notifiche dei pagamenti si attivano nell’app Android. Sul sito puoi vedere i pagamenti sincronizzati.';return}const enabled=bridge.notificationAccessEnabled?.();const pending=Number(bridge.queuedPaymentCount?.()||0);el.textContent=(enabled===true||enabled==='true'?'Accesso notifiche attivo.':'Accesso notifiche da attivare nelle impostazioni Android.')+' '+pending+' pagamento/i ancora sul telefono. Seleziona le app qui sotto: i pagamenti riconosciuti compariranno in rosso su tutti i telefoni autorizzati dopo la sincronizzazione.'}
+// Il WebView si risveglia solo in primo piano. Una scansione limitata recupera
+// le notifiche Wallet ancora visibili senza duplicare gli invii già confermati.
+function autoScanWallet(force=false){
+ const bridge=window.RegistroAndroid;
+ if(document.hidden||!familyId||!familyRole||!bridge?.requestPaymentListenerRescan)return;
+ const elapsed=Date.now()-lastWalletAutoScan;
+ if(elapsed<(force?10000:90000))return;
+ lastWalletAutoScan=Date.now();
+ try{bridge.requestPaymentListenerRescan()}catch(e){console.log('Scansione Wallet:',e);return}
+ setTimeout(()=>{
+  if(document.hidden||!familyId||!familyRole)return;
+  sendAndroidPayments().catch(e=>console.log('Recupero coda Wallet:',e));
+  fetchInbox(true).catch(e=>console.log('Recupero pagamenti familiari:',e));
+  updateNotificationState();
+ },1800);
+}
+function updateNotificationState(){
+ const bridge=window.RegistroAndroid,el=$('#notificationState');if(!el)return;
+ if(!bridge){el.textContent='Le notifiche dei pagamenti richiedono l’app Android. Sul sito vedi i pagamenti già sincronizzati.';return}
+ let enabled=false,diag={};
+ try{enabled=bridge.notificationAccessEnabled?.()===true||bridge.notificationAccessEnabled?.()==='true'}catch(_){}
+ try{diag=JSON.parse(bridge.notificationDiagnostics?.()||'{}')||{}}catch(_){}
+ const count=Number(bridge.queuedPaymentCount?.()||0);
+ const listener=diag.listenerConnected===false?' · lettore disconnesso, recupero automatico in corso':'';
+ const wallet=diag.walletEnabled===false?' · Wallet non selezionato':'';
+ const problems=Number(diag.lastParseFailedAt||0)>Number(diag.lastQueuedAt||0)&&Number(diag.lastParseFailedAt||0)>Date.now()-24*3600000?' · ultima notifica non riconosciuta':'';
+ el.textContent=(enabled?'Accesso notifiche autorizzato':'Accesso notifiche NON autorizzato')+
+ listener+wallet+problems+' · '+count+' pagamento/i ancora sul telefono. I pagamenti recuperati compaiono nel Registro da confermare.';
+}
 $('#authorizeNotices').onclick=()=>window.RegistroAndroid?.openNotificationAccess();
 function renderPaymentSources(){
  const host=$('#paymentSources'),bridge=window.RegistroAndroid;
@@ -1128,12 +1156,14 @@ async function enter(session){
   await loadCloud();await syncBoard(false);await syncCalendar(false);syncNativeFamilyTools();gate.classList.add('hidden');say('');updateNotificationState();
   if(familyRole==='owner'){await sendAndroidPayments();await fetchInbox(true);await showPairingRequests()}else await sendAndroidPayments();
   queueReconnectSync('apertura app');
+  autoScanWallet(true);
   roleTimer=setInterval(syncFamily,4000);
 
  }
  catch(e){gate.classList.remove('hidden');say('Accesso al registro: '+(e?.message||'errore di connessione'))}
 }
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncFamily();queueReconnectSync('ritorno in primo piano')}});
+window.rffForceSync=()=>{autoScanWallet(true);queueReconnectSync('riapertura Android');return syncFamily()};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){autoScanWallet(true);syncFamily();queueReconnectSync('ritorno in primo piano')}});
 window.addEventListener('focus',()=>{syncFamily();queueReconnectSync('focus')});
 window.addEventListener('pageshow',()=>{syncFamily();queueReconnectSync('riapertura')});
 window.addEventListener('online',()=>{syncStatus('Internet tornato · recupero pagamenti…');queueReconnectSync('internet tornato')});
