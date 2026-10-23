@@ -1,12 +1,12 @@
-const CACHE='rff-20261022-v132-profile-categories';
-const SW_VERSION='20261022-v132-profile-categories';
+const CACHE='rff-20261023-v133-manual-simona-outbox';
+const SW_VERSION='20261023-v133-manual-simona-outbox';
 const ASSETS=[
   './rff-budget-transfers.js','./','./index.html','./manifest.json','./icon-192.png?v=80-icon','./icon-512.png?v=80-icon',
   './v56-ui.js','./v56-main.js','./v57-polish.js','./v58-red-button.js','./v61-longpress-toggle.js','./v63-month-stability.js','./v64-sentinel-role.js','./v65-varie-collapse.js','./v85-calendar-fix.js'
 ];
 
 function patchHtml(html){
-  if(html.includes("version:'V132'"))return html;
+  if(/version:\x27V(?:132|133)\x27/.test(html))return html;
   let out=html.replace(/service-worker\.js\?v=[^'" ]+/g,'service-worker.js?v='+SW_VERSION);
 
   // V91: recupera i pagamenti Wallet rimasti in coda quando torna Internet o l'app torna in primo piano.
