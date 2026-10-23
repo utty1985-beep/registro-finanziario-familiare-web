@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Registro Finanziario Familiare V133</title>
-<script>window.RFF_RELEASE=Object.freeze({version:'V133',date:'23/10',build:'20261023-v133-manual-simona-outbox'});</script>
+<title>Registro Finanziario Familiare V134</title>
+<script>window.RFF_RELEASE=Object.freeze({version:'V134',date:'23/10',build:'20261023-v134-home-current-month'});</script>
 <style>
 :root{--b:#0b4f8a;--b2:#eaf4ff;--g:#15803d;--r:#c62828;--bd:#cbd5e1;--bg:#f4f7fb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
@@ -239,7 +239,7 @@ th{background:#eaf4ff;color:#0b4f8a;position:sticky;top:0;z-index:3} th:first-ch
  <div class="authBtns"><button class="primary" id="loginBtn">Accedi</button><button id="signupBtn">Registrati</button><button id="resetBtn">Password dimenticata</button><button class="primary" id="setPasswordBtn" hidden>Salva nuova password</button></div>
  <div id="authMsg" class="authMsg" role="status"></div>
 </div></div>
-<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 23/10 · V133</small><div class="userBar"><label id="rffProfileControl" for="rffProfileSelect" hidden><span>Profilo</span><select id="rffProfileSelect" aria-label="Scegli profilo"><option value="mario">👤 Mario · amministratore</option><option value="simona">👁 Simona · sola visualizzazione</option></select></label><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
+<header><h1>🏠 Registro Finanziario Familiare</h1><small>Registro mensile condivisibile · Aggiornato 23/10 · V134</small><div class="userBar"><label id="rffProfileControl" for="rffProfileSelect" hidden><span>Profilo</span><select id="rffProfileSelect" aria-label="Scegli profilo"><option value="mario">👤 Mario · amministratore</option><option value="simona">👁 Simona · sola visualizzazione</option></select></label><button id="openCalculator" type="button" aria-haspopup="dialog" aria-controls="calculatorDialog">🧮 Calcolatrice</button><span id="userEmail"></span><button id="logoutBtn">Esci</button></div></header>
 <main>
 <div class="toolbar"><button class="primary printBtn" id="printRegister" type="button">🖨️ Stampa mese</button><span class="syncStatus" id="syncStatus" role="status">Connessione…</span></div>
 <div id="viewerBanner" class="viewerBanner" hidden>Profilo Simona · sola lettura. Puoi usare Lavagna, Calendario e Aggiungi pagamento.</div>
@@ -1682,7 +1682,6 @@ if ('serviceWorker' in navigator) {
   const qs=(s,r=document)=>r.querySelector(s);
   const qsa=(s,r=document)=>[...r.querySelectorAll(s)];
   const euro=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const monthKey=()=>qs('#monthPick')?.value||(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')})();
   const readDb=()=>{try{return JSON.parse(localStorage.getItem('rff_verified')||'{}')}catch(_){return {}}};
   const roleIsViewer=()=>{try{if(typeof familyRole!=='undefined'&&familyRole)return familyRole==='viewer'}catch(_){}const b=qs('#viewerBanner');if(b&&!b.hidden)return true;try{return localStorage.getItem('rff_last_family_role')==='viewer'}catch(_){return false}};
   const initialViewer=roleIsViewer();
@@ -1702,7 +1701,7 @@ if ('serviceWorker' in navigator) {
   const p1=qs('#p1');
   if(p1) p1.parentNode.insertBefore(page,p1);
 
-  const show=id=>{qsa('.page').forEach(p=>p.classList.remove('active'));qs(id)?.classList.add('active');window.scrollTo(0,0)};
+  const show=id=>{qsa('.page').forEach(p=>p.classList.remove('active'));qs(id)?.classList.add('active');if(id==='#p0')refresh();window.scrollTo(0,0)};
   const openRegister=()=>show('#p1');
   const openDaily=()=>{show('#p2');try{window.scrollTo(0,0)}catch(_){}};
   const openBoard=async focus=>{const b=qs('#toBoard');if(b)b.click();else show('#p3');setTimeout(()=>{if(focus==='calendar'){const d=qs('#calendarAddPanel');if(d)d.open=true;qs('.calendarCard')?.scrollIntoView({behavior:'smooth',block:'start'})}else{qs('#boardText')?.scrollIntoView({behavior:'smooth',block:'center'});qs('#boardText')?.focus()}},180)};
@@ -1747,12 +1746,14 @@ if ('serviceWorker' in navigator) {
   function moneyText(real,maskable=true){return hidden&&maskable?'••••••':real}
   function setMoney(el,real,maskable=true){if(!el)return;el.textContent=moneyText(real,maskable);el.classList.toggle('rffMasked',hidden&&maskable)}
   function refresh(){
-    const key=monthKey(),db=readDb(),d=db[key]||{};
-    const nowDate=new Date(),currentKey=nowDate.getFullYear()+'-'+String(nowDate.getMonth()+1).padStart(2,'0'),currentMonthData=db[currentKey]||{};
+    const nowDate=new Date(),currentKey=nowDate.getFullYear()+'-'+String(nowDate.getMonth()+1).padStart(2,'0');
+    const db=readDb(),currentMonthData=db[currentKey]||{},d=currentMonthData;
     const viewer=roleIsViewer(),greeting=qs('#rffDashGreeting');if(greeting)greeting.textContent='Ciao '+(viewer?'Simona':'Mario');
     const pill=qs('.rffReadOnlyPill');if(pill)pill.hidden=!viewer;
-    const income='€ '+(qs('#incomeTotal')?.textContent||'0,00');
-    const planned='€ '+(qs('#plannedTotal')?.textContent||'0,00');
+    const total=rows=>(Array.isArray(rows)?rows:[]).reduce((sum,r)=>sum+Math.abs(Number(r?.[1])||0),0);
+    const income='€ '+euro(total(d.income));
+    const planned='€ '+euro(total(d.planned));
+    qs('.rffDashHello p').textContent='Situazione di oggi · '+nowDate.toLocaleDateString('it-IT',{month:'long',year:'numeric'});
     const currentBalance=monthBalance(currentMonthData);
     setMoney(qs('#rffDashIncome'),income,true);setMoney(qs('#rffDashPlanned'),planned,false);setMoney(qs('#rffDashBalance'),'€ '+euro(currentBalance),true);
     const trend=qs('#rffDashTrend'),prev=db[prevMonthKey(currentKey)];
